@@ -50,6 +50,8 @@ from shutil import copyfile, rmtree
 import copy
 # from .prepare_workertypo import Worker
 
+os.environ['USE_PYGEOS'] = '0'
+import geopandas as gpd
 ############################################################## 
 
 import processing
@@ -136,6 +138,7 @@ class SUEWSPrepareDatabase:
         self.IMPveg_fai_eve = None
         # self.wall_area = None
         self.daypop = 0
+        self.typologies = 0
         self.start_DLS = 85
         self.end_DLS = 302
         self.day_since_rain = 0
@@ -146,15 +149,15 @@ class SUEWSPrepareDatabase:
         self.steps = 0
         # self.region = None
 
-        # self.output_dir = None
-        # self.LCFfile_path = None
-        # self.IMPfile_path = None
-        # self.IMPvegfile_path = None
-        # self.Metfile_path = None
-        # # self.land_use_file_path = None
-        # self.LCF_from_file = True
-        # self.IMP_from_file = True
-        # self.IMPveg_from_file = True
+        self.output_dir = None
+        self.LCFfile_path = None
+        self.IMPfile_path = None
+        self.IMPvegfile_path = None
+        self.Metfile_path = None
+        # self.land_use_file_path = None
+        self.LCF_from_file = True
+        self.IMP_from_file = True
+        self.IMPveg_from_file = True
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -352,8 +355,10 @@ class SUEWSPrepareDatabase:
         self.comboBoxEvrTree = True
         self.comboBoxDecTree = True
         
+        timezone = gpd.read_file(self.plugin_dir + '/Input/timezones/ne_10m_time_zones.shp')
+
         # Region
-        db_path = r"C:\GitHub\SUEWS_Database\database_copy.xlsx"
+        db_path = self.plugin_dir + '/Input/database.xlsx'  # TODO When in UMEP Toolbox, set this path to db in database manager
         reg = pd.read_excel(db_path, sheet_name='Lod0_Region', index_col= 'ID')
         country = pd.read_excel(db_path, sheet_name='Lod0_Country', index_col= 'ID')
         veg = pd.read_excel(db_path, sheet_name='Lod2_Veg', index_col= 'ID')
@@ -393,15 +398,15 @@ class SUEWSPrepareDatabase:
 
         # widget.LUF_checkBox.stateChanged.connect(lambda: self.LUF_file(widget))
         # widget.WallArea_checkBox.stateChanged.connect(lambda: self.enable_wall_area(widget))
-
+        widget.checkBoxTypology.stateChanged.connect(lambda: self.use_typologies(widget))
         widget.checkBox_day.stateChanged.connect(lambda: self.popdaystate(widget))
 
         self.layerComboManagerPolygrid = QgsMapLayerComboBox(widget.widgetPolygonLayer)
-        self.layerComboManagerPolygrid.setCurrentIndex(-1)
+        # self.layerComboManagerPolygrid.setCurrentIndex(-1)
         self.layerComboManagerPolygrid.setFilters(QgsMapLayerProxyModel.PolygonLayer)
         self.layerComboManagerPolygrid.setFixedWidth(175)
         self.layerComboManagerPolyField = QgsFieldComboBox(widget.widgetPolyField)
-        self.layerComboManagerPolyField.setFilters(QgsFieldProxyModel.Numeric)
+        self.layerComboManagerPolyField.setFilters(QgsFieldProxyModel.Int)
         self.layerComboManagerPolygrid.layerChanged.connect(self.layerComboManagerPolyField.setLayer)
 
         # New for Typology database
@@ -418,7 +423,7 @@ class SUEWSPrepareDatabase:
         self.layerComboManagerLC.setFixedWidth(175)
         self.layerComboManagerLC.setCurrentIndex(-1)
         self.layerComboManagerPolygridTypo = QgsMapLayerComboBox(widget.widgetPolygonLayerTypo)
-        self.layerComboManagerPolygridTypo.setCurrentIndex(-1)
+        # self.layerComboManagerPolygridTypo.setCurrentIndex(-1)
         self.layerComboManagerPolygridTypo.setFilters(QgsMapLayerProxyModel.PolygonLayer)
         self.layerComboManagerPolygridTypo.setFixedWidth(175)
 
@@ -433,7 +438,7 @@ class SUEWSPrepareDatabase:
         self.pop_density_day = QgsFieldComboBox(widget.widgetPopDay)
         self.pop_density_day.setFilters(QgsFieldProxyModel.Numeric)
         self.layerComboManagerPolygrid.layerChanged.connect(self.pop_density_day.setLayer)
-
+    
         widget.pushButtonImportLCF.clicked.connect(lambda: self.set_LCFfile_path(widget))
         widget.pushButtonImportIMPVeg.clicked.connect(lambda: self.set_IMPvegfile_path(widget))
 
@@ -454,6 +459,7 @@ class SUEWSPrepareDatabase:
                                                                                              currentIndex()))
         widget.fileCodeLineEdit.textChanged.connect(lambda: self.file_code_changed(widget.fileCodeLineEdit.text()))
         widget.lineEditUTC.textChanged.connect(lambda: self.utc_changed(widget.lineEditUTC.text()))
+        self.layerComboManagerPolygrid.layerChanged.connect(lambda: self.grid_layer_changed(widget, timezone))
 
 
     def soil_moisture_changed(self, value):
@@ -514,6 +520,16 @@ class SUEWSPrepareDatabase:
             widget.textInputIMPEveData.show()
             widget.textInputIMPDecData.show()
 
+    def grid_layer_changed(self, widget, timezone):
+        # Try to avoid error when no gridlayer present, or layers added or removed to project
+        try:
+            poly = self.layerComboManagerPolygrid.currentLayer()
+            grid_path = poly.source()
+            utc = get_utc(grid_path, timezone)
+            widget.lineEditUTC.setText(str(utc))
+        except:
+            pass
+
     def region_changed(self, widget, country):
         region_sel = widget.comboBoxRegion.currentText()
         country['descOrigin'] = country['Country'] + ', ' + country['City']
@@ -534,6 +550,9 @@ class SUEWSPrepareDatabase:
 
         country_sel = widget.comboBoxCountry.currentText()
         reg_sel = widget.comboBoxRegion.currentText()
+
+        self.country_str = country_sel
+        self.region_str = reg_sel
 
         country['descOrigin'] = country['Country'] + ', ' + country['City']
         
@@ -573,10 +592,16 @@ class SUEWSPrepareDatabase:
             comboBox.setCurrentIndex(indexer)
     
         decide_country_region(nonveg, 'Paved', widget.comboBoxPaved)
-        decide_country_region(nonveg, 'Bulidings', widget.comboBoxBuilding)
+        decide_country_region(nonveg, 'Buildings', widget.comboBoxBuilding)
         decide_country_region(veg, 'Evergreen Tree', widget.comboBoxEvrTree)
         decide_country_region(veg, 'Decidous Tree', widget.comboBoxDecTree)
         decide_country_region(veg, 'Grass', widget.comboBoxGrass)
+
+    def use_typologies(self, widget):
+        if widget.checkBoxTypology.isChecked():
+            self.typologies = 1
+        else:
+            self.typologies = 0
 
     def popdaystate(self, widget):
         if widget.checkBox_day.isChecked():
@@ -633,9 +658,9 @@ class SUEWSPrepareDatabase:
 
         # First check that all part of the interface have been filled in correclty
         # output dir
-        # if self.output_dir is None:
-        #     QMessageBox.critical(self.dlg, "Error", "No output directory selected")
-        #     return  
+        if self.output_dir is None:
+            QMessageBox.critical(self.dlg, "Error", "No output directory selected")
+            return  
 
         # metfile
         year = None
@@ -665,77 +690,80 @@ class SUEWSPrepareDatabase:
 
         # # check polygon grid
         poly = self.layerComboManagerPolygrid.currentLayer()
-        # if poly is None:
-        #     QMessageBox.critical(None, "Error", "No valid Polygon layer is selected")
-        #     return
+        if poly is None:
+            QMessageBox.critical(None, "Error", "No valid Polygon layer is selected")
+            return
         
-        # if not poly.geometryType() == 2:
-        #     QMessageBox.critical(None, "Error", "No valid Polygon layer is selected")
-        #     return
+        if not poly.geometryType() == 2:
+            QMessageBox.critical(None, "Error", "No valid Polygon layer is selected")
+            return
         
         poly_field = self.layerComboManagerPolyField.currentField()
-        # if poly_field == '':
-        #     QMessageBox.critical(None, "Error", "An attribute field with unique fields must be selected")
-        #     return
+        if poly_field == '':
+            QMessageBox.critical(None, "Error", "An attribute field with unique fields must be selected")
+            return
 
         vlayer = QgsVectorLayer(poly.source(), "polygon", "ogr")
 
+
         map_units = vlayer.crs().mapUnits()
-        # if not map_units == 0 or map_units == 1 or map_units == 2:
-        #     QMessageBox.critical(self.dlg, "Error", "Could not identify the map units of the polygon layer coordinate "
-        #                          "reference system")
-        #     return
+        if not map_units == 0 or map_units == 1 or map_units == 2:
+            QMessageBox.critical(self.dlg, "Error", "Could not identify the map units of the polygon layer coordinate "
+                                 "reference system")
+            return
 
-        # # population density  from polygon grid
-        # if self.pop_density.currentField() == '':
-        #     QMessageBox.critical(None, "Error", "An attribute field including night-time population density (pp/ha) must be selected")
-        #     return
+        # population density  from polygon grid
+        if self.pop_density.currentField() == '':
+            QMessageBox.critical(None, "Error", "An attribute field including night-time population density (pp/ha) must be selected")
+            return
 
-        # if self.daypop == 1:
-        #     if self.pop_density_day.currentField() == '':
-        #         QMessageBox.critical(None, "Error", "An attribute field including working population density (pp/ha) must be selected")
-        #         return            
+        if self.daypop == 1:
+            if self.pop_density_day.currentField() == '':
+                QMessageBox.critical(None, "Error", "An attribute field including working population density (pp/ha) must be selected")
+                return            
 
-        # # Leaf cycle
-        # if self.leaf_cycle == 0:
-        #     QMessageBox.critical(self.dlg, "Error", "No leaf cycle period has been selected")
-        #     return
-        # else:
-        #     if not (self.leaf_cycle == 1 or self.leaf_cycle == 5):
-        #         QMessageBox.critical(self.dlg,"Warning", "A transition period between Winter and Summer has been "
-        #                              "choosen. Preferably start the model run during Winter or Summer.")
+        # Leaf cycle
+        if self.leaf_cycle == 0:
+            QMessageBox.critical(self.dlg, "Error", "No leaf cycle period has been selected")
+            return
+        else:
+            if not (self.leaf_cycle == 1 or self.leaf_cycle == 5):
+                QMessageBox.critical(self.dlg,"Warning", "A transition period between Winter and Summer has been "
+                                     "choosen. Preferably start the model run during Winter or Summer.")
 
-        # if self.LCF_from_file:
-        #     if self.LCFfile_path is None:
-        #         QMessageBox.critical(None, "Error", "Land cover fractions file has not been provided,"
-        #                                                 " please check the main tab")
-        #         return
-        #     if not os.path.isfile(self.LCFfile_path[0]):
-        #         QMessageBox.critical(None, "Error", "Could not find the file containing land cover fractions")
-        #         return
+        if self.LCF_from_file:
+            if self.LCFfile_path is None:
+                QMessageBox.critical(None, "Error", "Land cover fractions file has not been provided,"
+                                                        " please check the main tab")
+                return
+            if not os.path.isfile(self.LCFfile_path[0]):
+                QMessageBox.critical(None, "Error", "Could not find the file containing land cover fractions")
+                return
 
-        # # Morphometric and land cover files
-        # if self.IMP_from_file:
-        #     if self.IMPfile_path is None:
-        #         QMessageBox.critical(None, "Error", "Building morphology file has not been provided,"
-        #                                             " please check the main tab")
-        #         return
-        #     if not os.path.isfile(self.IMPfile_path[0]):
-        #         QMessageBox.critical(None, "Error", "Could not find the file containing building morphology")
-        #         return
+        # Morphometric and land cover files
+        if self.IMP_from_file:
+            if self.IMPfile_path is None:
+                QMessageBox.critical(None, "Error", "Building morphology file has not been provided,"
+                                                    " please check the main tab")
+                return
+            if not os.path.isfile(self.IMPfile_path[0]):
+                QMessageBox.critical(None, "Error", "Could not find the file containing building morphology")
+                return
 
-        # if self.IMPveg_from_file:
-        #     if self.IMPvegfile_path is None:
-        #         QMessageBox.critical(None, "Error", "Vegetation morphology file has not been provided,"
-        #                                             " please check the main tab")
-        #         return
-        #     if not os.path.isfile(self.IMPvegfile_path[0]):
-        #         QMessageBox.critical(None, "Error", "Could not find the file containing vegetation morphology")
-        #         return
+        if self.IMPveg_from_file:
+            if self.IMPvegfile_path is None:
+                QMessageBox.critical(None, "Error", "Vegetation morphology file has not been provided,"
+                                                    " please check the main tab")
+                return
+            if not os.path.isfile(self.IMPvegfile_path[0]):
+                QMessageBox.critical(None, "Error", "Could not find the file containing vegetation morphology")
+                return
 
-        # if self.file_code == '':
-        #     QMessageBox.critical(None, "Error", "Specify a file code prefix")
-        #     return
+        if self.file_code == '':
+            QMessageBox.critical(None, "Error", "Specify a file code prefix")
+            return
+
+        vlayer.source()
 
         # # DSM layer for aggegation
         dsmlayer = self.layerComboManagerDSM.currentLayer()
@@ -764,9 +792,6 @@ class SUEWSPrepareDatabase:
         # else:
         #     use_typologies = 'no' 
 
-        region_str = 'Middle East'
-        country_str = 'Bahrain, LUCY'
-        
         #TODO add check for Region,
         #TODO add checker for CRS 
         #  
@@ -780,6 +805,8 @@ class SUEWSPrepareDatabase:
         # QMessageBox.critical(None, "OK", "Frrk")
         # return  
 
+
+
         self.generateSiteSelect(vlayer, poly_field, self.Metfile_path, self.start_DLS, self.end_DLS, self.LCF_from_file, self.LCFfile_path,
                          self.LCF_Paved, self.LCF_Buildings, self.LCF_Evergreen, self.LCF_Decidious, self.LCF_Grass, self.LCF_Baresoil,
                          self.LCF_Water, self.IMP_from_file, self.IMPfile_path, self.IMP_mean_height, self.IMP_z0, self.IMP_zd,
@@ -788,7 +815,7 @@ class SUEWSPrepareDatabase:
                          self.plugin_dir, map_units,
                          self.output_dir, self.day_since_rain, self.leaf_cycle, self.soil_moisture, self.file_code,
                          self.utc, self.checkBox_twovegfiles, self.IMPvegfile_path_dec, self.IMPvegfile_path_eve, self.pop_density_day, self.daypop,
-                         polyTypolayer, dsmlayer, demlayer, lclayer, region_str, country_str, self.checkBoxTypologies)
+                         polyTypolayer, dsmlayer, demlayer, lclayer, self.region_str, self.country_str, self.typologies)
 
         # self.startWorker(vlayer, poly_field, self.Metfile_path, self.start_DLS, self.end_DLS, self.LCF_from_file, self.LCFfile_path,
         #                  self.LCF_Paved, self.LCF_Buildings, self.LCF_Evergreen, self.LCF_Decidious, self.LCF_Grass, self.LCF_Baresoil,
@@ -810,30 +837,21 @@ class SUEWSPrepareDatabase:
                          utc, checkBox_twovegfiles, IMPvegfile_path_dec, IMPvegfile_path_eve, pop_density_day, daypop,
                          polyTypolayer, dsmlayer, demlayer, lclayer, region_str, country_str, checkBoxTypologies):
 
-        # print(type(checkBoxTypologies))
-        # print(type(region_str))
-        # print(self.checkBox_twovegfiles)
-        # print(country_str)
-        # In 
+        save_txt_folder = output_dir[0]+ '/'
         temp_folder = 'C:/temp/agg/' # Read from UMEP Check in UWG Prepare
-        gridded_shp =  temp_folder + 'gridded_shp.shp'
         build_raster_out = temp_folder + 'buildings.tif'
-        gridded_shp_bh = temp_folder + 'gridded_shp_bh.shp'
-        gridded_shp_lc = temp_folder + 'gridded_shp_lc.shp'
 
         ss_dict = {}
         veg_dict = {}
         nonVeg_dict = {}
         blend_dict= {}
         dict_out = {}
-        cond_dict = {}
 
-        surface_list = ['Paved', 'Building']
-        surface_list_veg = ['Grass', 'Evergreen Tree', 'Decidous Tree']
+        surface_list = ['Paved', 'Buildings','Bare Soil']
 
         frac_to_surf_dict = {
             'hist_1' : 'Paved', 
-            'hist_2' : 'Building', 
+            'hist_2' : 'Buildings', 
             'hist_3' : 'Grass', 
             'hist_4' : 'Evergreen Tree' ,
             'hist_5' : 'Decidous Tree' , 
@@ -843,7 +861,7 @@ class SUEWSPrepareDatabase:
 
         surf_to_code_dict = {
             'Paved' : 'Code_Paved',
-            'Building' : 'Code_Bldgs',
+            'Buildings' : 'Code_Bldgs',
             'Bare Soil': 'Code_Bsoil',
             'Grass' : 'Code_Grass',
             'Evergreen Tree' : 'Code_EveTr',
@@ -852,7 +870,7 @@ class SUEWSPrepareDatabase:
             } 
 
         # Read DB
-        db_path = r"C:\GitHub\SUEWS_Database\database_copy.xlsx"
+        db_path = self.plugin_dir + '/Input/database.xlsx'  # TODO When in UMEP Toolbox, set this path to db in database manager
         Type, veg, nonveg, water, ref, alb, em, OHM, LAI, st, cnd, LGP, dr, VG, ANOHM, BIOCO2, MVCND, por, reg, snow, AnEm, prof, ws, soil, ESTM, irr, country, type_id_dict,country_id_dict, reg_id_dict = read_DB(db_path)
 
         country_conv_dict = {} 
@@ -864,7 +882,7 @@ class SUEWSPrepareDatabase:
             reg_conv_dict[index] = reg.loc[index, 'Region']
         reg_conv_dict_inv = {v: k for k, v in reg_conv_dict.items()}
     
-        reg_sel = reg.loc[[reg_conv_dict_inv[region_str]]]
+        # reg_sel = reg.loc[[reg_conv_dict_inv[region_str]]]
         country_sel = country.loc[[country_conv_dict_inv[country_str]]]
 
     
@@ -873,876 +891,859 @@ class SUEWSPrepareDatabase:
         for column in column_list:
             column_dict[column] = decide_country_or_region(column, country_sel, reg)
 
-        print(column_dict)
-
-        IrrigationCode     = column_dict['IrrigationCode']
-        SnowCode           = column_dict['SnowCode']
-        SnowClearingProfWD = column_dict['SnowClearingProfWD']
-        SnowClearingProfWE = column_dict['SnowClearingProfWE']
-        WaterUseProfManuWD = column_dict['WaterUseProfManuWD']
-        WaterUseProfManuWE = column_dict['WaterUseProfManuWE']
-        WaterUseProfAutoWD = column_dict['WaterUseProfAutoWD']
-        WaterUseProfAutoWE = column_dict['WaterUseProfAutoWE']
-        AnthropogenicCode  = column_dict['AnthropogenicCode']
-        TrafficRate_WD	   = column_dict['TrafficRate_WD']
-        TrafficRate_WE     = column_dict['TrafficRate_WE']
-        EnergyUseProfWD	   = column_dict['EnergyUseProfWD']
-        EnergyUseProfWE	   = column_dict['EnergyUseProfWE']
-        ActivityProfWD     = column_dict['ActivityProfWD']
-        ActivityProfWE     = column_dict['ActivityProfWE']
-        PopProfWD	       = column_dict['PopProfWD']
-        PopProfWE          = column_dict['PopProfWE']
-
         # Fill Anthropogeinc Emissions
-        AnEm_dict = fill_SUEWS_AnthropogenicEmission(AnthropogenicCode, column_dict, AnEm) # FIX!
-        snow_dict = fill_SUEWS_Snow(SnowCode, snow, alb, em, ANOHM)
+        AnEm_dict = fill_SUEWS_AnthropogenicEmission(column_dict['AnthropogenicCode'], column_dict, AnEm) # FIX!
+        snow_dict = fill_SUEWS_Snow(column_dict['SnowCode'], snow, alb, em, ANOHM)
+        water_dict = fill_SUEWS_Water(column_dict['Water'], water, alb, em, st, dr, ANOHM, ws, column_dict)
+        cond_dict = sel_to_dict(cnd, 'Cnd', column_dict)
+        # snow_dict = sel_to_dict(snow, 'Water_Code', column_dict)
 
-        checkBoxTypologies = 'no'
-        if checkBoxTypologies == 'yes':
+        if LCF_from_file:
+            LCF_dict = read_morph_txt(LCFfile_path[0])
+
+        if IMP_from_file:
+            IMP_dict = read_morph_txt(IMPfile_path[0])
+
+        if IMPveg_from_file:
+            IMPveg_dict = read_morph_txt(IMPvegfile_path[0])
+        
+        if checkBoxTypologies == 1:
         # DEM & DSM to array
-            a = 1
-            # gdal.AllRegister()
-            # provider = demlayer.dataProvider()
-            # filePath_dem = str(provider.dataSourceUri())
-            # dataSet = gdal.Open(filePath_dem)
-            # dem_arr = dataSet.ReadAsArray().astype(np.float)
 
-            # provider = dsmlayer.dataProvider()
-            # filePath_dsm = str(provider.dataSourceUri())
-            # dataSet = gdal.Open(filePath_dsm)
-            # dsm_arr = dataSet.ReadAsArray().astype(np.float)
+            gdal.AllRegister()
+            provider = demlayer.dataProvider()
+            filePath_dem = str(provider.dataSourceUri())
+            dataSet = gdal.Open(filePath_dem)
+            dem_arr = dataSet.ReadAsArray().astype(float)
+
+            provider = dsmlayer.dataProvider()
+            filePath_dsm = str(provider.dataSourceUri())
+            dataSet = gdal.Open(filePath_dsm)
+            dsm_arr = dataSet.ReadAsArray().astype(float)
             
-            # provider = lclayer.dataProvider()
-            # filePath_lc = str(provider.dataSourceUri())
-            # dataSet = gdal.Open(filePath_lc)
-            # lc_arr = dataSet.ReadAsArray().astype(np.float)
+            provider = lclayer.dataProvider()
+            filePath_lc = str(provider.dataSourceUri())
+            dataSet = gdal.Open(filePath_lc)
+            # lc_arr = dataSet.ReadAsArray().astype(float)
 
-            # # # Clean temp folder
-            # temp_folder = 'C:/temp/agg'
-            # try:
-            #     rmtree(temp_folder)
-            # except OSError as e:
-            #     print ("Error: %s - %s." % (e.filename, e.strerror))
+            # # Clean temp folder
+            temp_folder = 'C:/temp/agg'
+            try:
+                rmtree(temp_folder)
+            except OSError as e:
+                print ("Error: %s - %s." % (e.filename, e.strerror))
 
-            # os.mkdir(temp_folder)
+            os.mkdir(temp_folder)
 
-            # output = {}
+            output = {}
 
-            # # parin = {'INPUT': vlayer,
-            # #          'OUTPUT':'TEMPORARY_OUTPUT'}
+            # parin = {'INPUT': vlayer,
+            #          'OUTPUT':'TEMPORARY_OUTPUT'}
 
-            # # output['bbox'] = processing.run("native:boundingboxes",parin) 
-            # # TODO Clip rastesr to speed up process
-            # # parin = {
-            # #     'INPUT':vlayer,
-            # #     'OVERLAY': output['bbox'],
-            # #     'OUTPUT':'TEMPORARY_OUTPUT'}
-            # # output['clip'] = processing.run("native:clip", parin)
-            
-            # # Grid classified shp-file containing SUEWS typologies
-            # intersectPrefix = 'i'
-            # parin = { 'INPUT' : vlayer, 
-            # 'INPUT_FIELDS' : [], 
-            # 'OUTPUT' : 'TEMPORARY_OUTPUT',#urbantypelayer, 
-            # 'OVERLAY' : polyTypolayer, 
-            # 'OVERLAY_FIELDS' : [], 
-            # 'OVERLAY_FIELDS_PREFIX' : intersectPrefix }
-
-            # output['gridded_shp'] = processing.run('native:intersection', parin)
-
-            # # isolate buildings in dsm to be able to calculate mean height
-            # build_arr = dsm_arr-dem_arr
-            # build_arr[np.where(build_arr < 2.5)] = np.nan # CHECK THISOUT!
-            # saveraster(gdal.Open(filePath_dsm), build_raster_out, build_arr)
-
-            # type_id = 'inewfield'
-            # height_prefix = '_bldheight'
-            
+            # output['bbox'] = processing.run("native:boundingboxes",parin) 
+            # TODO Clip rastesr to speed up process
             # parin = {
-            #     'INPUT':output['gridded_shp']['OUTPUT'],
-            #     'INPUT_RASTER': build_raster_out,
-            #     'RASTER_BAND':1,
-            #     'COLUMN_PREFIX': height_prefix,
-            #     'STATISTICS':[2], # [2] == mean
-            #     'OUTPUT': 'TEMPORARY_OUTPUT'}
-            # # Zonal statistics to calculate mean height within gridded polygon layer
-            # output['gridded_shp_bld'] = processing.run("native:zonalstatisticsfb", parin)
-
-            # # Zonal histogram to calculate fractions of lc in all gridded typologies
-            # prefix = 'hist_'
-
-            # parin =  {
-            #     'INPUT_RASTER': filePath_lc,
-            #     'RASTER_BAND': 1,
-            #     'INPUT_VECTOR': output['gridded_shp']['OUTPUT'],
-            #     'COLUMN_PREFIX': prefix,
-            #     'OUTPUT': 'TEMPORARY_OUTPUT'}
-
-            # output['gridded_shp_lc'] = processing.run("native:zonalhistogram",parin)
-
-            # # obtain pixelsize of raster in order to be able to calculate fractions later on
-            # lc_raster = gdal.Open(filePath_lc)
-            # lc_raster_gt = lc_raster.GetGeoTransform()
-            # pixelSizeX = lc_raster_gt[1]
-
-            # # vector layer gridded typologies
-            # vlayer_gt = output['gridded_shp']['OUTPUT'] #QgsVectorLayer(, "polygon", "ogr")
-
-            # field_list= []
-            # for fieldName in vlayer_gt.fields():
-            #     field_list.append(fieldName.name())
-
-            # type_index = field_list.index(type_id)
-            # pai_dict = {}
-
-            # for feature in vlayer_gt.getFeatures():
-            #     feat_id = int(feature.attribute(poly_field))
-            #     pai_dict[feat_id] = { i : 0 for i in list(vlayer_gt.uniqueValues(type_index))}
-
-            # for feature in vlayer_gt.getFeatures():
-            #     feat_id = int(feature.attribute(poly_field))
-            #     typology = feature.attribute(type_id)
-            #     area = feature.geometry().area()
-
-            #     pai_dict[feat_id][typology] = area
-
-            # # vector layer with building heights
-            # vlayer_bh =output['gridded_shp_bld']['OUTPUT']
-
-            # field_list= []
-            # for fieldName in vlayer_bh.fields():
-            #     field_list.append(fieldName.name())
-
-            # type_index = field_list.index(type_id)
-            # area_dict = {}
-
-            # for feature in vlayer_bh.getFeatures():
-            #     feat_id = int(feature.attribute(poly_field))
-            #     area_dict[feat_id] = { i : 0 for i in list(vlayer_bh.uniqueValues(type_index))}
-            #     pai_dict[feat_id] = { i : 0 for i in list(vlayer_bh.uniqueValues(type_index))}
-
-            # for feature in vlayer_bh.getFeatures():
-            #     feat_id = int(feature.attribute(poly_field))
-            #     typology = feature.attribute(type_id)
-            #     build_h = feature.attribute(height_prefix+'mean')
-            #     area = feature.geometry().area()
-            #     try: 
-            #         volume = area * build_h
-            #     except:
-            #         volume = area * 1
-                
-            #     area_dict[feat_id][typology] = area_dict[feat_id][typology] + volume
+            #     'INPUT':vlayer,
+            #     'OVERLAY': output['bbox'],
+            #     'OUTPUT':'TEMPORARY_OUTPUT'}
+            # output['clip'] = processing.run("native:clip", parin)
             
-            # frac_dict_bh = {} # create a new dictionary with fracions and remove typologies with fracion 0
+            # Grid classified shp-file containing SUEWS typologies
+            intersectPrefix = 'i'
+            parin = { 'INPUT' : vlayer, 
+            'INPUT_FIELDS' : [], 
+            'OUTPUT' : 'TEMPORARY_OUTPUT',#urbantypelayer, 
+            'OVERLAY' : polyTypolayer, 
+            'OVERLAY_FIELDS' : [], 
+            'OVERLAY_FIELDS_PREFIX' : intersectPrefix }
 
-            # for i in area_dict:
-            #     total_vol = sum(area_dict[i].values())
-            #     frac_dict_bh[i] = {k:(v/total_vol) for k, v in area_dict[i].items() }
-            #     frac_dict_bh[i] = {k:v for (k,v) in frac_dict_bh[i].items() if v > 0}
+            output['gridded_shp'] = processing.run('native:intersection', parin)
 
-            # # Calculate fractions of LC_classes hist_number indicate same as SUEWS surfaces, paved, building etc.
-        
-            # vlayer_lc = output['gridded_shp_lc']['OUTPUT']
+            # isolate buildings in dsm to be able to calculate mean height
+            build_arr = dsm_arr-dem_arr
+            build_arr[np.where(build_arr < 2.5)] = np.nan # CHECK THISOUT!
+            saveraster(gdal.Open(filePath_dsm), build_raster_out, build_arr)
 
-            # field_list= ['hist_1', 'hist_2','hist_3','hist_4', 'hist_5','hist_6','hist_7'] # 'hist_1' : Paved, 'hist_2' : Buildings, 'hist_3' : 'Evergreen Trees', 'hist_4' : 'Evergreen Trees', 'hist_5': 'Grass' ,'hist_6': 'Bare Soil', 'hist_7' : 'Water'
+            type_id = 'inewfield'
+            height_prefix = '_bldheight'
+            
+            parin = {
+                'INPUT':output['gridded_shp']['OUTPUT'],
+                'INPUT_RASTER': build_raster_out,
+                'RASTER_BAND':1,
+                'COLUMN_PREFIX': height_prefix,
+                'STATISTICS':[2], # [2] == mean
+                'OUTPUT': 'TEMPORARY_OUTPUT'}
+            # Zonal statistics to calculate mean height within gridded polygon layer
+            output['gridded_shp_bld'] = processing.run("native:zonalstatisticsfb", parin)
 
-            # types_list= []
-            # for fieldName in vlayer_lc.fields():
-            #     types_list.append(fieldName.name())
+            # Zonal histogram to calculate fractions of lc in all gridded typologies
+            prefix = 'hist_'
 
-            # type_index = types_list.index(type_id)
+            parin =  {
+                'INPUT_RASTER': filePath_lc,
+                'RASTER_BAND': 1,
+                'INPUT_VECTOR': output['gridded_shp']['OUTPUT'],
+                'COLUMN_PREFIX': prefix,
+                'OUTPUT': 'TEMPORARY_OUTPUT'}
 
-            # area_dict = {}
+            output['gridded_shp_lc'] = processing.run("native:zonalhistogram",parin)
 
-            # for feature in vlayer_lc.getFeatures():
-            #     feat_id = int(feature.attribute(poly_field))
-            #     area_dict[feat_id] = { i : { i : 0 for i in field_list} for i in list(vlayer_lc.uniqueValues(type_index))}
+            # obtain pixelsize of raster in order to be able to calculate fractions later on
+            lc_raster = gdal.Open(filePath_lc)
+            lc_raster_gt = lc_raster.GetGeoTransform()
+            pixelSizeX = lc_raster_gt[1]
 
-            # for feature in vlayer_lc.getFeatures():
+            # vector layer gridded typologies
+            vlayer_gt = output['gridded_shp']['OUTPUT'] #QgsVectorLayer(, "polygon", "ogr")
+
+            field_list= []
+            for fieldName in vlayer_gt.fields():
+                field_list.append(fieldName.name())
+
+            type_index = field_list.index(type_id)
+            pai_dict = {}
+
+            for feature in vlayer_gt.getFeatures():
+                feat_id = int(feature.attribute(poly_field))
+                pai_dict[feat_id] = { i : 0 for i in list(vlayer_gt.uniqueValues(type_index))}
+
+            for feature in vlayer_gt.getFeatures():
+                feat_id = int(feature.attribute(poly_field))
+                typology = feature.attribute(type_id)
+                area = feature.geometry().area()
+
+                pai_dict[feat_id][typology] = area
+
+            # vector layer with building heights
+            vlayer_bh =output['gridded_shp_bld']['OUTPUT']
+
+            field_list= []
+            for fieldName in vlayer_bh.fields():
+                field_list.append(fieldName.name())
+
+            type_index = field_list.index(type_id)
+            area_dict = {}
+
+            for feature in vlayer_bh.getFeatures():
+                feat_id = int(feature.attribute(poly_field))
+                area_dict[feat_id] = { i : 0 for i in list(vlayer_bh.uniqueValues(type_index))}
+                pai_dict[feat_id] = { i : 0 for i in list(vlayer_bh.uniqueValues(type_index))}
+
+            for feature in vlayer_bh.getFeatures():
+                feat_id = int(feature.attribute(poly_field))
+                typology = feature.attribute(type_id)
+                build_h = feature.attribute(height_prefix+'mean')
+                area = feature.geometry().area()
+                try: 
+                    volume = area * build_h
+                except:
+                    volume = area * 1
                 
-            #     for gridtype in field_list:
-            #         feat_id = int(feature.attribute(poly_field))
-            #         typology = feature.attribute(type_id)
-            #         try:
-            #             area_dict[feat_id][typology][gridtype] = area_dict[feat_id][typology][gridtype] + feature.attribute(gridtype) #area_dict[feat_id][typology] + volume
-            #         except:
-            #             area_dict[feat_id][typology][gridtype] = 0 # 0 if no frac exist
+                area_dict[feat_id][typology] = area_dict[feat_id][typology] + volume
+            
+            frac_dict_bh = {} # create a new dictionary with fracions and remove typologies with fracion 0
 
-            # frac_dict_lc = {} # create a new dictionary with fracions  
-            # typology_list = list(area_dict[list(area_dict.keys())[0]].keys())
+            for i in area_dict:
+                total_vol = sum(area_dict[i].values())
+                frac_dict_bh[i] = {k:(v/total_vol) for k, v in area_dict[i].items() }
+                frac_dict_bh[i] = {k:v for (k,v) in frac_dict_bh[i].items() if v > 0}
 
-            # for i in area_dict:
-            #     frac_dict_lc[i] ={}
-            #     for j in typology_list:
-            #         if sum(area_dict[i][j].values()) > 0: # only select typologies active in the grid
-            #             frac_dict_lc[i][j] = {k:(v/pixelSizeX) for k, v in area_dict[i][j].items()}
-            #             frac_dict_lc[i][j] = {k:v for (k,v) in area_dict[i][j].items() if v > 0} # remove typologies with fracion 0
+            # Calculate fractions of LC_classes hist_number indicate same as SUEWS surfaces, paved, building etc.
+        
+            vlayer_lc = output['gridded_shp_lc']['OUTPUT']
 
-            # frac_dict_surf = {}
-            # for id in frac_dict_lc:
-            #     frac_dict_surf[id] = {}
-            #     for typology in frac_dict_lc[id].keys():
-            #         for surf in field_list:
-            #             frac_dict_surf[id][surf] = 0
+            field_list= ['hist_1', 'hist_2','hist_3','hist_4', 'hist_5','hist_6','hist_7'] # 'hist_1' : Paved, 'hist_2' : Buildings, 'hist_3' : 'Evergreen Trees', 'hist_4' : 'Evergreen Trees', 'hist_5': 'Grass' ,'hist_6': 'Bare Soil', 'hist_7' : 'Water'
+
+            types_list= []
+            for fieldName in vlayer_lc.fields():
+                types_list.append(fieldName.name())
+
+            type_index = types_list.index(type_id)
+
+            area_dict = {}
+
+            for feature in vlayer_lc.getFeatures():
+                feat_id = int(feature.attribute(poly_field))
+                area_dict[feat_id] = { i : { i : 0 for i in field_list} for i in list(vlayer_lc.uniqueValues(type_index))}
+
+            for feature in vlayer_lc.getFeatures():
+                
+                for gridtype in field_list:
+                    feat_id = int(feature.attribute(poly_field))
+                    typology = feature.attribute(type_id)
+                    try:
+                        area_dict[feat_id][typology][gridtype] = area_dict[feat_id][typology][gridtype] + feature.attribute(gridtype) #area_dict[feat_id][typology] + volume
+                    except:
+                        area_dict[feat_id][typology][gridtype] = 0 # 0 if no frac exist
+
+            frac_dict_lc = {} # create a new dictionary with fracions  
+            typology_list = list(area_dict[list(area_dict.keys())[0]].keys())
+
+            for i in area_dict:
+                frac_dict_lc[i] ={}
+                for j in typology_list:
+                    if sum(area_dict[i][j].values()) > 0: # only select typologies active in the grid
+                        frac_dict_lc[i][j] = {k:(v/pixelSizeX) for k, v in area_dict[i][j].items()}
+                        frac_dict_lc[i][j] = {k:v for (k,v) in area_dict[i][j].items() if v > 0} # remove typologies with fracion 0
+
+            frac_dict_surf = {}
+            for id in frac_dict_lc:
+                frac_dict_surf[id] = {}
+                for typology in frac_dict_lc[id].keys():
+                    for surf in field_list:
+                        frac_dict_surf[id][surf] = 0
                         
-            #     for typology in frac_dict_lc[id].keys():
-            #         for surf in field_list:
-            #             try:
-            #                 frac_dict_surf[id][surf] = frac_dict_surf[id][surf] + frac_dict_lc[id][typology][surf]
-            #             except:
-            #                 pass 
+                for typology in frac_dict_lc[id].keys():
+                    for surf in field_list:
+                        try:
+                            frac_dict_surf[id][surf] = frac_dict_surf[id][surf] + frac_dict_lc[id][typology][surf]
+                        except:
+                            pass 
 
-            # for id in frac_dict_lc:              
-            #     for typology in frac_dict_lc[id].keys():
-            #         for surf in field_list:
-            #             try:
-            #                 frac_dict_lc[id][typology][surf] = frac_dict_lc[id][typology][surf] / frac_dict_surf[id][surf]
-            #             except:
-            #                 pass
+            for id in frac_dict_lc:              
+                for typology in frac_dict_lc[id].keys():
+                    for surf in field_list:
+                        try:
+                            frac_dict_lc[id][typology][surf] = frac_dict_lc[id][typology][surf] / frac_dict_surf[id][surf]
+                        except:
+                            pass
         
-            # for id in frac_dict_bh: # CHange to ID for GRID!
+            for id in frac_dict_bh: # CHange to ID for GRID!
 
-            #     type_list = list(frac_dict_bh[id].keys())
-            #     type_list_int = []
+                type_list = list(frac_dict_bh[id].keys())
+                type_list_int = []
 
-            #     for element in type_list:
-            #         type_list_int.append(type_id_dict[element])
+                for element in type_list:
+                    type_list_int.append(type_id_dict[element])
 
-            #     ss_dict[id] = {}
-            #     dict_out[id] = {}
+                ss_dict[id] = {}
+                dict_out[id] = {}
         
-            #     # SUEWS_NonVeg
-            #     nonVeg_dict[id] = fill_SUEWS_NonVeg(type_list_int, Type, nonveg, alb, em, st, dr, ANOHM, ws)
+                # SUEWS_NonVeg
+                nonVeg_dict[id] = fill_SUEWS_NonVeg(Type, nonveg, alb, em, st, dr, ANOHM, ws, column_dict, urbType = type_list_int)
         
-            #     blend_dict[id] = {}
+                blend_dict[id] = {}
                 
-            #     for surface in surface_list:
-            #         blend_dict[id][surface] = {}
-            #         dict_out[id][surface] = {}
+                for surface in surface_list:
+                    blend_dict[id][surface] = {}
+                    dict_out[id][surface] = {}
 
-            #         if surface == 'Water':
-            #             params = list(nonVeg_dict[id]['Water'][type_list_int[0]].keys())
-            #         else:
-            #             params = list(nonVeg_dict[id][surface_list[0]][type_list_int[0]].keys())
+    
+                    params = list(nonVeg_dict[id][surface_list[0]][type_list_int[0]].keys())
 
-            #         for param in params:
-            #             blend_dict[id][surface][param] = {}
+                    for param in params:
+                        blend_dict[id][surface][param] = {}
 
-            #             for typology in type_list_int:
-            #                 blend_dict[id][surface][param][typology] = nonVeg_dict[id][surface][typology][param]
+                        for typology in type_list_int:
+                            blend_dict[id][surface][param][typology] = nonVeg_dict[id][surface][typology][param]
 
-            #         # Check if the codes needs to be averaged or not
-            #         unique_values = list(set(list(blend_dict[id][surface]['Code'].values())))
-                    
-            #         if len(unique_values) == 1:
-            #             ss_dict[id][surf_to_code_dict[surface]] = str(unique_values[0]) # if they all same, just set same code
-            #             dict_out[id][surface] = nonVeg_dict[id][surface][typology]
+                    # Check if the codes needs to be averaged or not
+                    unique_values = list(set(list(blend_dict[id][surface]['Code'].values())))        
 
-            #         else:
-            #             tab, OHM, ESTM = blend_nonveg(blend_dict, surface, frac_dict_bh, frac_dict_lc, id, ESTM, OHM,type_id_dict, frac_to_surf_dict)
-            #             ss_dict[id][surf_to_code_dict[surface]] = str(tab[surface]['Code'])
-            #             dict_out[id][surface] = tab[surface]
+                    if len(unique_values) == 1:
+                        ss_dict[id][surf_to_code_dict[surface]] = str(unique_values[0]) # if they all same, just set same code
+                        dict_out[id][surface] = nonVeg_dict[id][surface][typology]
+                    else:
+                        tab, OHM, ESTM = blend_nonveg(blend_dict, surface, frac_dict_bh, frac_dict_lc, id, ESTM, OHM,type_id_dict, frac_to_surf_dict, column_dict)
+                        ss_dict[id][surf_to_code_dict[surface]] = tab[surface]['Code']
+                        dict_out[id][surface] = tab[surface]
+                        
+            dict_out[9999] = fill_SUEWS_NonVeg(Type, nonveg, alb, em, st, dr, ANOHM, ws, column_dict, urbType = False)
 
-            #     nonveg_dict_to_txt = {}
-            #     for i in dict_out:
-            #         for j in ['Paved', 'Building']:
-            #             nonveg_dict_to_txt[dict_out[i][j]['Code']] = dict_out[i][j]
-                
-            #     nonveg_dict_to_water_txt = {}
-            #     for i in dict_out:
-            #         nonveg_dict_to_water_txt[dict_out[i]['Water']['Code']] = dict_out[i]['Water']
-
-            # # SUEWS_Veg
-            # use_veg_polygons = 'yes'
-            # if use_veg_polygons == 'yes':
-
-            #     dict_out_veg = {}
-
-            #     for id in frac_dict_lc:
-            #         dict_out_veg[id] = {}
-
-            #         type_list = list(frac_dict_lc[id].keys())
-            #         type_list_int = []
-                    
-            #         for element in type_list:
-            #             type_list_int.append(type_id_dict[element])
-
-            #         veg_dict[id] = fill_SUEWS_Veg(type_list_int, Type, veg, alb, em, LAI, st, LGP, dr, VG, ANOHM,  MVCND, por, ws)
-
-            #         indexer_type = list(veg_dict[id][surface_list_veg[0]].keys())
-
-            #         blend_dict[id] = {}
-                    
-            #         params = list(veg_dict[id][surface_list_veg[0]][indexer_type[0]].keys())
-                    
-            #         for surface in surface_list_veg:
-            #             blend_dict[id][surface] = {}
-            #             dict_out_veg[id][surface] = {}
-
-            #             for param in params:
-            #                 blend_dict[id][surface][param] = {}
-
-            #                 for typology in type_list_int:
-            #                     blend_dict[id][surface][param][typology] = veg_dict[id][surface][typology][param]
-
-            #             code_list = []
-            #             for i in veg_dict[id][surface].keys():
-            #                 a = veg_dict[id][surface][i]['Code']
-            #                 code_list.append(a)
-
-            #             unique_values = list(set(code_list))
-
-            #             # # Check if the codes needs to be averaged    
-            #             if len(unique_values) == 1:
-            #                 ss_dict[id][surf_to_code_dict[surface]] = str(unique_values[0])# if they all same, just set same code
-            #                 dict_out_veg[id][surface] = veg_dict[id][surface][typology]
-            #             else:
-            #                 tab, OHM, ESTM, BIOCO2 = blend_veg(blend_dict, surface, frac_dict_lc, id, ESTM, OHM, BIOCO2, type_id_dict, frac_to_surf_dict)
-            #                 ss_dict[id][surf_to_code_dict[surface]] = str(tab[surface]['Code'])
-            #                 dict_out_veg[id][surface] = tab[surface]
-
-            #         veg_dict_to_txt = {}
-            #         for i in dict_out_veg:
-            #             for j in surface_list_veg:
-            #                 veg_dict_to_txt[dict_out_veg[i][j]['Code']] = dict_out_veg[i][j]
-
-            #     for id in pai_dict:
-            #     # Get conductance code based on majority in grid
-            #         cond_dict[id] = {}
-            #         locator = max(pai_dict[id], key=pai_dict[id].get)
-            #         cond_dict[id] = Type.loc[type_id_dict[locator], 'Cnd']
-                    
-            #         ss_dict[id]['Cond_code'] = cond_dict[id]
-
-                # save_SUEWS_txt(pd.DataFrame(nonveg_dict_to_txt.values()).set_index('Code'), 'SUEWS_NonVeg.txt', save_txt_folder)
-                # save_SUEWS_txt(pd.DataFrame(veg_dict_to_txt.values()).set_index('Code'), 'SUEWS_Veg.txt', save_txt_folder)
-                # save_SUEWS_txt(pd.DataFrame(nonveg_dict_to_water_txt.values()).set_index('Code'), 'SUEWS_Water.txt',save_txt_folder)
-
-        else:
-            veg_dict = fill_SUEWS_Veg(Type, veg, alb, em, LAI, st, LGP, dr, VG, ANOHM,  MVCND, por, ws, urbType = False, column_dict = column_dict)
-            nonveg_dict = fill_SUEWS_Veg(Type, veg, alb, em, LAI, st, LGP, dr, VG, ANOHM,  MVCND, por, ws, urbType = False, column_dict = column_dict)            
+            save_NonVeg_types(dict_out, save_txt_folder)
+        
+            nonVeg_dict = dict_out.copy()
             
-            save_txt_folder = 'C:/temp/'
-            save_SUEWS_txt(pd.DataFrame.from_dict(veg_dict, orient='index').set_index('Code'), 'SUEWS_Veg.txt', save_txt_folder)
-            save_SUEWS_txt(pd.DataFrame.from_dict(nonveg_dict, orient='index').set_index('Code'), 'SUEWS_NonVeg.txt', save_txt_folder)
-            save_SUEWS_txt(pd.DataFrame.from_dict(AnEm_dict, orient = 'index').T.set_index('Code'), 'SUEWS_AnthropogenicEmission.txt', save_txt_folder)
-            save_SUEWS_txt(pd.DataFrame.from_dict(snow_dict, orient = 'index').T.set_index('Code'), 'SUEWS_Snow.txt', save_txt_folder)
+            
+        else:
+            nonVeg_dict = fill_SUEWS_NonVeg(Type, nonveg, alb, em, st, dr, ANOHM, ws, column_dict, urbType = False)
+            save_SUEWS_txt(pd.DataFrame.from_dict(nonVeg_dict, orient='index').set_index('Code'), 'SUEWS_NonVeg.txt', save_txt_folder)      
 
+        veg_dict = fill_SUEWS_Veg(Type, veg, alb, em, LAI, st, LGP, dr, VG, ANOHM,  MVCND, por, ws, urbType = False, column_dict = column_dict)
+        save_SUEWS_txt(pd.DataFrame.from_dict(veg_dict, orient='index').set_index('Code'), 'SUEWS_Veg.txt', save_txt_folder)
+        save_SUEWS_txt(pd.DataFrame.from_dict(AnEm_dict, orient = 'index').T.set_index('Code'), 'SUEWS_AnthropogenicEmission.txt', save_txt_folder)
+        save_SUEWS_txt(pd.DataFrame.from_dict(water_dict, orient = 'index').set_index('Code'), 'SUEWS_Water.txt', save_txt_folder)
+        save_SUEWS_txt(pd.DataFrame.from_dict(cond_dict, orient = 'index').T.set_index('Code'), 'SUEWS_Conductance.txt', save_txt_folder)
 
+        save_snow(snow_dict, save_txt_folder)
 
-
-        ########################### CALC ################################
-
-
-        # region_split = region.split(',') 
-        # city = region_split[0]
-        # country = region_split[1][1::]
-        # region_db = region_split[2][1::]
-
-        # reg_sel = reg[(reg['City'] == city) & (reg['Country'] == country) & (reg['Region'] == region_db)]
-        # print(reg_sel)
-
-        
-        profiles = ['TrafficRate_WD','TrafficRate_WE', 'EnergyUseProfWD','EnergyUseProfWE','ActivityProfWD','ActivityProfWE','PopProfWD','PopProfWE']
-
+        # Save Profiles
+        profiles = ['TrafficRate_WD','TrafficRate_WE', 'EnergyUseProfWD','EnergyUseProfWE','ActivityProfWD','ActivityProfWE','PopProfWD','PopProfWE', 'SnowClearingProfWD', 'SnowClearingProfWE','WaterUseProfManuWD','WaterUseProfManuWE','WaterUseProfAutoWD','WaterUseProfAutoWE']        
         profiles_list = []
         for i in profiles:
-            profiles_list.append(int(column_dict[i], 36))
+            profiles_list.append(column_dict[i])
+            profiles_list = list(set(profiles_list))
 
-        for i in [column_dict['WaterUseProfManuWD'], column_dict['WaterUseProfManuWE'], column_dict['WaterUseProfAutoWD'], column_dict['WaterUseProfAutoWE'], column_dict['SnowClearingProfWD'], column_dict['SnowClearingProfWE']]:
-            profiles_list.append(int(i, 36))
+        fill_SUEWS_profiles(profiles_list, save_txt_folder, prof) # TODO IMORGON!
+        # presave leads to save_SUEWS_txt
+        # presave(prof, 'Profiles', profiles_list, save_txt_folder)
+        presave(irr, 'Irrigation', [column_dict['IrrigationCode']], save_txt_folder)
+        presave(soil, 'Soil', [column_dict['SoilTypeCode']], save_txt_folder)
 
-        # ESTM_list = []
-        # OHM_list = []
-        # AnEm_list = [] # Comes from Profile and 
-        # BIOCO2_list = []
-        # Cond_list = list(set(cond_dict.values()))
-        # Cond_list = [int(x, 36) for x in Cond_list]
+        # Spartacus
+        # ? 
 
-        # for dict_sel in [nonveg_dict_to_txt, nonveg_dict_to_water_txt, veg_dict_to_txt, ]:
-        #     for i in dict_sel.keys():
-        #         ESTM_list.append(dict_sel[i]['ESTMCode'])
-        #         OHM_list.append(dict_sel[i]['OHMCode_SummerWet'])
-        #         OHM_list.append(dict_sel[i]['OHMCode_SummerDry'])
-        #         OHM_list.append(dict_sel[i]['OHMCode_WinterWet'])
-        #         OHM_list.append(dict_sel[i]['OHMCode_WinterDry'])
-        #         # AnEM_list.append(dict_sel[i]['OHMCode_WinterWet'])
-        #         try:
-        #             BIOCO2_list.append(dict_sel[i]['BiogenCO2Code'])
-        #         except:
-        #             pass
+        ########################### CALC ################################
+        
 
-        # ESTM_list = list(set(ESTM_list))
-        # OHM_list = list(set(OHM_list))
-        # BIOCO2_list = list(set(BIOCO2_list))
-        profiles_list = list(set(profiles_list))
-        # # Cond_list = list(set(Cond_list))
+        ESTM_list = []
+        OHM_list = []
+        BIOCO2_list = []
 
-        # snow_dict = fill_SUEWS_Snow(str(column_dict['SnowCode']), snow, alb, em, ANOHM)
+        for dict_sel in [nonVeg_dict, veg_dict, snow_dict, water_dict ]:
+        
+            try:
+                for i in dict_sel.keys():
+                    try:
+                        ESTM_list.append(dict_sel[i]['ESTMCode'])
+                    except:
+                        pass
+                    try:
+                        OHM_list.append(dict_sel[i]['OHMCode_SummerWet'])
+                        OHM_list.append(dict_sel[i]['OHMCode_SummerDry'])
+                        OHM_list.append(dict_sel[i]['OHMCode_WinterWet'])
+                        OHM_list.append(dict_sel[i]['OHMCode_WinterDry'])
+                    except:
+                        OHM_list.append(dict_sel['OHMCode_SummerWet'])
+                        OHM_list.append(dict_sel['OHMCode_SummerDry'])
+                        OHM_list.append(dict_sel['OHMCode_WinterWet'])
+                        OHM_list.append(dict_sel['OHMCode_WinterDry'])
 
+                    try:
+                        BIOCO2_list.append(dict_sel[i]['BiogenCO2Code'])
+                    except:
+                        pass
+            except:
+                for feat_id in list(dict_sel.keys()):
+                    for surf in surface_list:
+                            ESTM_list.append(dict_sel[feat_id][surf]['ESTMCode'])
+                            OHM_list.append(dict_sel[feat_id][surf]['OHMCode_SummerWet'])
+                            OHM_list.append(dict_sel[feat_id][surf]['OHMCode_SummerDry'])
+                            OHM_list.append(dict_sel[feat_id][surf]['OHMCode_WinterWet'])
+                            OHM_list.append(dict_sel[feat_id][surf]['OHMCode_WinterWet'])
 
-        # Save to TXT
-        # save_txt_folder = output_dir[0] + '/'
-        # # save_SUEWS_txt(pd.DataFrame(nonveg_dict_to_txt.values()).set_index('Code'), 'SUEWS_NonVeg.txt', save_txt_folder)
-        # # save_SUEWS_txt(pd.DataFrame(veg_dict_to_txt.values()).set_index('Code'), 'SUEWS_Veg.txt', save_txt_folder)
-        # # save_SUEWS_txt(pd.DataFrame(nonveg_dict_to_water_txt.values()).set_index('Code'), 'SUEWS_Water.txt',save_txt_folder)
-        # save_SUEWS_txt(pd.DataFrame(snow_dict, index = [0]).set_index('Code'), 'SUEWS_Snow.txt', save_txt_folder)
-        # save_SUEWS_txt(pd.DataFrame(AnEm_dict, index = [0]).set_index('Code'), 'SUEWS_AnthropogenicEmission.txt', save_txt_folder)
-        # save_SUEWS_txt(pd.DataFrame(cond_dict, index = [0]).set_index('Code'), 'SUEWS_Conductance.txt', save_txt_folder)
+        ESTM_list = list(set(ESTM_list))
+        OHM_list = list(set(OHM_list))
+        BIOCO2_list = list(set(BIOCO2_list))
 
-
-        # presave(ESTM, 'ESTMCoefficients', ESTM_list, save_txt_folder)
-        # presave(OHM, 'OHMCoefficients', OHM_list, save_txt_folder)
-        # presave(BIOCO2, 'BiogenCO2', BIOCO2_list, save_txt_folder)
-        presave(prof, 'Profiles', profiles_list, save_txt_folder)
-        # presave(irr, 'Irrigation', [int(column_dict['IrrigationCode'],36)], save_txt_folder)
-        # presave(cnd, 'Conductance', Cond_list, save_txt_folder)
-
+        presave(ESTM, 'ESTMCoefficients', ESTM_list, save_txt_folder)
+        presave(OHM, 'OHMCoefficients', OHM_list, save_txt_folder)
+        presave(BIOCO2, 'BiogenCO2', BIOCO2_list, save_txt_folder)
 
         # ################################################################################################################################
         
         # ################################################################################################################################
 
-        # ind = 1
-        # # Loop Start for each Grid
-        # for feature in vlayer.getFeatures():
-        #     # if killed is True:
-        #     #     break
-        #     # new_line = [None] * (len(nbr_header) - 3)
-        #     print_line = True
-        #     feat_id = int(feature.attribute(poly_field))
+        ind = 1
+        # Loop Start for each Grid
+        for feature in vlayer.getFeatures():
+
+            # if self.killed is True:
+            #     break
+            # new_line = [None] * (len(self.nbr_header) - 3)
+            # print_line = True
+            # feat_id = int(feature.attribute(self.poly_field))
+            # code = "Grid"
+            # index = self.find_index(code)
+            # new_line[index] = str(feat_id)
+            # print('Processing ID: ' + str(feat_id))
+            # # if killed is True:
+            # #     break
+            # # new_line = [None] * (len(nbr_header) - 3)
+            # print_line = True
+            feat_id = int(feature.attribute(poly_field))
     
-        #     print('Processing ID: ' + str(feat_id))
-        #     year = None
-        #     year2 = None
+            print('Processing ID: ' + str(feat_id))
+            year = None
+            year2 = None
+            ss_dict[feat_id] = {}
+            
+            try:
+                ss_dict[feat_id]['Code_Paved'] = nonVeg_dict[feat_id]['Paved']['Code']
+                ss_dict[feat_id]['Code_Bldgs'] = nonVeg_dict[feat_id]['Buildings']['Code']
+                ss_dict[feat_id]['Code_Bsoil'] = nonVeg_dict[feat_id]['Bare Soil']['Code']
+            
+                # if grid doesnt contain any typology, set to standard for region/country
+                # nonVeg_dict will not have information for grids without typloogy and raise error
+            except:
+                ss_dict[feat_id]['Code_Paved'] = column_dict['Paved']
+                ss_dict[feat_id]['Code_Bldgs'] = column_dict['Buildings']
+                ss_dict[feat_id]['Code_Bsoil'] = column_dict['Bare Soil']
 
-        #     if Metfile_path is None:
-        #         QMessageBox.critical(None, "Error", "Meteorological data file has not been provided,"
-        #                                             " please check the main tab")
-        #         return
-        #     elif os.path.isfile(Metfile_path[0]):
-        #         with open(Metfile_path[0]) as file:
-        #             next(file)
-        #             for line in file:
-        #                 split = line.split()
-        #                 if year == split[0]:
-        #                     break
-        #                 else:
-        #                     if year2 == split[0]:
-        #                         year = split[0]
-        #                         break
-        #                     elif year is None:
-        #                         year = split[0]
-        #                     else:
-        #                         year2 = split[0]
+            ss_dict[feat_id]['Code_EveTr'] = veg_dict['Evergreen Tree']['Code']
+            ss_dict[feat_id]['Code_DecTr'] = veg_dict['Decidous Tree']['Code']
+            ss_dict[feat_id]['Code_Grass'] = veg_dict['Grass']['Code']
+            ss_dict[feat_id]['Code_Water'] = water_dict['Water']['Code']
 
-        #         # figure out the time res of input file
-        #         if ind == 1:
-        #             met_old = np.genfromtxt(Metfile_path[0], skip_header=1, skip_footer=2)
-        #             id = met_old[:, 1]
-        #             it = met_old[:, 2]
-        #             imin = met_old[:, 3]
-        #             dectime0 = id[0] + it[0] / 24 + imin[0] / (60 * 24)
-        #             dectime1 = id[1] + it[1] / 24 + imin[1] / (60 * 24)
-        #             res = int(np.round((dectime1 - dectime0) * (60 * 24)))
-        #             ind = 999
+            if Metfile_path is None:
+                QMessageBox.critical(None, "Error", "Meteorological data file has not been provided,"
+                                                    " please check the main tab")
+                return
+            elif os.path.isfile(Metfile_path[0]):
+                with open(Metfile_path[0]) as file:
+                    next(file)
+                    for line in file:
+                        split = line.split()
+                        if year == split[0]:
+                            break
+                        else:
+                            if year2 == split[0]:
+                                year = split[0]
+                                break
+                            elif year is None:
+                                year = split[0]
+                            else:
+                                year2 = split[0]
 
-        #     else:
-        #         QMessageBox.critical(None, "Error",
-        #                                 "Could not find the file containing meteorological data")
-        #         return
+                # figure out the time res of input file
+                if ind == 1:
+                    met_old = np.genfromtxt(Metfile_path[0], skip_header=1, skip_footer=2)
+                    id = met_old[:, 1]
+                    it = met_old[:, 2]
+                    imin = met_old[:, 3]
+                    dectime0 = id[0] + it[0] / 24 + imin[0] / (60 * 24)
+                    dectime1 = id[1] + it[1] / 24 + imin[1] / (60 * 24)
+                    res = int(np.round((dectime1 - dectime0) * (60 * 24)))
+                    ind = 999
 
-        #     old_cs = osr.SpatialReference()
-        #     vlayer_ref = vlayer.crs().toWkt()
-        #     old_cs.ImportFromWkt(vlayer_ref)
+            else:
+                QMessageBox.critical(None, "Error",
+                                        "Could not find the file containing meteorological data")
+                return
 
-        #     wgs84_wkt = """
-        #     GEOGCS["WGS 84",
-        #         DATUM["WGS_1984",
-        #             SPHEROID["WGS 84",6378137,298.257223563,
-        #                 AUTHORITY["EPSG","7030"]],
-        #             AUTHORITY["EPSG","6326"]],
-        #         PRIMEM["Greenwich",0,
-        #             AUTHORITY["EPSG","8901"]],
-        #         UNIT["degree",0.01745329251994328,
-        #             AUTHORITY["EPSG","9122"]],
-        #         AUTHORITY["EPSG","4326"]]"""
+            old_cs = osr.SpatialReference()
+            vlayer_ref = vlayer.crs().toWkt()
+            old_cs.ImportFromWkt(vlayer_ref)
 
-        #     new_cs = osr.SpatialReference()
-        #     new_cs.ImportFromWkt(wgs84_wkt)
+            wgs84_wkt = """
+            GEOGCS["WGS 84",
+                DATUM["WGS_1984",
+                    SPHEROID["WGS 84",6378137,298.257223563,
+                        AUTHORITY["EPSG","7030"]],
+                    AUTHORITY["EPSG","6326"]],
+                PRIMEM["Greenwich",0,
+                    AUTHORITY["EPSG","8901"]],
+                UNIT["degree",0.01745329251994328,
+                    AUTHORITY["EPSG","9122"]],
+                AUTHORITY["EPSG","4326"]]"""
 
-        #     transform = osr.CoordinateTransformation(old_cs, new_cs)
+            new_cs = osr.SpatialReference()
+            new_cs.ImportFromWkt(wgs84_wkt)
 
-        #     centroid = feature.geometry().centroid().asPoint()
-        #     area = feature.geometry().area()
+            transform = osr.CoordinateTransformation(old_cs, new_cs)
 
-        #     if map_units == 0:
-        #         hectare = area * 0.0001 # meter
+            centroid = feature.geometry().centroid().asPoint()
+            area = feature.geometry().area()
 
-        #     elif map_units == 1:
-        #         hectare = area / 107640. # square foot
+            if map_units == 0:
+                hectare = area * 0.0001 # meter
 
-        #     else:
-        #         hectare = area
-        #     gdalver = float(gdal.__version__[0])
-        #     lonlat = transform.TransformPoint(centroid.x(), centroid.y())
-        #     code = "lat"
-        #     if gdalver == 3.:
-        #         ss_dict[feat_id][code] =  '%.6f' % lonlat[0] #changed to gdal 3
-        #     else:
-        #         ss_dict[feat_id][code] =  '%.6f' % lonlat[1] #changed to gdal 3
+            elif map_units == 1:
+                hectare = area / 107640. # square foot
 
-        #     code = "lng"
-        #     if gdalver == 3.:
-        #         ss_dict[feat_id][code] =  '%.6f' % lonlat[1] #changed to gdal 3
-        #     else:
-        #         ss_dict[feat_id][code] =  '%.6f' % lonlat[0] #changed to gdal 3
+            else:
+                hectare = area
+            gdalver = float(gdal.__version__[0])
+            lonlat = transform.TransformPoint(centroid.x(), centroid.y())
+            code = "lat"
 
-        #     altitude = 0
-        #     day = 1
-        #     hour = 0
-        #     minute = 0
+            if gdalver == 3.:
+                ss_dict[feat_id][code] =  '%.6f' % lonlat[0] #changed to gdal 3
+            else:
+                ss_dict[feat_id][code] =  '%.6f' % lonlat[1] #changed to gdal 3
 
-        #     if LCF_from_file:
-        #         found_LCF_line = False
-        #         with open(LCFfile_path[0]) as file:
-        #             next(file)
-        #             for line in file:
-        #                 split = line.split()
-        #                 if feat_id == int(split[0]):
-        #                     LCF_paved = split[1]
-        #                     LCF_buildings = split[2]
-        #                     LCF_evergreen = split[3]
-        #                     LCF_decidious = split[4]
-        #                     LCF_grass = split[5]
-        #                     LCF_baresoil = split[6]
-        #                     LCF_water = split[7]
-        #                     found_LCF_line = True
-        #                     break
-        #             if not found_LCF_line:
-        #                 LCF_paved = -999
-        #                 LCF_buildings = -999
-        #                 LCF_evergreen = -999
-        #                 LCF_decidious = -999
-        #                 LCF_grass = -999
-        #                 LCF_baresoil = -999
-        #                 LCF_water = -999
-        #                 print_line = False
+            code = "lng"
+            if gdalver == 3.:
+                ss_dict[feat_id][code] =  '%.6f' % lonlat[1] #changed to gdal 3
+            else:
+                ss_dict[feat_id][code] =  '%.6f' % lonlat[0] #changed to gdal 3
 
-        #     else:
-        #         LCF_paved = feature.attribute(LCF_paved.getFieldName())
-        #         LCF_buildings = feature.attribute(LCF_buildings.getFieldName())
-        #         LCF_evergreen = feature.attribute(LCF_evergreen.getFieldName())
-        #         LCF_decidious = feature.attribute(LCF_decidious.getFieldName())
-        #         LCF_grass = feature.attribute(LCF_grass.getFieldName())
-        #         LCF_baresoil = feature.attribute(LCF_baresoil.getFieldName())
-        #         LCF_water = feature.attribute(LCF_water.getFieldName())
+            altitude = 0
+            day = 1
+            hour = 0
+            minute = 0
 
-        #     irrFr_EveTr = 0
-        #     irrFr_DecTr = 0
-        #     irrFr_Grass = 0
-        #     IrrFr_Bldgs = 0
-        #     IrrFr_Paved = 0
-        #     IrrFr_Water = 0
-        #     IrrFr_BSoil = 0
+            if LCF_from_file:
+                LCF_paved     = LCF_dict[feat_id]['Paved']
+                LCF_buildings = LCF_dict[feat_id]['Buildings']
+                LCF_evergreen = LCF_dict[feat_id]['EvergreenTrees']
+                LCF_decidious = LCF_dict[feat_id]['DecidiousTrees']
+                LCF_grass     = LCF_dict[feat_id]['Grass']
+                LCF_baresoil  = LCF_dict[feat_id]['Baresoil']
+                LCF_water     = LCF_dict[feat_id]['Water']
 
-        #     TrafficRate_WD = 0.01 ## Already in dict
-        #     TrafficRate_WE = 0.01 ## Already in dict
+                # found_LCF_line = False
+                # with open(LCFfile_path[0]) as file:
+                #     next(file)
+                #     for line in file:
+                #         split = line.split()
+                #         print(split)
+                #         try:
+                #             if feat_id == int(split[0]):
+                #                 LCF_paved = split[1]
+                #                 LCF_buildings = split[2]
+                #                 LCF_evergreen = split[3]
+                #                 LCF_decidious = split[4]
+                #                 LCF_grass = split[5]
+                #                 LCF_baresoil = split[6]
+                #                 LCF_water = split[7]
+                #                 found_LCF_line = True
+                #                 break
+                #         except:
+                #             pass    
+                #     if not found_LCF_line:
+                #         LCF_paved = -999
+                #         LCF_buildings = -999
+                #         LCF_evergreen = -999
+                #         LCF_decidious = -999
+                #         LCF_grass = -999
+                #         LCF_baresoil = -999
+                #         LCF_water = -999
+                #         print_line = False
 
-        #     QF0_BEU_WD = 0.88 ## Already in dict
-        #     QF0_BEU_WE = 0.88 ## Already in dict
+            else:
+                LCF_paved = feature.attribute(LCF_paved.getFieldName())
+                LCF_buildings = feature.attribute(LCF_buildings.getFieldName())
+                LCF_evergreen = feature.attribute(LCF_evergreen.getFieldName())
+                LCF_decidious = feature.attribute(LCF_decidious.getFieldName())
+                LCF_grass = feature.attribute(LCF_grass.getFieldName())
+                LCF_baresoil = feature.attribute(LCF_baresoil.getFieldName())
+                LCF_water = feature.attribute(LCF_water.getFieldName())
+
+            irrFr_EveTr = 0
+            irrFr_DecTr = 0
+            irrFr_Grass = 0
+            IrrFr_Bldgs = 0
+            IrrFr_Paved = 0
+            IrrFr_Water = 0
+            IrrFr_BSoil = 0
+
+            TrafficRate_WD = 0.01 ## Already in dict
+            TrafficRate_WE = 0.01 ## Already in dict
+
+            QF0_BEU_WD = 0.88 ## Already in dict
+            QF0_BEU_WE = 0.88 ## Already in dict
            
-        #     if IMP_from_file:
-        #         found_IMP_line = False
+            if IMP_from_file:
+                IMP_heights_mean = IMP_dict[feat_id]['zH']
+                IMP_z0 = IMP_dict[feat_id]['z0']
+                IMP_zd = IMP_dict[feat_id]['zd']
+                IMP_fai = IMP_dict[feat_id]['fai']
+                IMP_max = IMP_dict[feat_id]['zHmax']
+                IMP_sd = IMP_dict[feat_id]['zHstd']
+                IMP_wai = IMP_dict[feat_id]['wai']
 
-        #         with open(IMPfile_path[0]) as file:
-        #             next(file)
-        #             for line in file:
-        #                 split = line.split()
-        #                 if feat_id == int(split[0]):
-        #                     IMP_heights_mean = split[3]
-        #                     IMP_z0 = split[6]
-        #                     IMP_zd = split[7]
-        #                     IMP_fai = split[2]
-        #                     IMP_max = split[4]
-        #                     IMP_sd = split[5]
-        #                     IMP_wai = split[8]
-        #                     found_IMP_line = True
-        #                     break
-        #             if not found_IMP_line:
-        #                 IMP_heights_mean = -999
-        #                 IMP_z0 = -999
-        #                 IMP_zd = -999
-        #                 IMP_fai = -999
-        #                 IMP_wai = -999
-        #                 print_line = False
-        #     else:
-        #         IMP_heights_mean = feature.attribute(IMP_mean_height.getFieldName())
-        #         IMP_z0 = feature.attribute(IMP_z0.getFieldName())
-        #         IMP_zd = feature.attribute(IMP_zd.getFieldName())
-        #         IMP_fai = feature.attribute(IMP_fai.getFieldName())
-        #         IMP_wai = feature.attribute(IMP_wai.getFieldName())
+                # with open(IMPfile_path[0]) as file:
+                #     next(file)
+                #     for line in file:
+                #         split = line.split()
+                #         if feat_id == int(split[0]):
+                #             IMP_heights_mean = split[3]
+                #             IMP_z0 = split[6]
+                #             IMP_zd = split[7]
+                #             IMP_fai = split[2]
+                #             IMP_max = split[4]
+                #             IMP_sd = split[5]
+                #             IMP_wai = split[8]
+                #             found_IMP_line = True
+                #             break
+                #     if not found_IMP_line:
+                #         IMP_heights_mean = -999
+                #         IMP_z0 = -999
+                #         IMP_zd = -999
+                #         IMP_fai = -999
+                #         IMP_wai = -999
+                #         print_line = False
+            else:
+                IMP_heights_mean = feature.attribute(IMP_mean_height.getFieldName())
+                IMP_z0 = feature.attribute(IMP_z0.getFieldName())
+                IMP_zd = feature.attribute(IMP_zd.getFieldName())
+                IMP_fai = feature.attribute(IMP_fai.getFieldName())
+                IMP_wai = feature.attribute(IMP_wai.getFieldName())
 
-        #     if IMPveg_from_file:
-        #         found_IMPveg_line = False
+            if IMPveg_from_file:
+                IMPveg_heights_mean_eve = IMPveg_dict[feat_id]['zH']
+                IMPveg_heights_mean_dec = IMPveg_dict[feat_id]['zH']
+                IMPveg_fai_eve = IMPveg_dict[feat_id]['fai']
+                IMPveg_fai_dec = IMPveg_dict[feat_id]['fai']
+                IMPveg_max_eve = IMPveg_dict[feat_id]['zHmax']  #TODO not used yet
+                IMPveg_sd_eve = IMPveg_dict[feat_id]['zHmax']  #TODO not used yet
+                IMPveg_max_dec = IMPveg_dict[feat_id]['zHstd']
+                IMPveg_sd_dec = IMPveg_dict[feat_id]['zHstd']
 
-        #         with open(IMPvegfile_path[0]) as file:
-        #             next(file)
-        #             for line in file:
-        #                 split = line.split()
-        #                 if feat_id == int(split[0]):
-        #                     IMPveg_heights_mean_eve = split[3]
-        #                     IMPveg_heights_mean_dec = split[3]
-        #                     IMPveg_fai_eve = split[2]
-        #                     IMPveg_fai_dec = split[2]
-        #                     IMPveg_max_eve = split[4]  #TODO not used yet
-        #                     IMPveg_sd_eve = split[5]  #TODO not used yet
-        #                     IMPveg_max_dec = split[4]
-        #                     IMPveg_sd_dec = split[5]
-        #                     found_IMPveg_line = True
-        #                     break
-        #             if not found_IMPveg_line:
-        #                 IMPveg_heights_mean_eve = -999
-        #                 IMPveg_heights_mean_dec = -999
-        #                 IMPveg_fai_eve = -999
-        #                 IMPveg_fai_dec = -999
-        #                 print_line = False
-        #     else:
-        #         IMPveg_heights_mean_eve = feature.attribute(IMPveg_mean_height_eve.getFieldName())
-        #         IMPveg_heights_mean_dec = feature.attribute(IMPveg_mean_height_dec.getFieldName())
-        #         IMPveg_fai_eve = feature.attribute(IMPveg_fai_eve.getFieldName())
-        #         IMPveg_fai_dec = feature.attribute(IMPveg_fai_dec.getFieldName())
 
-        #     # New calcualtion of rouhgness params v2017 (Kent et al. 2017b)
-        #     # Evergreen not yet included in the calculations
-        #     LCF_de = float(LCF_decidious)
-        #     LCF_ev = float(LCF_evergreen)
-        #     LCF_bu = float(LCF_buildings)
-        #     LCF_tr = LCF_de + LCF_ev # temporary fix while ev and de is not separated, issue 155
-        #     if (LCF_de  == 0 and LCF_ev == 0 and LCF_bu == 0):
-        #         zH = 0
-        #         zMAx = 0
-        #     else:
-        #         zH = (float(IMP_heights_mean) * LCF_bu + float(IMPveg_heights_mean_eve) * LCF_ev + float(IMPveg_heights_mean_dec) * LCF_de) / (LCF_bu + LCF_ev + LCF_de)                    
-        #         zMax = max(float(IMPveg_max_dec),float(IMP_max))
 
-        #     if (LCF_de  == 0 and LCF_ev == 0 and LCF_bu == 0):
-        #         sdComb = 0
-        #         IMP_z0 = 0
-        #         IMP_zd = 0
-        #         # sdTree = np.sqrt((IMPveg_sd_eve ^ 2 / LCF_evergreen * area) + (IMPveg_sd_dec ^ 2 / LCF_decidious * area))  # not used yet
-        #     elif (LCF_tr == 0 and LCF_bu != 0):
-        #         sdComb = np.sqrt(float(IMP_sd) ** 2. / (LCF_bu * float(area)))  # Fix (fLCF_bu) issue #162
-        #     elif (LCF_tr != 0 and LCF_bu == 0):
-        #         sdComb = np.sqrt(float(IMPveg_sd_dec) ** 2. / (LCF_tr * float(area)))
-        #     elif (LCF_tr != 0 and LCF_bu != 0):
-        #         sdComb = np.sqrt(float(IMPveg_sd_dec) ** 2. / (LCF_tr * float(area)) + float(IMP_sd) ** 2. / (LCF_bu * float(area)))
+                # found_IMPveg_line = False   
 
-        #     pai = LCF_bu + LCF_ev + LCF_de
+                # with open(IMPvegfile_path[0]) as file:
+                #     for line in file:
+                #         split = line.split()
+                #         if feat_id == int(split[0]):
+                #             IMPveg_heights_mean_eve = split[3]
+                #             IMPveg_heights_mean_dec = split[3]
+                #             IMPveg_fai_eve = split[2]
+                #             IMPveg_fai_dec = split[2]
+                #             IMPveg_max_eve = split[4]  #TODO not used yet
+                #             IMPveg_sd_eve = split[5]  #TODO not used yet
+                #             IMPveg_max_dec = split[4]
+                #             IMPveg_sd_dec = split[5]
+                #             found_IMPveg_line = True
+                #             break
+                #     if not found_IMPveg_line:
+                #         IMPveg_heights_mean_eve = -999
+                #         IMPveg_heights_mean_dec = -999
+                #         IMPveg_fai_eve = -999
+                #         IMPveg_fai_dec = -999
+                #         print_line = False
+            else:
+                IMPveg_heights_mean_eve = feature.attribute(IMPveg_mean_height_eve.getFieldName())
+                IMPveg_heights_mean_dec = feature.attribute(IMPveg_mean_height_dec.getFieldName())
+                IMPveg_fai_eve = feature.attribute(IMPveg_fai_eve.getFieldName())
+                IMPveg_fai_dec = feature.attribute(IMPveg_fai_dec.getFieldName())
+
+            # New calcualtion of rouhgness params v2017 (Kent et al. 2017b)
+            # Evergreen not yet included in the calculations
+            LCF_de = float(LCF_decidious)
+            LCF_ev = float(LCF_evergreen)
+            LCF_bu = float(LCF_buildings)
+            LCF_tr = LCF_de + LCF_ev # temporary fix while ev and de is not separated, issue 155
+            if (LCF_de  == 0 and LCF_ev == 0 and LCF_bu == 0):
+                zH = 0
+                zMAx = 0
+            else:
+                zH = (float(IMP_heights_mean) * LCF_bu + float(IMPveg_heights_mean_eve) * LCF_ev + float(IMPveg_heights_mean_dec) * LCF_de) / (LCF_bu + LCF_ev + LCF_de)                    
+                zMax = max(float(IMPveg_max_dec),float(IMP_max))
+
+            if (LCF_de  == 0 and LCF_ev == 0 and LCF_bu == 0):
+                sdComb = 0
+                IMP_z0 = 0
+                IMP_zd = 0
+                # sdTree = np.sqrt((IMPveg_sd_eve ^ 2 / LCF_evergreen * area) + (IMPveg_sd_dec ^ 2 / LCF_decidious * area))  # not used yet
+            elif (LCF_tr == 0 and LCF_bu != 0):
+                sdComb = np.sqrt(float(IMP_sd) ** 2. / (LCF_bu * float(area)))  # Fix (fLCF_bu) issue #162
+            elif (LCF_tr != 0 and LCF_bu == 0):
+                sdComb = np.sqrt(float(IMPveg_sd_dec) ** 2. / (LCF_tr * float(area)))
+            elif (LCF_tr != 0 and LCF_bu != 0):
+                sdComb = np.sqrt(float(IMPveg_sd_dec) ** 2. / (LCF_tr * float(area)) + float(IMP_sd) ** 2. / (LCF_bu * float(area)))
+
+            pai = LCF_bu + LCF_ev + LCF_de
             
-        #     # paiall = (planareaB + planareaV) / AT
-        #     porosity = 0.2  # This should change with season. Net, set for Summer
-        #     Pv = ((-1.251 * porosity ** 2) / 1.2) + ((0.489 * porosity) / 1.2) + (0.803 / 1.2)  # factor accounting for porosity to correct total fai in roughness calc Kent et al. 2017b
-        #     # faiall_rgh = (frontalareaB + (Pv * frontalareaV)) / (AT / (1 / scale))  # frontal area used in roughness calculation Kent et al. 2017b
-        #     fai = Pv * (float(IMPveg_fai_eve) + float(IMPveg_fai_dec)) + float(IMP_fai)
-        #     if (fai == 0. and pai == 1.):
-        #         IMP_z0 = 0.
-        #         IMP_zd = zH
-        #     elif (fai == 0. and pai < 1.):
-        #         IMP_z0 = 0.
-        #         IMP_zd = 0.
-        #     else:
-        #         IMP_zd, IMP_z0 = rg.RoughnessCalc("Kan", zH, fai, pai, zMax, sdComb)
+            # paiall = (planareaB + planareaV) / AT
+            porosity = 0.2  # This should change with season. Net, set for Summer
+            Pv = ((-1.251 * porosity ** 2) / 1.2) + ((0.489 * porosity) / 1.2) + (0.803 / 1.2)  # factor accounting for porosity to correct total fai in roughness calc Kent et al. 2017b
+            # faiall_rgh = (frontalareaB + (Pv * frontalareaV)) / (AT / (1 / scale))  # frontal area used in roughness calculation Kent et al. 2017b
+            fai = Pv * (float(IMPveg_fai_eve) + float(IMPveg_fai_dec)) + float(IMP_fai)
+            if (fai == 0. and pai == 1.):
+                IMP_z0 = 0.
+                IMP_zd = zH
+            elif (fai == 0. and pai < 1.):
+                IMP_z0 = 0.
+                IMP_zd = 0.
+            else:
+                IMP_zd, IMP_z0 = rg.RoughnessCalc("Kan", zH, fai, pai, zMax, sdComb)
 
-        #     # clean up and give open country values if non-existant
-        #     if np.isnan(IMP_z0) or IMP_z0 < 0.03:
-        #         IMP_z0 = 0.03
-        #     if np.isnan(IMP_zd) or IMP_zd < 0.2:
-        #         IMP_zd = 0.2
+            # clean up and give open country values if non-existant
+            if np.isnan(IMP_z0) or IMP_z0 < 0.03:
+                IMP_z0 = 0.03
+            if np.isnan(IMP_zd) or IMP_zd < 0.2:
+                IMP_zd = 0.2
 
-        #     # # new for z (2017)
-        #     try:
-        #         z = ((float(IMP_heights_mean) * float(LCF_buildings) + float(IMPveg_heights_mean_eve) * float(LCF_evergreen) +
-        #             float(IMPveg_heights_mean_dec) * float(LCF_decidious)) / (float(LCF_buildings) + float(LCF_evergreen) + float(LCF_decidious))) * 3
-        #     except:
-        #         z = 10.
-        #     if z < 10.:
-        #         z = 10.
+            # # new for z (2017)
+            try:
+                z = ((float(IMP_heights_mean) * float(LCF_buildings) + float(IMPveg_heights_mean_eve) * float(LCF_evergreen) +
+                    float(IMPveg_heights_mean_dec) * float(LCF_decidious)) / (float(LCF_buildings) + float(LCF_evergreen) + float(LCF_decidious))) * 3
+            except:
+                z = 10.
+            if z < 10.:
+                z = 10.
 
-        #     if pop_density is not None:
-        #         pop_density_night = feature.attribute(pop_density.currentField())
-        #     else:
-        #         pop_density_night = -999
+            if pop_density is not None:
+                pop_density_night = feature.attribute(pop_density.currentField())
+            else:
+                pop_density_night = -999
 
-        #     if daypop == 1:
-        #         pop_density_day = feature.attribute(pop_density_day.currentField())
-        #     else:
-        #         pop_density_day = pop_density_night
+            if daypop == 1:
+                pop_density_day = feature.attribute(pop_density_day.currentField())
+            else:
+                pop_density_day = pop_density_night
 
-        #     LUMPS_drate = 0.25
-        #     LUMPS_Cover = 1
-        #     LUMPS_MaxRes = 10
-        #     NARP_Trans = 1
+            LUMPS_drate = 0.25
+            LUMPS_Cover = 1
+            LUMPS_MaxRes = 10
+            NARP_Trans = 1
 
-        #     flow_change = 0
-        #     RunoffToWater = 0.1
-        #     PipeCap = 100
-        #     GridConn1of8 = 0
-        #     Fraction1of8 = 0
-        #     GridConn2of8 = 0
-        #     Fraction2of8 = 0
-        #     GridConn3of8 = 0
-        #     Fraction3of8 = 0
-        #     GridConn4of8 = 0
-        #     Fraction4of8 = 0
-        #     GridConn5of8 = 0
-        #     Fraction5of8 = 0
-        #     GridConn6of8 = 0
-        #     Fraction6of8 = 0
-        #     GridConn7of8 = 0
-        #     Fraction7of8 = 0
-        #     GridConn8of8 = 0
-        #     Fraction8of8 = 0
+            flow_change = 0
+            RunoffToWater = 0.1
+            PipeCap = 100
+            GridConn1of8 = 0
+            Fraction1of8 = 0
+            GridConn2of8 = 0
+            Fraction2of8 = 0
+            GridConn3of8 = 0
+            Fraction3of8 = 0
+            GridConn4of8 = 0
+            Fraction4of8 = 0
+            GridConn5of8 = 0
+            Fraction5of8 = 0
+            GridConn6of8 = 0
+            Fraction6of8 = 0
+            GridConn7of8 = 0
+            Fraction7of8 = 0
+            GridConn8of8 = 0
+            Fraction8of8 = 0
     
-        #     WhitinGridPav = 661
-        #     WhitinGridBldg = 662
-        #     WhitinGridEve = 663
-        #     WhitinGridDec = 664
-        #     WhitinGridGrass = 665
-        #     WhitinGridUnmanBsoil = 666
-        #     WhitinGridWaterCode = 667
+            WhitinGridPav = 661
+            WhitinGridBldg = 662
+            WhitinGridEve = 663
+            WhitinGridDec = 664
+            WhitinGridGrass = 665
+            WhitinGridUnmanBsoil = 666
+            WhitinGridWaterCode = 667
 
-        #     Fr_ESTMClass_Paved1 = 0.  ## Already in dict
-        #     Fr_ESTMClass_Paved2 = 1.  ## Already in dict
-        #     Fr_ESTMClass_Paved3 = 0.  ## Already in dict
-        #     Code_ESTMClass_Paved1 = 99999  ## Already in dict
-        #     Code_ESTMClass_Paved2 = 807  ## Already in dict
-        #     Code_ESTMClass_Paved3 = 99999  ## Already in dict
-        #     Fr_ESTMClass_Bldgs1 = 1.0  ## Already in dict
-        #     Fr_ESTMClass_Bldgs2 = 0.  ## Already in dict
-        #     Fr_ESTMClass_Bldgs3 = 0.  ## Already in dict
-        #     Fr_ESTMClass_Bldgs4 = 0.  ## Already in dict
-        #     Fr_ESTMClass_Bldgs5 = 0.  ## Already in dict
-        #     Code_ESTMClass_Bldgs1 = 801  ## Already in dict
-        #     Code_ESTMClass_Bldgs2 = 99999  ## Already in dict
-        #     Code_ESTMClass_Bldgs3 = 99999 ## Already in dict
-        #     Code_ESTMClass_Bldgs4 = 99999 ## Already in dict
-        #     Code_ESTMClass_Bldgs5 = 99999 ## Already in dict
+            Fr_ESTMClass_Paved1 = 0.  ## Already in dict
+            Fr_ESTMClass_Paved2 = 1.  ## Already in dict
+            Fr_ESTMClass_Paved3 = 0.  ## Already in dict
+            Code_ESTMClass_Paved1 = 99999  ## Already in dict
+            Code_ESTMClass_Paved2 = 807  ## Already in dict
+            Code_ESTMClass_Paved3 = 99999  ## Already in dict
+            Fr_ESTMClass_Bldgs1 = 1.0  ## Already in dict
+            Fr_ESTMClass_Bldgs2 = 0.  ## Already in dict
+            Fr_ESTMClass_Bldgs3 = 0.  ## Already in dict
+            Fr_ESTMClass_Bldgs4 = 0.  ## Already in dict
+            Fr_ESTMClass_Bldgs5 = 0.  ## Already in dict
+            Code_ESTMClass_Bldgs1 = 801  ## Already in dict
+            Code_ESTMClass_Bldgs2 = 99999  ## Already in dict
+            Code_ESTMClass_Bldgs3 = 99999 ## Already in dict
+            Code_ESTMClass_Bldgs4 = 99999 ## Already in dict
+            Code_ESTMClass_Bldgs5 = 99999 ## Already in dict
 
-        #     SUEWS_param_dict ={
-        #         # 
-        #         "Year" : year,
-        #         "StartDLS": start_DLS,
-        #         "EndDLS" : end_DLS,
-        #         # 'lat' : "set in code"
-        #         # 'lon' : set in code
-        #         "Timezone" : utc,
-        #         "SurfaceArea" : hectare,
-        #         'Alt' :  altitude,
-        #         'id' : day,
-        #         'ih': hour,
-        #         "imin" : minute,
-        #         # Fractions
-        #         "Fr_Paved" : LCF_paved,
-        #         "Fr_Bldgs" : LCF_buildings,
-        #         "Fr_EveTr" : LCF_evergreen,
-        #         "Fr_DecTr" : LCF_decidious,
-        #         "Fr_Grass" : LCF_grass,
-        #         "Fr_Bsoil" : LCF_baresoil,
-        #         "Fr_Water" : LCF_water,
-        #         # Irrigation Fraction
-        #         "IrrFr_Paved" : IrrFr_Paved,
-        #         "IrrFr_Bldgs" : IrrFr_Bldgs,
-        #         "IrrFr_EveTr" : irrFr_EveTr,
-        #         "IrrFr_DecTr" : irrFr_DecTr,
-        #         "IrrFr_Grass" : irrFr_Grass,
-        #         "IrrFr_BSoil" : IrrFr_BSoil,
-        #         "IrrFr_Water" : IrrFr_Water,
-        #         # Anthropoghenic Emis
-        #         'CondCode' : int('Cnd2',36),
-        #         # "TrafficRate_WD" : TrafficRate_WD, From Region
-        #         # "TrafficRate_WE" : TrafficRate_WE, From Region
-        #         "QF0_BEU_WD" : QF0_BEU_WD,
-        #         "QF0_BEU_WE" : QF0_BEU_WE,
-        #         # Morphological params
-        #         "H_Bldgs" : IMP_heights_mean,
-        #         "H_EveTr" : IMPveg_heights_mean_eve,
-        #         "H_DecTr" : IMPveg_heights_mean_dec,
-        #         "z0" : '%.3f' % IMP_z0,
-        #         "zd" : '%.3f' % IMP_zd,
-        #         "z"  : '%.3f' % z,
-        #         "FAI_Bldgs" : IMP_fai,
-        #         "FAI_EveTr" : IMPveg_fai_eve,
-        #         "FAI_DecTr" : IMPveg_fai_dec,
-        #         "AreaWall" : (float(IMP_wai) * hectare * 10000.),
-        #         # Population
-        #         "PopDensDay" : '%.3f' % pop_density_day,
-        #         "PopDensNight" : '%.3f' % pop_density_night,
-        #         # Lumps Narp
-        #         "LUMPS_DrRate" : LUMPS_drate,
-        #         "LUMPS_Cover"  : LUMPS_Cover,
-        #         "LUMPS_MaxRes" : LUMPS_MaxRes,
-        #         "NARP_Trans" : NARP_Trans,
-        #         # Water Flow 
-        #         "FlowChange" : flow_change,
-        #         "RunoffToWater" : RunoffToWater,
-        #         "PipeCapacity" : PipeCap,
-        #         "GridConnection1of8" : GridConn1of8,
-        #         "GridConnection2of8" : GridConn2of8,
-        #         "GridConnection3of8" : GridConn3of8,
-        #         "GridConnection4of8" : GridConn4of8,
-        #         "GridConnection5of8" : GridConn5of8,
-        #         "GridConnection6of8" : GridConn6of8,
-        #         "GridConnection7of8" : GridConn7of8,
-        #         "GridConnection8of8" : GridConn8of8,
-        #         "Fraction1of8" : Fraction1of8,
-        #         "Fraction2of8" : Fraction2of8,
-        #         "Fraction3of8" : Fraction3of8,
-        #         "Fraction4of8" : Fraction4of8,
-        #         "Fraction5of8" : Fraction5of8,
-        #         "Fraction6of8" : Fraction6of8,
-        #         "Fraction7of8" : Fraction7of8,
-        #         "Fraction8of8" : Fraction8of8,
-        #         "WithinGridPavedCode" : WhitinGridPav,
-        #         "WithinGridBldgsCode" : WhitinGridBldg,
-        #         "WithinGridEveTrCode" : WhitinGridEve,
-        #         "WithinGridDecTrCode" : WhitinGridDec,
-        #         "WithinGridGrassCode" : WhitinGridGrass,
-        #         "WithinGridUnmanBSoilCode" : WhitinGridUnmanBsoil,
-        #         "WithinGridWaterCode" : WhitinGridWaterCode,
+            SUEWS_param_dict ={
+                # 
+                "Year" : year,
+                "StartDLS": start_DLS,
+                "EndDLS" : end_DLS,
+                # 'lat' : "set in code"
+                # 'lon' : set in code
+                "Timezone" : 0,
+                "SurfaceArea" : hectare,
+                'Alt' :  altitude,
+                'id' : day,
+                'ih': hour,
+                "imin" : minute,
+                # Fractions
+                "Fr_Paved" : LCF_paved,
+                "Fr_Bldgs" : LCF_buildings,
+                "Fr_EveTr" : LCF_evergreen,
+                "Fr_DecTr" : LCF_decidious,
+                "Fr_Grass" : LCF_grass,
+                "Fr_Bsoil" : LCF_baresoil,
+                "Fr_Water" : LCF_water,
+                # Irrigation Fraction
+                "IrrFr_Paved" : IrrFr_Paved,
+                "IrrFr_Bldgs" : IrrFr_Bldgs,
+                "IrrFr_EveTr" : irrFr_EveTr,
+                "IrrFr_DecTr" : irrFr_DecTr,
+                "IrrFr_Grass" : irrFr_Grass,
+                "IrrFr_BSoil" : IrrFr_BSoil,
+                "IrrFr_Water" : IrrFr_Water,
+                # Anthropoghenic Emis
+                "QF0_BEU_WD" : QF0_BEU_WD,
+                "QF0_BEU_WE" : QF0_BEU_WE,
+                # Morphological params
+                "H_Bldgs" : IMP_heights_mean,
+                "H_EveTr" : IMPveg_heights_mean_eve,
+                "H_DecTr" : IMPveg_heights_mean_dec,
+                "z0" : '%.3f' % IMP_z0,
+                "zd" : '%.3f' % IMP_zd,
+                "z"  : '%.3f' % z,
+                "FAI_Bldgs" : IMP_fai,
+                "FAI_EveTr" : IMPveg_fai_eve,
+                "FAI_DecTr" : IMPveg_fai_dec,
+                "AreaWall" : (float(IMP_wai) * hectare * 10000.),
+                "CondCode" : column_dict['Cnd'],
+                "SnowCode" : snow_dict['Code'],
+                'TrafficRate_WD' : column_dict['TrafficRate_WD'],
+                'TrafficRate_WE' : column_dict['TrafficRate_WE'], 
+                'SnowClearingProfWD' : column_dict['SnowClearingProfWD'], 
+                'SnowClearingProfWE' : column_dict['SnowClearingProfWE'], 
+                'AnthropogenicCode': column_dict['AnthropogenicCode'], 
+                'IrrigationCode':  column_dict['IrrigationCode'], 
+                'WaterUseProfManuWD': column_dict['WaterUseProfManuWD'], 
+                'WaterUseProfManuWE': column_dict['WaterUseProfManuWE'], 
+                'WaterUseProfAutoWD': column_dict['WaterUseProfAutoWD'], 
+                'WaterUseProfAutoWE' : column_dict['WaterUseProfAutoWE'], 
+                # Population
+                "PopDensDay" : '%.3f' % pop_density_day,
+                "PopDensNight" : '%.3f' % pop_density_night,
+                # Lumps Narp
+                "LUMPS_DrRate" : LUMPS_drate,
+                "LUMPS_Cover"  : LUMPS_Cover,
+                "LUMPS_MaxRes" : LUMPS_MaxRes,
+                "NARP_Trans" : NARP_Trans,
+                # Water Flow 
+                "FlowChange" : flow_change,
+                "RunoffToWater" : RunoffToWater,
+                "PipeCapacity" : PipeCap,
+                "GridConnection1of8" : GridConn1of8,
+                "GridConnection2of8" : GridConn2of8,
+                "GridConnection3of8" : GridConn3of8,
+                "GridConnection4of8" : GridConn4of8,
+                "GridConnection5of8" : GridConn5of8,
+                "GridConnection6of8" : GridConn6of8,
+                "GridConnection7of8" : GridConn7of8,
+                "GridConnection8of8" : GridConn8of8,
+                "Fraction1of8" : Fraction1of8,
+                "Fraction2of8" : Fraction2of8,
+                "Fraction3of8" : Fraction3of8,
+                "Fraction4of8" : Fraction4of8,
+                "Fraction5of8" : Fraction5of8,
+                "Fraction6of8" : Fraction6of8,
+                "Fraction7of8" : Fraction7of8,
+                "Fraction8of8" : Fraction8of8,
+                "WithinGridPavedCode" : WhitinGridPav,
+                "WithinGridBldgsCode" : WhitinGridBldg,
+                "WithinGridEveTrCode" : WhitinGridEve,
+                "WithinGridDecTrCode" : WhitinGridDec,
+                "WithinGridGrassCode" : WhitinGridGrass,
+                "WithinGridUnmanBSoilCode" : WhitinGridUnmanBsoil,
+                "WithinGridWaterCode" : WhitinGridWaterCode,
 
-        #         # ESTM OLD
-        #         "Fr_ESTMClass_Bldgs1": Fr_ESTMClass_Bldgs1,
-        #         "Fr_ESTMClass_Bldgs2": Fr_ESTMClass_Bldgs2,
-        #         "Fr_ESTMClass_Bldgs3": Fr_ESTMClass_Bldgs3,
-        #         "Fr_ESTMClass_Bldgs4": Fr_ESTMClass_Bldgs4,
-        #         "Fr_ESTMClass_Bldgs5": Fr_ESTMClass_Bldgs5,
-        #         "Fr_ESTMClass_Paved1": Fr_ESTMClass_Paved1,
-        #         "Fr_ESTMClass_Paved2": Fr_ESTMClass_Paved2,
-        #         "Fr_ESTMClass_Paved3": Fr_ESTMClass_Paved3,
-        #         "Code_ESTMClass_Bldgs1": Code_ESTMClass_Bldgs1,
-        #         "Code_ESTMClass_Bldgs2": Code_ESTMClass_Bldgs2,
-        #         "Code_ESTMClass_Bldgs3": Code_ESTMClass_Bldgs3,
-        #         "Code_ESTMClass_Bldgs4": Code_ESTMClass_Bldgs4,
-        #         "Code_ESTMClass_Bldgs5": Code_ESTMClass_Bldgs5,
-        #         "Code_ESTMClass_Paved1": Code_ESTMClass_Paved1,
-        #         "Code_ESTMClass_Paved2": Code_ESTMClass_Paved2,
-        #         "Code_ESTMClass_Paved3": Code_ESTMClass_Paved3,  
-        #     }
+                # ESTM OLD
+                "Fr_ESTMClass_Bldgs1": Fr_ESTMClass_Bldgs1,
+                "Fr_ESTMClass_Bldgs2": Fr_ESTMClass_Bldgs2,
+                "Fr_ESTMClass_Bldgs3": Fr_ESTMClass_Bldgs3,
+                "Fr_ESTMClass_Bldgs4": Fr_ESTMClass_Bldgs4,
+                "Fr_ESTMClass_Bldgs5": Fr_ESTMClass_Bldgs5,
+                "Fr_ESTMClass_Paved1": Fr_ESTMClass_Paved1,
+                "Fr_ESTMClass_Paved2": Fr_ESTMClass_Paved2,
+                "Fr_ESTMClass_Paved3": Fr_ESTMClass_Paved3,
+                "Code_ESTMClass_Bldgs1": Code_ESTMClass_Bldgs1,
+                "Code_ESTMClass_Bldgs2": Code_ESTMClass_Bldgs2,
+                "Code_ESTMClass_Bldgs3": Code_ESTMClass_Bldgs3,
+                "Code_ESTMClass_Bldgs4": Code_ESTMClass_Bldgs4,
+                "Code_ESTMClass_Bldgs5": Code_ESTMClass_Bldgs5,
+                "Code_ESTMClass_Paved1": Code_ESTMClass_Paved1,
+                "Code_ESTMClass_Paved2": Code_ESTMClass_Paved2,
+                "Code_ESTMClass_Paved3": Code_ESTMClass_Paved3,  
+            }
 
-        #     for code in SUEWS_param_dict.keys():
-        #         ss_dict[feat_id][code] = str(SUEWS_param_dict[code])
-                
-        #     for code in column_dict.keys():
-        #         ss_dict[feat_id][code] = int(column_dict[code], 36)
-            
-        #     ss_txt_p = r'C:\Users\xbacos\AppData\Roaming\Python\Python37\site-packages\supy\sample_run\Input\SUEWS_SiteSelect.txt'
+            for code in SUEWS_param_dict.keys():
+                ss_dict[feat_id][code] = str(SUEWS_param_dict[code])
 
-        #     save_SiteSelect(ss_dict, save_txt_folder, ss_txt_p)
+        ss_txt_p = plugin_dir +'/Input/SUEWS_SiteSelect.txt' # TODO Fix to set path wihtin UMEP Toolbox
+        save_SiteSelect(ss_dict, save_txt_folder, ss_txt_p)
 
-            
-        # init_out = output_dir[0] + '/InitialConditions' + str(file_code) + '_' + str(year) + '.nml'
-        # # self.write_to_init(plugin_dir + '/Input/' + 'InitialConditions.nml', init_out)
+        init_out = output_dir[0] + '/InitialConditions' + str(file_code) + '_' + str(year) + '.nml'
+        self.write_to_init(plugin_dir + '/Input/' + 'InitialConditions.nml', init_out)
+
+        # Response to issue #462. Should change in future versions
+        copyfile(plugin_dir + '/Input/' + 'ESTMinput.nml', output_dir[0] + "/" + 'ESTMinput.nml')
+        copyfile(plugin_dir + '/Input/' + 'GridLayout.nml', output_dir[0] + "/" + 'GridLayout' + str(file_code) + '.nml')
+
+        copyfile(plugin_dir + '/Input/' + 'SUEWS_SPARTACUS.nml', output_dir[0] + "/" + 'SUEWS_SPARTACUS.nml')
+        # TODO Fix withinGridWaterDist
+        copyfile(plugin_dir + '/Input/' + 'SUEWS_WithinGridWaterDist.txt', output_dir[0] + "/" + 'WithinGridWaterDist.txt')
 
 
 ##########################################################################################
