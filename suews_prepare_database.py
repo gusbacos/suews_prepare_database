@@ -45,6 +45,7 @@ from .Utilities import f90nml
 from .Utilities import RoughnessCalcFunction as rg
 from .Utilities.misc import saveraster
 from .Utilities.db_functions import *
+from .Utilities.ssParms import *
 # from .db import suews_db
 from shutil import copyfile, rmtree
 import copy
@@ -105,6 +106,10 @@ class SUEWSPrepareDatabase:
         self.outputDialog.setFileMode(QFileDialog.Directory)
         self.outputDialog.setOption(QFileDialog.ShowDirsOnly, True)
 
+        self.SSDialog = QFileDialog()
+        self.SSDialog.setFileMode(QFileDialog.Directory)
+        self.SSDialog.setOption(QFileDialog.ShowDirsOnly, True)
+
         self.fileDialog = QFileDialog()
         self.fileDialog.setFileMode(QFileDialog.ExistingFile)
 
@@ -158,6 +163,11 @@ class SUEWSPrepareDatabase:
         self.LCF_from_file = True
         self.IMP_from_file = True
         self.IMPveg_from_file = True
+
+        self.vertheights ='10, 20'
+        self.nlayers = 3
+        self.skew = 2
+
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -279,6 +289,7 @@ class SUEWSPrepareDatabase:
         self.IMPvegfile_path_eve = None
         self.checkBox_twovegfiles = None
         self.checkBoxTypologies = None
+        self.ss_dir = None
         # self.land_use_file_path = None
         self.dlg.textOutput.clear()
         self.setup_tabs()
@@ -448,7 +459,7 @@ class SUEWSPrepareDatabase:
         widget.pushButtonImportIMPBuild.clicked.connect(lambda: self.set_IMPfile_path(widget))
         widget.pushButtonImportMet.clicked.connect(lambda: self.set_metfile_path(widget))
         # widget.pushButtonImportLUF.clicked.connect(lambda: self.set_LUFfile_path(widget))
-
+        
 
         widget.spinBoxStartDLS.valueChanged.connect(lambda: self.start_DLS_changed(widget.spinBoxStartDLS.value()))
         widget.spinBoxEndDLS.valueChanged.connect(lambda: self.end_DLS_changed(widget.spinBoxEndDLS.value()))
@@ -461,6 +472,38 @@ class SUEWSPrepareDatabase:
         widget.lineEditUTC.textChanged.connect(lambda: self.utc_changed(widget.lineEditUTC.text()))
         self.layerComboManagerPolygrid.layerChanged.connect(lambda: self.grid_layer_changed(widget, timezone))
 
+        #SS related GUI things
+        widget.pushButtonImportSS.clicked.connect(lambda: self.set_SSfolder_path(widget))
+        widget.SS_comboBox.currentIndexChanged.connect(lambda: self.height_option_SS(widget.SS_comboBox.currentIndex()))
+        widget.SS_LineEdit_constant.textChanged.connect(lambda: self.vertHeights_changed(widget.SS_LineEdit_constant.text()))
+        widget.spinBoxLayers.valueChanged.connect(lambda: self.layersSS_changed(widget.spinBoxLayers.value()))
+        widget.SS_checkBox_skew.stateChanged.connect(lambda: self.SS_skew(widget))
+
+    def set_SSfolder_path(self, widget):
+        self.SSDialog.open()
+        result = self.SSDialog.exec_()
+        if result == 1:
+            self.ss_dir = self.SSDialog.selectedFiles()
+            widget.textInputIMPDataSS.setText(self.ss_dir[0])
+
+    def height_option_SS(self, value):
+        self.heightMethod = value
+
+    def layersSS_changed(self, value):
+        self.nlayers = value
+
+    def vertHeights_changed(self, heights):      
+        self.vertheights = heights
+
+    def SS_skew(self, widget):
+        if widget.SS_checkBox_skew.isChecked():
+            self.skew = 2
+        else:
+            self.skew = 1
+
+    # def useconstanheight_option_SS(self, widget):
+    #     if widget.SS_checkBox_constant.isChecked():
+    #         self.heightMethod = 1
 
     def soil_moisture_changed(self, value):
         self.soil_moisture = value
@@ -521,6 +564,7 @@ class SUEWSPrepareDatabase:
             widget.textInputIMPDecData.show()
 
     def grid_layer_changed(self, widget, timezone):
+
         # Try to avoid error when no gridlayer present, or layers added or removed to project
         try:
             poly = self.layerComboManagerPolygrid.currentLayer()
@@ -786,7 +830,8 @@ class SUEWSPrepareDatabase:
         # if polyTypolayer is None:
         #     QMessageBox.critical(None, "Error", "No valid Urban typology polygon layer is selected")
         #     return     
-        
+
+  
         # if self.
         #     use_typologies = 'yes'
         # else:
@@ -835,7 +880,8 @@ class SUEWSPrepareDatabase:
                          plugin_dir, map_units,
                          output_dir, day_since_rain, leaf_cycle, soil_moisture, file_code,
                          utc, checkBox_twovegfiles, IMPvegfile_path_dec, IMPvegfile_path_eve, pop_density_day, daypop,
-                         polyTypolayer, dsmlayer, demlayer, lclayer, region_str, country_str, checkBoxTypologies):
+                         polyTypolayer, dsmlayer, demlayer, lclayer, region_str, country_str, checkBoxTypologies,
+                         heightMethod, vertheights, nlayers, skew, ss_dir):
 
         save_txt_folder = output_dir[0]+ '/'
         temp_folder = 'C:/temp/agg/' # Read from UMEP Check in UWG Prepare

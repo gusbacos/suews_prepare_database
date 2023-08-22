@@ -4,75 +4,56 @@ import numpy as np
 from osgeo import gdal
 from datetime import datetime
 from osgeo.gdalconst import *
+import os
+os.environ['USE_PYGEOS'] = '0'
+import geopandas as gpd
 
-code_dict={
-    'Paved' : '01',
-    'Building' : '02',
-    'Bare Soil': '03',
-    'Grass' : '04',
-    'Evergreen Tree' : '05',
-    'Decidous Tree' :  '06',
-    'Water' : '07' ,
-	'CondCode' : '08',
-    'SnowCode'	 : '09',
-    'SnowClearingProfWD' : '10',
-    'SnowClearingProfWE' : '11',
-    'TrafficRate_WD' : '12',
-    'TrafficRate_WE' : '13',
-    'EnergyUseProfWD' : '14',
-    'EnergyUseProfWE' : '15',
-    'ActivityProfWD' : '16',
-    'ActivityProfWE' : '17',
-    'TraffProfWD' : '18',
-    'TraffProfWE' : '19',
-    'PopProfWD' : '20',
-    'PopProfWE' : '21',
-    'AnthropogenicCode' : '22',
-    'IrrigationCode' : '23',
-    'WaterUseProfManuWD' : '24',	
-    'WaterUseProfManuWE' : '25',
-    'WaterUseProfAutoWD' : '26',
-    'WaterUseProfAutoWE' : '27',
-	'WithinGridPavedCode' : '28',
-    'WithinGridBldgsCode' : '29',
-    'WithinGridEveTrCode' : '30',
-    'WithinGridDecTrCode' : '31',
-    'WithinGridGrassCode' : '32',
-    'WithinGridUnmanBSoilCode' : '33',	
-    'WithinGridWaterCode' : '34',
-    'QF0_BEU_WD' : '35',
-    'QF0_BEU_WE' : '36',
-    'SoilTypeCode' : '37', 
-    'SnowLimPatch' : '38', 
-    'SnowLimRemove' : '39', 
-    'OHMCode_SummerWet' : '40', 
-    'OHMCode_SummerDry' : '41', 
-    'OHMCode_WinterWet' : '42', 
-    'OHMCode_WinterDry' : '43',
+table_id_dict = {
+    'Region': 10,
+    'Country': 11,
+    'Types': 12, 
+
+    'NonVeg': 20,
+    'Soil': 22,
+    'Snow': 23,
+    'Veg': 24,
+    'Water': 25,
+
+    'Biogen': 30,
+    'LAI': 31,
+    'LGP': 32,
+    'MVC': 33,
+    'Porosity': 34,
+    'VegetationGrowth': 35,
+    
+    'Emissivity': 40,
+    'Albedo': 41,   
+    'WaterState': 42,
+    'Storage': 43,
+    'Conductance': 44,
+    'Drainage': 45,
+
+    'OHM': 50,
+    'ANOHM': 51,
+    'ESTM': 52,
+    'AnEm': 53,
+    
+    'Profiles': 60,
+    'Irrigation': 61,
+    
+    'Ref': 90,
+
 }
 
 
-def create_code():
-    sleep(0.000000000001) # Slow down to make code unique
-    code = int(datetime.utcnow().strftime('%y%j%M%S%f')) # Year%DOY#Minute#millisecond
-    code = int(str(code)[-10:])
+def create_code(table_name):
+
+    sleep(0.0000000000001) # Slow down to make code unique
+    table_code = str(table_id_dict[table_name]) 
+    doy = str(datetime.now().timetuple().tm_yday)
+    ms = str(datetime.utcnow().strftime('%S%f')) # Year%DOY#Minute#millisecond
+    code = int(table_code + doy + ms[3:])
     return code
-
-def create_code_code(code):
-
-    (0.000000000001) # Slow down to make code unique
-    code_code = int(datetime.utcnow().strftime('%y%j%M%S%f')) # Year%DOY#Minute#millisecond
-    # code = int(str(code)[-10:])
-    return code_code
-    # code_prefix = code_dict[code]
-    # doy = str(datetime.now().timetuple().tm_yday)
-    # year = str((datetime.now().timetuple().tm_year))[-2:]
-    # dec = str((datetime.now()).microsecond)[-3:]
-    # sleep(0.0001)
-    # code_code = code_prefix + year + doy + dec
-    # code_code = int(code_code)
-    # print(code_code)
-    # return code_code
 
 def round_dict(in_dict):
     in_dict = {k: round(v, 4) for k, v in in_dict.items()}
@@ -110,7 +91,7 @@ def read_DB(db_path):
     OHM =  pd.read_excel(db_path, sheet_name = 'Lod3_OHM', index_col = idx_col, engine = 'openpyxl') # Away from Veg
     OHM.name = 'Lod3_OHM'
     LAI =  pd.read_excel(db_path, sheet_name = 'Lod3_LAI', index_col = idx_col, engine = 'openpyxl')
-    LAI.name = 'Lod3_OHM'
+    LAI.name = 'Lod3_LAI'
     st = pd.read_excel(db_path, sheet_name = 'Lod3_Storage', index_col = idx_col, engine = 'openpyxl')
     st.name = 'Lod3_Storage'
     cnd = pd.read_excel(db_path, sheet_name = 'Lod3_Conductance', index_col = idx_col, engine = 'openpyxl') # Away from Veg
@@ -158,22 +139,21 @@ def decide_country_or_region(col, country_sel, reg):
         var = country_sel[col].item()    
     return var
 
-
-
-def fill_SUEWS_NonVeg(Type, nonveg, alb, em, st, dr, ANOHM, ws, column_dict, urbType = False,):
-
-    table_dict = {}
+def fill_SUEWS_NonVeg(Type, table, alb, em, st, dr, ANOHM, ws, column_dict, urbType = False,):
     
-    for i in ['Paved', 'Building']:
-        table = nonveg
+    table_dict = {}
+    surf_list = ['Paved', 'Buildings', 'Bare Soil']
+    if urbType != False:
+        for i in surf_list:
+            table_dict[i] = {}
+            for j in urbType:
+                if i == 'Bare Soil':
+                    locator = column_dict['Bare Soil']
+                else:
+                    locator = Type.loc[j, i]
 
-        table_dict[i] = {}
-        for j in urbType:
-
-            locator = Type.loc[j, i]
-
-            table_dict[i][j] = {
-                'Code' : int(locator, 36),
+                table_dict[i][j] = {
+                'Code' : locator,
                 'AlbedoMin' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_min'],
                 'AlbedoMax' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_max'],
                 'Emissivity' : em.loc[table.loc[locator, 'Em'], 'Emissivity'],
@@ -184,24 +164,87 @@ def fill_SUEWS_NonVeg(Type, nonveg, alb, em, st, dr, ANOHM, ws, column_dict, urb
                 'DrainageEq' : dr.loc[table.loc[locator, 'Dr'], 'DrainageEq'],
                 'DrainageCoef1' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef1'],
                 'DrainageCoef2' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef2'],
-                'SoilTypeCode' : 50, #int(table.loc[locator, 'SoilTypeCode'],  36),
+                'SoilTypeCode' : column_dict['SoilTypeCode'], #table.loc[locator, 'SoilTypeCode'],  36),
                 'SnowLimPatch' : 190,
                 'SnowLimRemove': 90,    
-                'OHMCode_SummerWet' : int(table.loc[locator, 'OHMSummerWet'], 36),
-                'OHMCode_SummerDry' : int(table.loc[locator, 'OHMSummerDry'], 36),
-                'OHMCode_WinterWet' : int(table.loc[locator, 'OHMWinterWet'], 36),
-                'OHMCode_WinterDry' : int(table.loc[locator, 'OHMWinterDry'], 36),
-                'OHMThresh_SW' : 10, # int(table.loc[locator, 'OHMThresh_SW'], 36),
-                'OHMThresh_WD' : 0.9, #int(table.loc[locator, 'OHMThresh_WD'], 36),
-                'ESTMCode' : int(table.loc[locator, 'ESTM'], 36),
+                'OHMCode_SummerWet' : table.loc[locator, 'OHMSummerWet'],
+                'OHMCode_SummerDry' : table.loc[locator, 'OHMSummerDry'],
+                'OHMCode_WinterWet' : table.loc[locator, 'OHMWinterWet'],
+                'OHMCode_WinterDry' : table.loc[locator, 'OHMWinterDry'],
+                'OHMThresh_SW' : 10, # table.loc[locator, 'OHMThresh_SW'],
+                'OHMThresh_WD' : 0.9, #table.loc[locator, 'OHMThresh_WD'],
+                'ESTMCode' : table.loc[locator, 'ESTM'],
                 'AnOHM_Cp' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Cp'],
                 'AnOHM_Kk' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Kk'],
                 'AnOHM_Ch' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Ch'],
             }
-            
-            if i == 'Water':
-                table_dict[i][j]['WaterDepth'] = ws.loc[table.loc[locator, 'Ws'], 'WaterDepth']
-        
+                
+    elif urbType == False:
+        for i in surf_list:
+            table_dict[i] = {}
+
+            locator = column_dict[i]
+            table_dict[i] = {
+                'Code' : locator,
+                'AlbedoMin' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_min'],
+                'AlbedoMax' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_max'],
+                'Emissivity' : em.loc[table.loc[locator, 'Em'], 'Emissivity'],
+                'StorageMin' :  st.loc[table.loc[locator, 'St'], 'StorageMin'],
+                'StorageMax' : st.loc[table.loc[locator, 'St'], 'StorageMax'],
+                'WetThreshold' : dr.loc[table.loc[locator, 'Dr'], 'WetThreshold'],
+                'StateLimit' : ws.loc[table.loc[locator, 'Ws'], 'StateLimit'],
+                'DrainageEq' : dr.loc[table.loc[locator, 'Dr'], 'DrainageEq'],
+                'DrainageCoef1' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef1'],
+                'DrainageCoef2' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef2'],
+                'SoilTypeCode' : column_dict['SoilTypeCode'], #table.loc[locator, 'SoilTypeCode'],  36),
+                'SnowLimPatch' : 190,
+                'SnowLimRemove': 90,    
+                'OHMCode_SummerWet' : table.loc[locator, 'OHMSummerWet'],
+                'OHMCode_SummerDry' : table.loc[locator, 'OHMSummerDry'],
+                'OHMCode_WinterWet' : table.loc[locator, 'OHMWinterWet'],
+                'OHMCode_WinterDry' : table.loc[locator, 'OHMWinterDry'],
+                'OHMThresh_SW' : 10, # table.loc[locator, 'OHMThresh_SW'],
+                'OHMThresh_WD' : 0.9, #table.loc[locator, 'OHMThresh_WD'],
+                'ESTMCode' : table.loc[locator, 'ESTM'],
+                'AnOHM_Cp' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Cp'],
+                'AnOHM_Kk' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Kk'],
+                'AnOHM_Ch' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Ch'],
+            }
+                    
+    return table_dict
+
+def fill_SUEWS_Water(locator, table, alb, em, st, dr, ANOHM, ws, column_dict):
+
+    table_dict = {}
+
+    table_dict['Water'] = {
+        'Code' : locator,
+        'AlbedoMin' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_min'],
+        'AlbedoMax' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_max'],
+        'Emissivity' : em.loc[table.loc[locator, 'Em'], 'Emissivity'],
+        'StorageMin' :  st.loc[table.loc[locator, 'St'], 'StorageMin'],
+        'StorageMax' : st.loc[table.loc[locator, 'St'], 'StorageMax'],
+        'WetThreshold' : dr.loc[table.loc[locator, 'Dr'], 'WetThreshold'],
+        'StateLimit' : ws.loc[table.loc[locator, 'Ws'], 'StateLimit'],
+        'WaterDepth' : ws.loc[table.loc[locator, 'Ws'], 'WaterDepth'],
+        'DrainageEq' : dr.loc[table.loc[locator, 'Dr'], 'DrainageEq'],
+        'DrainageCoef1' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef1'],
+        'DrainageCoef2' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef2'],
+        'SoilTypeCode' : column_dict['SoilTypeCode'], #table.loc[locator, 'SoilTypeCode'],  36),
+        'SnowLimPatch' : -9999,
+        'SnowLimRemove': -9999,    
+        'OHMCode_SummerWet' : table.loc[locator, 'OHMSummerWet'],
+        'OHMCode_SummerDry' : table.loc[locator, 'OHMSummerDry'],
+        'OHMCode_WinterWet' : table.loc[locator, 'OHMWinterWet'],
+        'OHMCode_WinterDry' : table.loc[locator, 'OHMWinterDry'],
+        'OHMThresh_SW' : 10, # table.loc[locator, 'OHMThresh_SW'],
+        'OHMThresh_WD' : 0.9, #table.loc[locator, 'OHMThresh_WD'],
+        'ESTMCode' : table.loc[locator, 'ESTM'],
+        'AnOHM_Cp' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Cp'],
+        'AnOHM_Kk' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Kk'],
+        'AnOHM_Ch' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Ch'],
+    }
+    
     return table_dict
 
 def fill_SUEWS_Veg(Type, veg, alb, em, LAI, st, LGP, dr, VG, ANOHM,  MVCND, por, ws, column_dict , urbType = False):
@@ -216,7 +259,7 @@ def fill_SUEWS_Veg(Type, veg, alb, em, LAI, st, LGP, dr, VG, ANOHM,  MVCND, por,
 
                 locator = Type.loc[j, i]
                 table_dict[i][j] = {
-                    'Code' : int(locator, 36),
+                    'Code' : locator,
                     'AlbedoMin' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_min'],
                     'AlbedoMax' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_max'],
                     'Emissivity' : em.loc[table.loc[locator, 'Em'], 'Emissivity'],
@@ -227,7 +270,7 @@ def fill_SUEWS_Veg(Type, veg, alb, em, LAI, st, LGP, dr, VG, ANOHM,  MVCND, por,
                     'DrainageEq' : dr.loc[table.loc[locator, 'Dr'], 'DrainageEq'],
                     'DrainageCoef1' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef1'],
                     'DrainageCoef2' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef2'],
-                    'SoilTypeCode' : int(column_dict['SoilTypeCode'], 36), #int(table.loc[locator, 'SoilTypeCode'],  36),
+                    'SoilTypeCode' : column_dict['SoilTypeCode'], #table.loc[locator, 'SoilTypeCode'],  36),
                     'SnowLimPatch' : 190,
                     'BaseT' :       VG.loc[table.loc[locator, 'VG'], 'BaseT'],
                     'BaseTe' :      VG.loc[table.loc[locator, 'VG'], 'BaseTe'],
@@ -243,17 +286,17 @@ def fill_SUEWS_Veg(Type, veg, alb, em, LAI, st, LGP, dr, VG, ANOHM,  MVCND, por,
                     'LeafGrowthPower2' : LGP.loc[table.loc[locator, 'LGP'], 'LeafGrowthPower2'],
                     'LeafOffPower1' : LGP.loc[table.loc[locator, 'LGP'], 'LeafOffPower1'],
                     'LeafOffPower2' : LGP.loc[table.loc[locator, 'LGP'], 'LeafOffPower2'],    
-                    'OHMCode_SummerWet' : int(table.loc[locator, 'OHMSummerWet'], 36),
-                    'OHMCode_SummerDry' : int(table.loc[locator, 'OHMSummerDry'], 36),
-                    'OHMCode_WinterWet' : int(table.loc[locator, 'OHMWinterWet'], 36),
-                    'OHMCode_WinterDry' : int(table.loc[locator, 'OHMWinterDry'], 36),
-                    'OHMThresh_SW' : 10,#int(table.loc[locator, 'OHMThresh_SW'], 36),
-                    'OHMThresh_WD' : 0.9,#int(table.loc[locator, 'OHMThresh_WD'], 36),
-                    'ESTMCode' : int(table.loc[locator, 'ESTM'], 36),
+                    'OHMCode_SummerWet' : table.loc[locator, 'OHMSummerWet'],
+                    'OHMCode_SummerDry' : table.loc[locator, 'OHMSummerDry'],
+                    'OHMCode_WinterWet' : table.loc[locator, 'OHMWinterWet'],
+                    'OHMCode_WinterDry' : table.loc[locator, 'OHMWinterDry'],
+                    'OHMThresh_SW' : 10,#table.loc[locator, 'OHMThresh_SW'],
+                    'OHMThresh_WD' : 0.9,#table.loc[locator, 'OHMThresh_WD'],
+                    'ESTMCode' : table.loc[locator, 'ESTM'],
                     'AnOHM_Cp' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Cp'],
                     'AnOHM_Kk' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Kk'],
                     'AnOHM_Ch' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Ch'],
-                    'BiogenCO2Code' : int(column_dict['Biogen'], 36)
+                    'BiogenCO2Code' : column_dict['Biogen']
                 }
 
 
@@ -263,7 +306,7 @@ def fill_SUEWS_Veg(Type, veg, alb, em, LAI, st, LGP, dr, VG, ANOHM,  MVCND, por,
 
             locator = column_dict[i]
             table_dict[i] = {
-                    'Code' : int(locator, 36),
+                    'Code' : locator,
                     'AlbedoMin' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_min'],
                     'AlbedoMax' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_max'],
                     'Emissivity' : em.loc[table.loc[locator, 'Em'], 'Emissivity'],
@@ -274,7 +317,7 @@ def fill_SUEWS_Veg(Type, veg, alb, em, LAI, st, LGP, dr, VG, ANOHM,  MVCND, por,
                     'DrainageEq' : dr.loc[table.loc[locator, 'Dr'], 'DrainageEq'],
                     'DrainageCoef1' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef1'],
                     'DrainageCoef2' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef2'],
-                    'SoilTypeCode' : int(column_dict['SoilTypeCode'], 36), #int(table.loc[locator, 'SoilTypeCode'],  36),
+                    'SoilTypeCode' : column_dict['SoilTypeCode'], #table.loc[locator, 'SoilTypeCode'],  36),
                     'SnowLimPatch' : 190,
                     'BaseT' :       VG.loc[column_dict['Vegetation Growth'], 'BaseT'], #VG.loc[table.loc[locator, 'VG'], 'BaseT'],
                     'BaseTe' :      VG.loc[column_dict['Vegetation Growth'], 'BaseTe'],#VG.loc[table.loc[locator, 'VG'], 'BaseTe'],
@@ -290,17 +333,17 @@ def fill_SUEWS_Veg(Type, veg, alb, em, LAI, st, LGP, dr, VG, ANOHM,  MVCND, por,
                     'LeafGrowthPower2' : LGP.loc[table.loc[locator, 'LGP'], 'LeafGrowthPower2'],
                     'LeafOffPower1' : LGP.loc[table.loc[locator, 'LGP'], 'LeafOffPower1'],
                     'LeafOffPower2' : LGP.loc[table.loc[locator, 'LGP'], 'LeafOffPower2'],    
-                    'OHMCode_SummerWet' : int(table.loc[locator, 'OHMSummerWet'], 36),
-                    'OHMCode_SummerDry' : int(table.loc[locator, 'OHMSummerDry'], 36),
-                    'OHMCode_WinterWet' : int(table.loc[locator, 'OHMWinterWet'], 36),
-                    'OHMCode_WinterDry' : int(table.loc[locator, 'OHMWinterDry'], 36),
-                    'OHMThresh_SW' : 10,#int(table.loc[locator, 'OHMThresh_SW'], 36),
-                    'OHMThresh_WD' : 0.9,#int(table.loc[locator, 'OHMThresh_WD'], 36),
-                    'ESTMCode' : int(table.loc[locator, 'ESTM'], 36),
+                    'OHMCode_SummerWet' : table.loc[locator, 'OHMSummerWet'],
+                    'OHMCode_SummerDry' : table.loc[locator, 'OHMSummerDry'],
+                    'OHMCode_WinterWet' : table.loc[locator, 'OHMWinterWet'],
+                    'OHMCode_WinterDry' : table.loc[locator, 'OHMWinterDry'],
+                    'OHMThresh_SW' : 10,#table.loc[locator, 'OHMThresh_SW'],
+                    'OHMThresh_WD' : 0.9,#table.loc[locator, 'OHMThresh_WD'],
+                    'ESTMCode' : table.loc[locator, 'ESTM'],
                     'AnOHM_Cp' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Cp'],
                     'AnOHM_Kk' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Kk'],
                     'AnOHM_Ch' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Ch'],
-                    'BiogenCO2Code' : int(column_dict['Biogen'], 36) #int(table.loc[locator, 'BIOGEN'], 36)
+                    'BiogenCO2Code' : column_dict['Biogen'] #table.loc[locator, 'BIOGEN']
                 }
     return table_dict
 
@@ -309,7 +352,7 @@ def fill_SUEWS_Snow(snow_sel, snow, alb, em, ANOHM):
     locator = snow_sel
 
     table_dict = {
-        'Code' : int(locator, 36),
+        'Code' : locator,
         'RadMeltFactor' : snow.loc[locator, 'RadMeltFactor'], 
         'TempMeltFactor': snow.loc[locator, 'TempMeltFactor'],
         'AlbedoMin' : alb.loc[snow.loc[locator, 'Alb'], 'Alb_min'],
@@ -324,13 +367,13 @@ def fill_SUEWS_Snow(snow_sel, snow, alb, em, ANOHM):
         'CRWMin' : snow.loc[locator, 'CRWMin'],
         'CRWMax' : snow.loc[locator, 'CRWMax'],
         'PrecipLimSnow' : snow.loc[locator, 'PrecipLimSnow'],
-        'OHMCode_SummerWet' : int(snow.loc[locator, 'OHMCode_SummerWet'], 36),
-        'OHMCode_SummerDry' : int(snow.loc[locator, 'OHMCode_SummerDry'], 36),
-        'OHMCode_WinterWet' : int(snow.loc[locator, 'OHMCode_WinterWet'], 36),
-        'OHMCode_WinterDry' : int(snow.loc[locator, 'OHMCode_WinterDry'], 36),
+        'OHMCode_SummerWet' : snow.loc[locator, 'OHMCode_SummerWet'],
+        'OHMCode_SummerDry' : snow.loc[locator, 'OHMCode_SummerDry'],
+        'OHMCode_WinterWet' : snow.loc[locator, 'OHMCode_WinterWet'],
+        'OHMCode_WinterDry' : snow.loc[locator, 'OHMCode_WinterDry'],
         'OHMThresh_SW' : 10,
         'OHMThresh_WD' : 0.9,
-        'ESTMCode' : int(snow.loc[locator, 'ESTM'], 36),
+        'ESTMCode' : snow.loc[locator, 'ESTM'],
         'AnOHM_Cp' : ANOHM.loc[snow.loc[locator, 'ANOHM'],  'AnOHM_Cp'],
         'AnOHM_Kk' : ANOHM.loc[snow.loc[locator, 'ANOHM'],  'AnOHM_Kk'],
         'AnOHM_Ch' : ANOHM.loc[snow.loc[locator, 'ANOHM'],  'AnOHM_Ch'],
@@ -343,7 +386,7 @@ def fill_SUEWS_AnthropogenicEmission(AnthropogenicCode, reg_sel, table):
     locator = AnthropogenicCode
 
     table_dict = {
-        'Code' : int(locator, 36),
+        'Code' : locator,
         'BaseT_HC' : table.loc[locator, 'BaseT_HC'],
         'QF_A_WD' : table.loc[locator, 'QF_A_WD'], 
         'QF_B_WD' : table.loc[locator, 'QF_B_WD'],
@@ -361,14 +404,14 @@ def fill_SUEWS_AnthropogenicEmission(AnthropogenicCode, reg_sel, table):
         'TCritic_Heating_WE' : table.loc[locator, 'TCritic_Heating_WE'],
         'TCritic_Cooling_WD' : table.loc[locator, 'TCritic_Cooling_WD'],
         'TCritic_Cooling_WE' : table.loc[locator, 'TCritic_Cooling_WE'],
-        'EnergyUseProfWD' : int(reg_sel['EnergyUseProfWD'], 36), #.item() , 36),
-        'EnergyUseProfWE' : int(reg_sel['EnergyUseProfWE'], 36), #.item() , 36),
-        'ActivityProfWD' : int(reg_sel['ActivityProfWD'], 36), #.item(), 36),
-        'ActivityProfWE' : int(reg_sel['ActivityProfWE'], 36), #.item(), 36),
-        'TraffProfWD' : int(reg_sel['TrafficRate_WD'], 36), #.item(),36),
-        'TraffProfWE' : int(reg_sel['TrafficRate_WD'], 36), #.item(),36),
-        'PopProfWD' : int(reg_sel['PopProfWD'], 36), #.item(), 36),
-        'PopProfWE' : int(reg_sel['PopProfWE'], 36), #.item() , 36),
+        'EnergyUseProfWD' : reg_sel['EnergyUseProfWD'], #.item() ,
+        'EnergyUseProfWE' : reg_sel['EnergyUseProfWE'], #.item() ,
+        'ActivityProfWD' : reg_sel['ActivityProfWD'], #.item(),
+        'ActivityProfWE' : reg_sel['ActivityProfWE'], #.item(),
+        'TraffProfWD' : reg_sel['TrafficRate_WD'], #.item(),
+        'TraffProfWE' : reg_sel['TrafficRate_WD'], #.item(),
+        'PopProfWD' : reg_sel['PopProfWD'], #.item(),
+        'PopProfWE' : reg_sel['PopProfWE'], #.item() ,
         'MinQFMetab' : table.loc[locator, 'MinQFMetab'],
         'MaxQFMetab' : table.loc[locator, 'MaxQFMetab'],
         'MinFCMetab' : table.loc[locator, 'MinFCMetab'],
@@ -390,7 +433,7 @@ def new_table_edit(table, table_dict, values, param, name, frac_dict, surface):
 
     index = list(table.reset_index()['ID'])
     index = [str(i) for i in index]
-    edit_index_dict = {int(k,36): k for k in index}
+    edit_index_dict = {k: k for k in index}
     edit_dict = {} 
     weights_dict = {}
     weights_dict = {k : 0 for k in values['Code'].keys()}
@@ -415,6 +458,7 @@ def new_table_edit(table, table_dict, values, param, name, frac_dict, surface):
 
     for type in list(values[param].values()):
         edit_dict[type] = table.loc[edit_index_dict[type]]
+
     blend_edit_dict = {}
     edit_params = (list(edit_dict[type].keys()))
 
@@ -425,7 +469,7 @@ def new_table_edit(table, table_dict, values, param, name, frac_dict, surface):
             blend_edit_dict[p][edit_code] = edit_dict[edit_code][p]
     new_edit_dict ={}
 
-    new_code = create_code() #name + str(int(str(int(round(time.time()*1000))), 36))
+    new_code = create_code(name) #name + str(str(round(time.time()*1000))))
 
     new_edit_dict = {'Code' : new_code}
     weight = list(list(weight_dict_merged['Code'].values()))
@@ -446,6 +490,7 @@ def new_table_edit(table, table_dict, values, param, name, frac_dict, surface):
 
     return edit_dict, table
 
+# Not used at the moment. Pehaps in future. Beware of many equation choices that cannot be averaged
 def blend_veg(in_dict, surface, frac_dict_lc, id, ESTM, OHM, BIOCO2, type_id_dict, frac_to_surf_dict):
 
     table_dict = {}
@@ -454,7 +499,6 @@ def blend_veg(in_dict, surface, frac_dict_lc, id, ESTM, OHM, BIOCO2, type_id_dic
     rev_frac_to_surf_dict = dict((v, k) for k, v in frac_to_surf_dict.items())
     surf = rev_frac_to_surf_dict[surface]
     
-    # fractions = list(frac_dict_lc[id][surf].values())
 
     fractions = {}
     for typology in frac_dict_lc[id].keys():
@@ -463,17 +507,10 @@ def blend_veg(in_dict, surface, frac_dict_lc, id, ESTM, OHM, BIOCO2, type_id_dic
         except:
             fractions[typology] = 1 / len(list(frac_dict_lc[id].keys())) # How to deal with this?
 
-    # for typology in fractions.keys():
-    #     fractions[typology] = fractions[typology] / sum(fractions.values())
-    # try:
-    code = create_code_code(surface)
-    # except:
-    #     code = create_code() #name + str(int(str(int(round(time.time()*1000))), 36))
+    code = create_code('Veg')
 
-    # code = create_code() #'Veg' + str(int(round(time.time()*1000)))
     frac_dict_lc_int = {type_id_dict[k] : fractions[k] for k in fractions}
     fractions = list(fractions.values())
-    # print('fracDict_lc', frac_dict_lc)
 
     if len(list(set(list(values['DrainageEq'].values())))) < 1:
         DrainageEq = np.average(list(values['DrainageEq'].values()), weights = fractions)
@@ -485,9 +522,6 @@ def blend_veg(in_dict, surface, frac_dict_lc, id, ESTM, OHM, BIOCO2, type_id_dic
         DrainageCoef1 = np.average(list(values['DrainageCoef1'].values()), weights = fractions)
         DrainageCoef2 =  np.average(list(values['DrainageCoef2'].values()), weights = fractions)
 
-        # LAIEq = np.average(list(values['LAIEq'].values()), weights = fractions)
-        # LeafGrowthPower1 = np.average(list(values['LeafGrowthPower1'].values()), weights = fractions)
-        # LeafGrowthPower2 = np.average(list(values['LeafGrowthPower2'].values()), weights = fractions)
     
 
     table_dict[surface] = {
@@ -553,77 +587,65 @@ def blend_veg(in_dict, surface, frac_dict_lc, id, ESTM, OHM, BIOCO2, type_id_dic
          
     return table_dict, OHM, ESTM, BIOCO2
 
-def fill_SUEWS_profiles(region, reg, prof):
+def fill_SUEWS_profiles(profiles_list ,save_folder, prof):
 
-    # prof_dict = {
-    #     'TrafficRate_WD' : Tr_wd, 
-    #     'TrafficRate_WE' : Tr_we,
-    #     'SnowClearingProfWD' : prof,
-    #     'SnowClearingProfWE' : prof,
-    #     'WaterUseProfManuWD' : prof,
-    #     'WaterUseProfManuWE': prof,
-    #     'WaterUseProfAutoWD' : prof,
-    #     'WaterUseProfAutoWE' : prof,
-    #     'EnergyUseProfWD' : QF_We,
-    #     'EnergyUseProfWE' : QF_We,
-    #     'ActivityProfWD' : HA_wd,
-    #     'ActivityProfWE' : HA_we,
-    #     'PopProfWD' : HA_wd,
-    #     'PopProfWE' : HA_we,
-    # }
-    
     df_m = pd.DataFrame()
-    table = prof
 
-    for i in ['TrafficRate_WD', 'TrafficRate_WE', 'SnowClearingProfWD', 'SnowClearingProfWE', 'WaterUseProfManuWD','WaterUseProfManuWE', 'WaterUseProfAutoWD', 'WaterUseProfAutoWE']:
-    # for i in prof_dict:
-    #     table = prof_dict[i]
-
-        locator = reg.loc[region, i]
+    for locator in profiles_list:
         table_dict = {
-            'Code' : int(locator, 36),
-            '0'  : table.loc[locator, 0],
-            '1'  : table.loc[locator, 1],
-            '2'  : table.loc[locator, 2],
-            '3'  : table.loc[locator, 3],
-            '4'  : table.loc[locator, 4],
-            '5'  : table.loc[locator, 5],
-            '6'  : table.loc[locator, 6],
-            '7'  : table.loc[locator, 7],
-            '8'  : table.loc[locator, 8],
-            '9'  : table.loc[locator, 9],
-            '10' : table.loc[locator, 10],
-            '11' : table.loc[locator, 11],
-            '12' : table.loc[locator, 12],
-            '13' : table.loc[locator, 13],
-            '14' : table.loc[locator, 14],
-            '15' : table.loc[locator, 15],
-            '16' : table.loc[locator, 16],
-            '17' : table.loc[locator, 17],
-            '18' : table.loc[locator, 18],
-            '19' : table.loc[locator, 19],
-            '20' : table.loc[locator, 20],
-            '21' : table.loc[locator, 21],
-            '22' : table.loc[locator, 22],
-            '23' : table.loc[locator, 23],
+            'Code' : locator,
+            '0'  : prof.loc[locator, 0],
+            '1'  : prof.loc[locator, 1],
+            '2'  : prof.loc[locator, 2],
+            '3'  : prof.loc[locator, 3],
+            '4'  : prof.loc[locator, 4],
+            '5'  : prof.loc[locator, 5],
+            '6'  : prof.loc[locator, 6],
+            '7'  : prof.loc[locator, 7],
+            '8'  : prof.loc[locator, 8],
+            '9'  : prof.loc[locator, 9],
+            '10' : prof.loc[locator, 10],
+            '11' : prof.loc[locator, 11],
+            '12' : prof.loc[locator, 12],
+            '13' : prof.loc[locator, 13],
+            '14' : prof.loc[locator, 14],
+            '15' : prof.loc[locator, 15],
+            '16' : prof.loc[locator, 16],
+            '17' : prof.loc[locator, 17],
+            '18' : prof.loc[locator, 18],
+            '19' : prof.loc[locator, 19],
+            '20' : prof.loc[locator, 20],
+            '21' : prof.loc[locator, 21],
+            '22' : prof.loc[locator, 22],
+            '23' : prof.loc[locator, 23],
         }
-        dict_df = pd.DataFrame(table_dict, index = [0]).set_index('Code')
+        dict_df = pd.DataFrame(table_dict, index = [0])#.set_index('Code')
         df_m = pd.concat([df_m, dict_df]).drop_duplicates(keep='first')
 
+    df_m.columns = [df_m.columns, list(range(1, len(df_m.columns)+1))]
+    # add -9 rows to text files
+    df_m = df_m.swaplevel(0,1,1)
+    df_m.loc[-1] = np.nan
+    df_m.iloc[-1, 0] = -9
+    df_m.loc[-2]= np.nan
+    df_m.iloc[-1, 0] = -9
 
-def blend_nonveg(in_dict, surface, frac_dict_bh, frac_dict_lc, id, ESTM, OHM, type_id_dict, frac_to_surf_dict):
+    df_m.to_csv(save_folder + 'SUEWS_Profiles.txt', sep = '\t' ,index = False)
+
+
+def blend_nonveg(in_dict, surface, frac_dict_bh, frac_dict_lc, id, ESTM, OHM, type_id_dict, frac_to_surf_dict, column_dict):
 
     table_dict = {}
     values = in_dict[id][surface]
     code_order = list(values.keys())
     fractions = {}
 
-    if surface == 'Building':
+    if surface == 'Buildings':
         frac_dict_int = {}
         for i in frac_dict_bh[id].keys():
             frac_dict_int[type_id_dict[i]] = frac_dict_bh[id][i]
         fractions = list(frac_dict_int.values())
-        code = create_code()
+        code = create_code('NonVeg')
     
     else:
         rev_frac_to_surf_dict = dict((v, k) for k, v in frac_to_surf_dict.items())
@@ -641,7 +663,7 @@ def blend_nonveg(in_dict, surface, frac_dict_bh, frac_dict_lc, id, ESTM, OHM, ty
         frac_dict_int = {type_id_dict[k] : fractions[k] for k in fractions}
         fractions = list(fractions.values())
         
-        code = create_code() #name + str(int(str(int(round(time.time()*1000))), 36))
+        code = create_code('NonVeg') #name + str(int(str(int(round(time.time()*1000))))
 
     table_dict[surface] = {
         'Code' : code, # Give new Code
@@ -655,7 +677,7 @@ def blend_nonveg(in_dict, surface, frac_dict_bh, frac_dict_lc, id, ESTM, OHM, ty
         'DrainageEq' : np.average(list(values['DrainageEq'].values()), weights = fractions), # NEED FIXING!
         'DrainageCoef1' :np.average(list(values['DrainageCoef1'].values()), weights = fractions),
         'DrainageCoef2' : np.average(list(values['DrainageCoef2'].values()), weights = fractions),
-        'SoilTypeCode' : 50, #not avearageable 
+        'SoilTypeCode' : column_dict['SoilTypeCode'],
         'SnowLimPatch' : np.average(list(values['SnowLimPatch'].values()), weights = fractions),
         'SnowLimRemove' : np.average(list(values['SnowLimRemove'].values()), weights = fractions),
         # 'OHMCode_SummerWet' : not avearageable 
@@ -675,15 +697,20 @@ def blend_nonveg(in_dict, surface, frac_dict_bh, frac_dict_lc, id, ESTM, OHM, ty
     
     for param in ['OHMCode_SummerWet', 'OHMCode_SummerDry', 'OHMCode_WinterWet' ,'OHMCode_WinterDry', 'ESTMCode']:
         unique_values = list(set(list(values[param].values())))
-
+        
         if len(unique_values) == 1:
             table_dict[surface][param] = unique_values[0]
         else:
-            if param == 'ESTMCode':
-                table_edit, ESTM = new_table_edit(ESTM, table_dict, values, param, 'ESTM', frac_dict_int, surface)
+            values_list = list(values[param].values())
+            frac_majority = list(frac_dict_int.values())
+            # frac frac_majority_idx  = 
+            table_dict[surface][param] = values_list[frac_majority.index(max(frac_majority))]
+
+            # if param == 'ESTMCode':
+            #     table_edit, ESTM = new_table_edit(ESTM, table_dict, values, param, 'ESTM', frac_dict_int, surface)
                 
-            else: # This is OHM Coefficients
-                table_edit, OHM = new_table_edit(OHM, table_dict, values, param, 'OHM', frac_dict_int, surface)
+            # else: # This is OHM Coefficients
+            #     table_edit, OHM = new_table_edit(OHM, table_dict, values, param, 'OHM', frac_dict_int, surface)
 
         table_dict[surface] = round_dict(table_dict[surface])            
 
@@ -691,8 +718,8 @@ def blend_nonveg(in_dict, surface, frac_dict_bh, frac_dict_lc, id, ESTM, OHM, ty
 
 def save_SUEWS_txt(df_m, table_name, save_folder):
     col = ['General Type', 'Surface', 'Description', 'Origin', 'Ref', 'Season', 'Day' ,'Profile Type']
-    thisFilter = df_m.filter(col)
-    df_m.drop(thisFilter, inplace= True, axis = 1)
+    dropFilter = df_m.filter(col)
+    df_m.drop(dropFilter, inplace= True, axis = 1)
     df_m.reset_index(inplace = True)
     df_m = df_m.round(4)
 
@@ -703,21 +730,55 @@ def save_SUEWS_txt(df_m, table_name, save_folder):
 
     else:
         cd = df_m.filter(like='Code').columns
-            
-    for code in cd:
-        df_m[code] = df_m[code].apply(lambda x: float(str(x)[-8:]))
 
-    for i in range(len(df_m)):
-        if len(str(df_m.iloc[i]['Code'])) >10:
-            print(df_m.iloc[i]['Code'])
+    try:
+        df_m['Code'] = df_m['Code'].apply(lambda x: x)
+    except:
+        pass
+    df_m.columns = [df_m.columns, list(range(1, len(df_m.columns)+1))]
 
-    # df_m['Code'] = df_m['Code'].apply(lambda x: float(str(x)[-10:]))
+    # add -9 rows to text files
+    df_m = df_m.swaplevel(0,1,1)
+    # This can probably be done better. Used pd.append() but this will be deprecated. This works, but not the most clean coding
+    df_m.loc[-1] = np.nan
+    df_m.iloc[-1, 0] = -9
+    df_m.loc[-2]= np.nan
+    df_m.iloc[-1, 0] = -9
+
+    df_m.to_csv(save_folder + table_name, sep = '\t' ,index = False)
+    
+def save_snow(snow_dict, save_folder):
+
+    df_m = pd.DataFrame.from_dict(snow_dict, orient = 'index').T
+    df_m.columns = [df_m.columns, list(range(1, len(df_m.columns)+1))]
+    # add -9 rows to text files
+    df_m = df_m.swaplevel(0,1,1)
+    # This can probably be done better. Used pd.append() but this will be deprecated. This works, but not the most clean coding
+    df_m.loc[-1] = np.nan
+    df_m.iloc[-1, 0] = -9
+    df_m.loc[-2]= np.nan
+    df_m.iloc[-1, 0] = -9
+
+    df_m.to_csv(save_folder + 'SUEWS_Snow.txt', sep = '\t' ,index = False)
+
+def save_NonVeg_types(out_dict, save_folder):
+
+    df_m = pd.DataFrame()
+    for id in list(out_dict.keys()):
+        for surf in ['Paved', 'Buildings','Bare Soil']:
+            df_m = pd.concat([df_m, pd.DataFrame.from_dict(out_dict[id][surf], orient='index').T]).drop_duplicates()
 
     df_m.columns = [df_m.columns, list(range(1, len(df_m.columns)+1))]
-    df_m = df_m.swaplevel(0,1,1)
-    df_m = df_m.append([{(1,'Code') : int(-9)},{(1,'Code') : int(-9)}], ignore_index = True)
-    df_m.to_csv(save_folder + table_name, sep = '\t' ,index = False)
+    # add -9 rows to text files
 
+    df_m = df_m.swaplevel(0,1,1)
+    # This can probably be done better. Used pd.append() but this will be deprecated. This works, but not the most clean coding
+    df_m.loc[-1] = np.nan
+    df_m.iloc[-1, 0] = -9
+    df_m.loc[-2]= np.nan
+    df_m.iloc[-1, 0] = -9
+
+    df_m.to_csv(save_folder + 'SUEWS_NonVeg.txt', sep = '\t' ,index = False)
 
 def save_SiteSelect(dict, save_folder, path_to_ss):
 
@@ -734,11 +795,15 @@ def save_SiteSelect(dict, save_folder, path_to_ss):
     cd = cd + list(df_m.filter(like= 'WD'))
     cd = cd + list(df_m.filter(like= 'WE'))
 
-    for code in cd:
-        df_m[code] = df_m[code].apply(lambda x: float(str(x)[-8:]))
 
     df_m = df_m.swaplevel(0,1,1)
-    df_m = df_m.append([{(1,'Grid') : int(-9)},{(1,'Grid') : int(-9)}], ignore_index = True)
+    df_m.loc[-1] = np.nan
+    df_m.iloc[-1, 0] = -9
+    df_m.loc[-2]= np.nan
+    df_m.iloc[-1, 0] = -9
+
+
+
     df_m.to_csv(save_folder + 'SUEWS_SiteSelect.txt', sep = '\t' ,index = False)
 
 def presave(table, name, var_list, save_folder):
@@ -749,13 +814,42 @@ def presave(table, name, var_list, save_folder):
     list_str = [x for x in index_list if isinstance(x, str)]
 
     for i in list_str:
-        df.rename(index={i : int(i,36)},inplace=True)
+        df.rename(index={i : i},inplace=True)
 
-    if df.index.name != 'Code':
-        df.index.name = 'Code'
+    df = df.drop(columns=df.select_dtypes(include='object').columns)
 
     save_SUEWS_txt(df.loc[var_list].rename_axis('Code'), ('SUEWS_' + name + '.txt'), save_folder)
 
+def sel_to_dict(table, var, column_dict):
+
+    code = column_dict[var]
+    out_dict = table.loc[code].to_dict()
+    out_dict['Code'] = code
+    return out_dict
+
+def read_morph_txt(txt_file):
+    morph_dict = pd.read_csv(txt_file, delim_whitespace=True, index_col=[0]).to_dict(orient='index')
+    return morph_dict  
+
+def get_utc(grid_path, timezone):
+    
+    # timezone
+    grid = gpd.read_file(grid_path)
+    
+    # Set of grid to crs of timezones vectorlayer (WGS 84)
+    grid_crs = grid.to_crs(timezone.crs)
+
+    try:
+        spatial_join = gpd.sjoin(left_df=grid_crs,
+                                    right_df=timezone,
+                                    how="inner", op='within')
+        utc = spatial_join.iloc[0]['zone']
+    except:
+        utc = 0
+        print('UTC calc not working')
+    return utc
+
+# Not used now, pehaps later .
 def read_LUCY_txt(df):
     df['ID'] = np.arange(df.shape[0])+1
     df.set_index('ID', inplace = True)
@@ -808,7 +902,7 @@ def load_lucy(LUCY_path, region):
     summercooling = summercooling.loc[indexer]
     holidays = holidays.loc[indexer]
     ecstatus = ecstatus.loc[indexer]
-    building_enery_use = weekendhours.loc[indexer]
+    Buildings_energy_use = weekendhours.loc[indexer]
 
     QF_wd = weekdayhours.loc[indexer]
     QF_We = weekendhours.loc[indexer]
