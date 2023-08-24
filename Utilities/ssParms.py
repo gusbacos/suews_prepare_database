@@ -10,7 +10,6 @@ from ..Utilities.umep_suewsss_export_component import write_GridLayout_file, cre
 
 # import matplotlib as plt
 
-
 def ss_calc(build, cdsm, walls, numPixels, feedback):
 
     #noOfPixels = int(dsm.shape[0] * dsm.shape[1])

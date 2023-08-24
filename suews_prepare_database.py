@@ -413,7 +413,7 @@ class SUEWSPrepareDatabase:
         widget.checkBox_day.stateChanged.connect(lambda: self.popdaystate(widget))
 
         self.layerComboManagerPolygrid = QgsMapLayerComboBox(widget.widgetPolygonLayer)
-        # self.layerComboManagerPolygrid.setCurrentIndex(-1)
+        self.layerComboManagerPolygrid.setCurrentIndex(-1)
         self.layerComboManagerPolygrid.setFilters(QgsMapLayerProxyModel.PolygonLayer)
         self.layerComboManagerPolygrid.setFixedWidth(175)
         self.layerComboManagerPolyField = QgsFieldComboBox(widget.widgetPolyField)
@@ -860,7 +860,8 @@ class SUEWSPrepareDatabase:
                          self.plugin_dir, map_units,
                          self.output_dir, self.day_since_rain, self.leaf_cycle, self.soil_moisture, self.file_code,
                          self.utc, self.checkBox_twovegfiles, self.IMPvegfile_path_dec, self.IMPvegfile_path_eve, self.pop_density_day, self.daypop,
-                         polyTypolayer, dsmlayer, demlayer, lclayer, self.region_str, self.country_str, self.typologies)
+                         polyTypolayer, dsmlayer, demlayer, lclayer, self.region_str, self.country_str, self.typologies,
+                         self.heightMethod, self.vertheights, self.nlayers, self.skew, self.ss_dir)
 
         # self.startWorker(vlayer, poly_field, self.Metfile_path, self.start_DLS, self.end_DLS, self.LCF_from_file, self.LCFfile_path,
         #                  self.LCF_Paved, self.LCF_Buildings, self.LCF_Evergreen, self.LCF_Decidious, self.LCF_Grass, self.LCF_Baresoil,
@@ -1232,7 +1233,6 @@ class SUEWSPrepareDatabase:
 
         ########################### CALC ################################
         
-
         ESTM_list = []
         OHM_list = []
         BIOCO2_list = []
@@ -1304,6 +1304,11 @@ class SUEWSPrepareDatabase:
             year = None
             year2 = None
             ss_dict[feat_id] = {}
+
+            # Write GridLayoutXXX.nml
+            print(ss_dir[0] + '/' + file_code + '_IMPGrid_SS_' + str(feat_id) + '.txt')
+            ssVect = np.loadtxt(ss_dir[0] + '/' + file_code + '_IMPGrid_SS_' + str(feat_id) + '.txt', skiprows = 1) #vertical info from IMP calc
+            writeGridLayout(ssVect, heightMethod, vertheights, nlayers, skew, file_code, str(feat_id), save_txt_folder)
             
             try:
                 ss_dict[feat_id]['Code_Paved'] = nonVeg_dict[feat_id]['Paved']['Code']
