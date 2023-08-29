@@ -60,70 +60,70 @@ def round_dict(in_dict):
     return in_dict 
 
 def read_region(db_path):
-    reg = pd.read_excel(db_path, sheet_name = 'Lod0_Region', index_col=  'ID', engine = 'openpyxl')
+    reg = pd.read_excel(db_path, sheet_name = 'Region', index_col=  'ID', engine = 'openpyxl')
     return reg
 
 def read_DB(db_path):
          
     idx_col = 'ID'
     # Lod 0
-    reg = pd.read_excel(db_path, sheet_name = 'Lod0_Region', index_col=  idx_col, engine = 'openpyxl')
-    reg.name = 'Lod0_Region'
-    country = pd.read_excel(db_path, sheet_name = 'Lod0_Country', index_col=  idx_col, engine = 'openpyxl')
-    country.name = 'Lod0_Country'
+    reg = pd.read_excel(db_path, sheet_name = 'Region', index_col=  idx_col, engine = 'openpyxl')
+    reg.name = 'Region'
+    country = pd.read_excel(db_path, sheet_name = 'Country', index_col=  idx_col, engine = 'openpyxl')
+    country.name = 'Country'
     # Lod 1
-    Type = pd.read_excel(db_path, sheet_name = 'Lod1_Types', index_col=  idx_col, engine = 'openpyxl')
-    Type.name = 'Lod1_Types'
+    Type = pd.read_excel(db_path, sheet_name = 'Types', index_col=  idx_col, engine = 'openpyxl')
+    Type.name = 'Types'
     # Lod 2
-    veg = pd.read_excel(db_path, sheet_name = 'Lod2_Veg', index_col = idx_col, engine = 'openpyxl')
-    veg.name = 'Lod2_Veg'
-    nonveg = pd.read_excel(db_path, sheet_name = 'Lod2_NonVeg', index_col = idx_col, engine = 'openpyxl')
-    nonveg.name = 'Lod2_NonVeg'
-    water = pd.read_excel(db_path, sheet_name = 'Lod2_Water', index_col = idx_col, engine = 'openpyxl')
-    water.name = 'Lod2_Water'
+    veg = pd.read_excel(db_path, sheet_name = 'Veg', index_col = idx_col, engine = 'openpyxl')
+    veg.name = 'Veg'
+    nonveg = pd.read_excel(db_path, sheet_name = 'NonVeg', index_col = idx_col, engine = 'openpyxl')
+    nonveg.name = 'NonVeg'
+    water = pd.read_excel(db_path, sheet_name = 'Water', index_col = idx_col, engine = 'openpyxl')
+    water.name = 'Water'
     ref = pd.read_excel(db_path, sheet_name = 'References', index_col = idx_col, engine = 'openpyxl')
     ref.name = 'References'
     # Lod 3
-    alb =  pd.read_excel(db_path, sheet_name = 'Lod3_Albedo', index_col = idx_col, engine = 'openpyxl')
-    alb.name = 'Lod3_Albedo'
-    em =  pd.read_excel(db_path, sheet_name = 'Lod3_Emissivity', index_col = idx_col, engine = 'openpyxl')
-    em.name = 'Lod3_Emissivity'
-    OHM =  pd.read_excel(db_path, sheet_name = 'Lod3_OHM', index_col = idx_col, engine = 'openpyxl') # Away from Veg
-    OHM.name = 'Lod3_OHM'
-    LAI =  pd.read_excel(db_path, sheet_name = 'Lod3_LAI', index_col = idx_col, engine = 'openpyxl')
-    LAI.name = 'Lod3_LAI'
-    st = pd.read_excel(db_path, sheet_name = 'Lod3_Storage', index_col = idx_col, engine = 'openpyxl')
-    st.name = 'Lod3_Storage'
-    cnd = pd.read_excel(db_path, sheet_name = 'Lod3_Conductance', index_col = idx_col, engine = 'openpyxl') # Away from Veg
-    cnd.name = 'Lod3_Conductance'
-    LGP = pd.read_excel(db_path, sheet_name = 'Lod3_LGP', index_col = idx_col, engine = 'openpyxl')
-    LGP.name = 'Lod3_LGP'
-    dr = pd.read_excel(db_path, sheet_name = 'Lod3_Drainage', index_col = idx_col, engine = 'openpyxl')
-    dr.name = 'Lod3_Drainage'
-    VG = pd.read_excel(db_path, sheet_name = 'Lod3_VegetationGrowth', index_col = idx_col, engine = 'openpyxl')
-    VG.name = 'Lod3_VegetationGrowth'
-    ANOHM = pd.read_excel(db_path, sheet_name = 'Lod3_ANOHM', index_col = idx_col, engine = 'openpyxl')
-    ANOHM.name = 'Lod3_ANOHM'
-    BIOCO2 = pd.read_excel(db_path, sheet_name = 'Lod3_BiogenCO2',index_col = idx_col, engine = 'openpyxl')
-    BIOCO2.name = 'Lod3_BiogenCO2'
-    MVCND = pd.read_excel(db_path, sheet_name= 'Lod3_MaxVegetationConductance', index_col = idx_col, engine = 'openpyxl')
-    MVCND.name = 'Lod3_MaxVegetationConductance'
-    por = pd.read_excel(db_path, sheet_name = 'Lod3_Porosity', index_col = idx_col, engine = 'openpyxl')
-    por.name = 'Lod3_Porosity'
-    snow = pd.read_excel(db_path, sheet_name = 'Lod3_Snow', index_col = idx_col, engine = 'openpyxl')
-    snow.name = 'Lod3_Snow'
-    AnEm = pd.read_excel(db_path, sheet_name = 'Lod3_AnthropogenicEmission',index_col = idx_col, engine = 'openpyxl')
-    AnEm.name = 'Lod3_AnthropogenicEmission'
-    prof = pd.read_excel(db_path, sheet_name= 'Lod3_Profiles', index_col = idx_col, engine = 'openpyxl')
-    prof.name = 'Lod3_Profiles'
-    ws = pd.read_excel(db_path, sheet_name = 'Lod3_WaterState', index_col = idx_col, engine = 'openpyxl')
-    ws.name = 'Lod3_WaterState'
-    soil = pd.read_excel(db_path, sheet_name = 'Lod3_Soil', index_col = idx_col, engine = 'openpyxl')
-    soil.name = 'Lod3_Soil'
-    ESTM = pd.read_excel(db_path, sheet_name = 'Lod3_ESTM', index_col = idx_col, engine = 'openpyxl')
-    ESTM.name = 'Lod3_ESTM'
-    irr = pd.read_excel(db_path, sheet_name= 'Lod3_Irrigation', index_col = idx_col, engine = 'openpyxl')
-    irr.name = 'Lod3_Irrigation'
+    alb =  pd.read_excel(db_path, sheet_name = 'Albedo', index_col = idx_col, engine = 'openpyxl')
+    alb.name = 'Albedo'
+    em =  pd.read_excel(db_path, sheet_name = 'Emissivity', index_col = idx_col, engine = 'openpyxl')
+    em.name = 'Emissivity'
+    OHM =  pd.read_excel(db_path, sheet_name = 'OHM', index_col = idx_col, engine = 'openpyxl') # Away from Veg
+    OHM.name = 'OHM'
+    LAI =  pd.read_excel(db_path, sheet_name = 'LAI', index_col = idx_col, engine = 'openpyxl')
+    LAI.name = 'LAI'
+    st = pd.read_excel(db_path, sheet_name = 'Storage', index_col = idx_col, engine = 'openpyxl')
+    st.name = 'Storage'
+    cnd = pd.read_excel(db_path, sheet_name = 'Conductance', index_col = idx_col, engine = 'openpyxl') # Away from Veg
+    cnd.name = 'Conductance'
+    LGP = pd.read_excel(db_path, sheet_name = 'LGP', index_col = idx_col, engine = 'openpyxl')
+    LGP.name = 'LGP'
+    dr = pd.read_excel(db_path, sheet_name = 'Drainage', index_col = idx_col, engine = 'openpyxl')
+    dr.name = 'Drainage'
+    VG = pd.read_excel(db_path, sheet_name = 'VegetationGrowth', index_col = idx_col, engine = 'openpyxl')
+    VG.name = 'VegetationGrowth'
+    ANOHM = pd.read_excel(db_path, sheet_name = 'ANOHM', index_col = idx_col, engine = 'openpyxl')
+    ANOHM.name = 'ANOHM'
+    BIOCO2 = pd.read_excel(db_path, sheet_name = 'BiogenCO2',index_col = idx_col, engine = 'openpyxl')
+    BIOCO2.name = 'BiogenCO2'
+    MVCND = pd.read_excel(db_path, sheet_name= 'MaxVegetationConductance', index_col = idx_col, engine = 'openpyxl')
+    MVCND.name = 'MaxVegetationConductance'
+    por = pd.read_excel(db_path, sheet_name = 'Porosity', index_col = idx_col, engine = 'openpyxl')
+    por.name = 'Porosity'
+    snow = pd.read_excel(db_path, sheet_name = 'Snow', index_col = idx_col, engine = 'openpyxl')
+    snow.name = 'Snow'
+    AnEm = pd.read_excel(db_path, sheet_name = 'AnthropogenicEmission',index_col = idx_col, engine = 'openpyxl')
+    AnEm.name = 'AnthropogenicEmission'
+    prof = pd.read_excel(db_path, sheet_name= 'Profiles', index_col = idx_col, engine = 'openpyxl')
+    prof.name = 'Profiles'
+    ws = pd.read_excel(db_path, sheet_name = 'WaterState', index_col = idx_col, engine = 'openpyxl')
+    ws.name = 'WaterState'
+    soil = pd.read_excel(db_path, sheet_name = 'Soil', index_col = idx_col, engine = 'openpyxl')
+    soil.name = 'Soil'
+    ESTM = pd.read_excel(db_path, sheet_name = 'ESTM', index_col = idx_col, engine = 'openpyxl')
+    ESTM.name = 'ESTM'
+    irr = pd.read_excel(db_path, sheet_name= 'Irrigation', index_col = idx_col, engine = 'openpyxl')
+    irr.name = 'Irrigation'
 
     type_id_dict = {val: key for key, val in pd.Series((Type['Type'] + ', ' + Type['Origin'] ),index=Type.reset_index()['ID']).to_dict().items()}
     country_id_dict = {val: key for key, val in pd.Series((country['Region'] + ', ' + country['Country'] + ', ' + country['City'] ),index=country.reset_index()['ID']).to_dict().items()}

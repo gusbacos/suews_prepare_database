@@ -370,10 +370,10 @@ class SUEWSPrepareDatabase:
 
         # Region
         db_path = self.plugin_dir + '/Input/database.xlsx'  # TODO When in UMEP Toolbox, set this path to db in database manager
-        reg = pd.read_excel(db_path, sheet_name='Lod0_Region', index_col= 'ID')
-        country = pd.read_excel(db_path, sheet_name='Lod0_Country', index_col= 'ID')
-        veg = pd.read_excel(db_path, sheet_name='Lod2_Veg', index_col= 'ID')
-        nonveg = pd.read_excel(db_path, sheet_name='Lod2_NonVeg', index_col= 'ID')
+        reg = pd.read_excel(db_path, sheet_name='Region', index_col= 'ID')
+        country = pd.read_excel(db_path, sheet_name='Country', index_col= 'ID')
+        veg = pd.read_excel(db_path, sheet_name='Veg', index_col= 'ID')
+        nonveg = pd.read_excel(db_path, sheet_name='NonVeg', index_col= 'ID')
         
         nonveg['descOrigin'] = nonveg['Color']  + ' ' + nonveg['Description'] + ', ' + nonveg['Origin']
         veg['descOrigin'] = veg['Description'] + ', ' + veg['Origin']
