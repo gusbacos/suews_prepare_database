@@ -168,20 +168,7 @@ class SUEWSPrepareDatabase:
         self.nlayers = 3
         self.skew = 2
 
-
-    # noinspection PyMethodMayBeStatic
     def tr(self, message):
-        """Get the translation for a string using Qt translation API.
-
-        We implement this ourselves since we do not inherit QObject.
-
-        :param message: String for translation.
-        :type message: str, QString
-
-        :returns: Translated version of message.
-        :rtype: QString
-        """
-        # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('SUEWSPrepareDatabase', message)
 
     def add_action(
@@ -195,45 +182,7 @@ class SUEWSPrepareDatabase:
         status_tip=None,
         whats_this=None,
         parent=None):
-        """Add a toolbar icon to the toolbar.
-
-        :param icon_path: Path to the icon for this action. Can be a resource
-            path (e.g. ':/plugins/foo/bar.png') or a normal file system path.
-        :type icon_path: str
-
-        :param text: Text that should be shown in menu items for this action.
-        :type text: str
-
-        :param callback: Function to be called when the action is triggered.
-        :type callback: function
-
-        :param enabled_flag: A flag indicating if the action should be enabled
-            by default. Defaults to True.
-        :type enabled_flag: bool
-
-        :param add_to_menu: Flag indicating whether the action should also
-            be added to the menu. Defaults to True.
-        :type add_to_menu: bool
-
-        :param add_to_toolbar: Flag indicating whether the action should also
-            be added to the toolbar. Defaults to True.
-        :type add_to_toolbar: bool
-
-        :param status_tip: Optional text to show in a popup when mouse pointer
-            hovers over the action.
-        :type status_tip: str
-
-        :param parent: Parent widget for the new action. Defaults None.
-        :type parent: QWidget
-
-        :param whats_this: Optional text to show in the status bar when the
-            mouse pointer hovers over the action.
-
-        :returns: The action that was created. Note that the action is also
-            added to self.actions list.
-        :rtype: QAction
-        """
-
+        
         icon = QIcon(icon_path)
         action = QAction(icon, text, parent)
         action.triggered.connect(callback)
@@ -264,7 +213,7 @@ class SUEWSPrepareDatabase:
         icon_path = ':/plugins/suews_prepare_database/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u''),
+            text=self.tr(u'SUEWS Prepare (Database Typologies)'),
             callback=self.run,
             parent=self.iface.mainWindow())
 
@@ -326,7 +275,7 @@ class SUEWSPrepareDatabase:
         self.comboBoxBuilding = None
         self.comboBoxGrass = None
         self.comboBoxEvrTree = None
-        self.comboBoxDecTree = None        
+        self.comboBoxDecTree = None
 
     def help(self):
         url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Urban%20Energy%20Balance%20SUEWS%20Database%20Manager.html"
@@ -354,9 +303,9 @@ class SUEWSPrepareDatabase:
         self.LCF_from_file = True
         self.IMP_from_file = True
         self.IMPveg_from_file = True
-        widget.LCF_Frame.hide()
-        widget.IMP_Frame.hide()
-        widget.IMPveg_Frame.hide()
+        # widget.LCF_Frame.hide()
+        # widget.IMP_Frame.hide()
+        # widget.IMPveg_Frame.hide()
 
         self.comboBoxRegion = True
         self.comboBoxCountry = True
@@ -366,7 +315,7 @@ class SUEWSPrepareDatabase:
         self.comboBoxEvrTree = True
         self.comboBoxDecTree = True
         
-        timezone = gpd.read_file(self.plugin_dir + '/Input/timezones/ne_10m_time_zones.shp')
+        #timezone = gpd.read_file(self.plugin_dir + '/Input/timezones/ne_10m_time_zones.shp')
 
         # Region
         db_path = self.plugin_dir + '/Input/database.xlsx'  # TODO When in UMEP Toolbox, set this path to db in database manager
@@ -394,16 +343,16 @@ class SUEWSPrepareDatabase:
             cbox.setCurrentIndex(-1)
 
         reg_list = sorted(list(reg['Region'].unique()))
-        widget.comboBoxRegion.addItems(reg_list)     
+        widget.comboBoxRegion.addItems(reg_list)
         widget.comboBoxRegion.setCurrentIndex(-1)
         country['descOrigin'] = country['Country'] + ', ' + country['City']
 
         widget.comboBoxCountry.addItems(sorted(list(country['descOrigin'].unique())))
         widget.comboBoxCountry.setCurrentIndex(-1)
 
-        widget.LCF_checkBox.stateChanged.connect(lambda: self.hide_show_LCF(widget))
-        widget.IMP_checkBox.stateChanged.connect(lambda: self.hide_show_IMP(widget))
-        widget.IMPveg_checkBox.stateChanged.connect(lambda: self.hide_show_IMPveg(widget))
+        #widget.LCF_checkBox.stateChanged.connect(lambda: self.hide_show_LCF(widget))
+        #widget.IMP_checkBox.stateChanged.connect(lambda: self.hide_show_IMP(widget))
+        # widget.IMPveg_checkBox.stateChanged.connect(lambda: self.hide_show_IMPveg(widget))
         widget.comboBoxRegion.currentIndexChanged.connect(lambda: self.region_changed(widget, country))
         widget.comboBoxCountry.currentIndexChanged.connect(lambda: self.country_changed(widget, country, veg, nonveg, reg))
 
@@ -417,7 +366,7 @@ class SUEWSPrepareDatabase:
         self.layerComboManagerPolygrid.setFilters(QgsMapLayerProxyModel.PolygonLayer)
         self.layerComboManagerPolygrid.setFixedWidth(175)
         self.layerComboManagerPolyField = QgsFieldComboBox(widget.widgetPolyField)
-        self.layerComboManagerPolyField.setFilters(QgsFieldProxyModel.Int)
+        self.layerComboManagerPolyField.setFilters(QgsFieldProxyModel.LongLong)
         self.layerComboManagerPolygrid.layerChanged.connect(self.layerComboManagerPolyField.setLayer)
 
         # New for Typology database
@@ -470,7 +419,7 @@ class SUEWSPrepareDatabase:
                                                                                              currentIndex()))
         widget.fileCodeLineEdit.textChanged.connect(lambda: self.file_code_changed(widget.fileCodeLineEdit.text()))
         widget.lineEditUTC.textChanged.connect(lambda: self.utc_changed(widget.lineEditUTC.text()))
-        self.layerComboManagerPolygrid.layerChanged.connect(lambda: self.grid_layer_changed(widget, timezone))
+        # self.layerComboManagerPolygrid.layerChanged.connect(lambda: self.grid_layer_changed(widget, timezone))
 
         #SS related GUI things
         widget.pushButtonImportSS.clicked.connect(lambda: self.set_SSfolder_path(widget))
@@ -517,62 +466,62 @@ class SUEWSPrepareDatabase:
     def file_code_changed(self, code):
         self.file_code = code
 
-    def hide_show_LCF(self, widget):
-        if widget.LCF_checkBox.isChecked():
-            self.LCF_from_file = False
-            widget.LCF_Frame.show()
-            widget.pushButtonImportLCF.hide()
-            widget.textInputLCFData.hide()
-        else:
-            self.LCF_from_file = True
-            widget.LCF_Frame.hide()
-            widget.pushButtonImportLCF.show()
-            widget.textInputLCFData.show()
+    # def hide_show_LCF(self, widget):
+    #     if widget.LCF_checkBox.isChecked():
+    #         self.LCF_from_file = False
+    #         widget.LCF_Frame.show()
+    #         widget.pushButtonImportLCF.hide()
+    #         widget.textInputLCFData.hide()
+    #     else:
+    #         self.LCF_from_file = True
+    #         widget.LCF_Frame.hide()
+    #         widget.pushButtonImportLCF.show()
+    #         widget.textInputLCFData.show()
 
-    def hide_show_IMP(self, widget):
-        if widget.IMP_checkBox.isChecked():
-            self.IMP_from_file = False
-            widget.IMP_Frame.show()
-            widget.pushButtonImportIMPBuild.hide()
-            widget.textInputIMPData.hide()
-        else:
-            self.IMP_from_file = True
-            widget.IMP_Frame.hide()
-            widget.pushButtonImportIMPBuild.show()
-            widget.textInputIMPData.show()
+    # def hide_show_IMP(self, widget):
+    #     if widget.IMP_checkBox.isChecked():
+    #         self.IMP_from_file = False
+    #         widget.IMP_Frame.show()
+    #         widget.pushButtonImportIMPBuild.hide()
+    #         widget.textInputIMPData.hide()
+    #     else:
+    #         self.IMP_from_file = True
+    #         widget.IMP_Frame.hide()
+    #         widget.pushButtonImportIMPBuild.show()
+    #         widget.textInputIMPData.show()
 
-    def hide_show_IMPveg(self, widget):
-        if widget.IMPveg_checkBox.isChecked():
-            self.IMPveg_from_file = False
-            widget.IMPveg_Frame.show()
-            widget.pushButtonImportIMPVeg.hide()
-            widget.textInputIMPVegData.hide()
-            widget.checkBox_twovegfiles.hide()
-            widget.pushButtonImportIMPVeg_eve.hide()
-            widget.pushButtonImportIMPVeg_dec.hide()
-            widget.textInputIMPEveData.hide()
-            widget.textInputIMPDecData.hide()
-        else:
-            self.IMPveg_from_file = True
-            widget.IMPveg_Frame.hide()
-            widget.pushButtonImportIMPVeg.show()
-            widget.textInputIMPVegData.show()
-            widget.checkBox_twovegfiles.show()
-            widget.pushButtonImportIMPVeg_eve.show()
-            widget.pushButtonImportIMPVeg_dec.show()
-            widget.textInputIMPEveData.show()
-            widget.textInputIMPDecData.show()
+    # def hide_show_IMPveg(self, widget):
+    #     if widget.IMPveg_checkBox.isChecked():
+    #         self.IMPveg_from_file = False
+    #         widget.IMPveg_Frame.show()
+    #         widget.pushButtonImportIMPVeg.hide()
+    #         widget.textInputIMPVegData.hide()
+    #         widget.checkBox_twovegfiles.hide()
+    #         widget.pushButtonImportIMPVeg_eve.hide()
+    #         widget.pushButtonImportIMPVeg_dec.hide()
+    #         widget.textInputIMPEveData.hide()
+    #         widget.textInputIMPDecData.hide()
+    #     else:
+    #         self.IMPveg_from_file = True
+    #         widget.IMPveg_Frame.hide()
+    #         widget.pushButtonImportIMPVeg.show()
+    #         widget.textInputIMPVegData.show()
+    #         widget.checkBox_twovegfiles.show()
+    #         widget.pushButtonImportIMPVeg_eve.show()
+    #         widget.pushButtonImportIMPVeg_dec.show()
+    #         widget.textInputIMPEveData.show()
+    #         widget.textInputIMPDecData.show()
 
-    def grid_layer_changed(self, widget, timezone):
+    # def grid_layer_changed(self, widget, timezone):
 
-        # Try to avoid error when no gridlayer present, or layers added or removed to project
-        try:
-            poly = self.layerComboManagerPolygrid.currentLayer()
-            grid_path = poly.source()
-            utc = get_utc(grid_path, timezone)
-            widget.lineEditUTC.setText(str(utc))
-        except:
-            pass
+    #     # Try to avoid error when no gridlayer present, or layers added or removed to project
+    #     try:
+    #         poly = self.layerComboManagerPolygrid.currentLayer()
+    #         grid_path = poly.source()
+    #         utc = get_utc(grid_path, timezone)
+    #         widget.lineEditUTC.setText(str(utc))
+    #     except:
+    #         pass
 
     def region_changed(self, widget, country):
         region_sel = widget.comboBoxRegion.currentText()
@@ -653,13 +602,13 @@ class SUEWSPrepareDatabase:
         else:
             self.daypop = 0
 
-    def set_output_folder(self):
-        self.outputDialog.open()
-        result = self.outputDialog.exec_()
-        if result == 1:
-            self.output_dir = self.outputDialog.selectedFiles()
-            self.dlg.textOutput.setText(self.output_dir[0])
-            self.dlg.runButton.setEnabled(1)
+    # def set_output_folder(self):
+    #     self.outputDialog.open()
+    #     result = self.outputDialog.exec_()
+    #     if result == 1:
+    #         self.output_dir = self.outputDialog.selectedFiles()
+    #         self.dlg.textOutput.setText(self.output_dir[0])
+    #         self.dlg.runButton.setEnabled(1)
 
     def set_LCFfile_path(self, widget):
         self.LCFfile_path = self.fileDialog.getOpenFileName()
@@ -748,7 +697,6 @@ class SUEWSPrepareDatabase:
             return
 
         vlayer = QgsVectorLayer(poly.source(), "polygon", "ogr")
-
 
         map_units = vlayer.crs().mapUnits()
         if not map_units == 0 or map_units == 1 or map_units == 2:
