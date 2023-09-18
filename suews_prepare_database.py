@@ -39,20 +39,16 @@ import webbrowser
 import numpy as np
 import pandas as pd
 import os
-# import glob
 from osgeo import gdal, osr
 from .Utilities import f90nml
 from .Utilities import RoughnessCalcFunction as rg
 from .Utilities.misc import saveraster
 from .Utilities.db_functions import *
 from .Utilities.ssParms import *
-# from .db import suews_db
 from shutil import copyfile, rmtree
 # import copy
 # from .prepare_workertypo import Worker
 
-os.environ['USE_PYGEOS'] = '0'
-import geopandas as gpd
 ##############################################################
 
 import processing
@@ -172,6 +168,111 @@ class SUEWSPrepareDatabase:
         self.nlayers = 3
         self.skew = 2
 
+        self.LCF_from_file = True
+        self.IMP_from_file = True
+        self.IMPveg_from_file = True
+        # widget.LCF_Frame.hide()
+        # widget.IMP_Frame.hide()
+        # widget.IMPveg_Frame.hide()
+
+        self.comboBoxRegion = True
+        self.comboBoxCountry = True
+        self.comboBoxPaved = True
+        self.comboBoxBuilding = True
+        self.comboBoxGrass = True
+        self.comboBoxEvrTree = True
+        self.comboBoxDecTree = True
+        
+        # Read Database
+        db_path = self.plugin_dir + '/Input/database.xlsx'  # TODO When in UMEP Toolbox, set this path to db in database manager
+        db_dict = read_DB(db_path)
+        
+        # Filling comboboxes in frame for Regional Parameters
+        # 'descOrigin' is a column created in read_DB to have a readable and understandable indexer shown to the user instead of using the ID
+        # The lists here are the ones populating comboboxes for regional parameters
+        building_list = db_dict['NonVeg']['descOrigin'].loc[db_dict['NonVeg']['Surface'] == 'Buildings']
+        paved_list = db_dict['NonVeg']['descOrigin'].loc[db_dict['NonVeg']['Surface'] == 'Paved']
+        grass_list = db_dict['Veg']['descOrigin'].loc[db_dict['Veg']['Surface'] == 'Grass']
+        dec_tree_list = db_dict['Veg']['descOrigin'].loc[db_dict['Veg']['Surface'] == 'Decidous Tree']
+        evr_tree_list = db_dict['Veg']['descOrigin'].loc[db_dict['Veg']['Surface'] == 'Evergreen Tree']
+
+        self.dlg.comboBoxPaved.addItems(sorted(paved_list))
+        self.dlg.comboBoxBuilding.addItems(sorted(building_list))
+        self.dlg.comboBoxGrass.addItems(sorted(grass_list))
+        self.dlg.comboBoxEvrTree.addItems(sorted(evr_tree_list))
+        self.dlg.comboBoxDecTree.addItems(sorted(dec_tree_list))
+
+        for cbox in [self.dlg.comboBoxPaved, self.dlg.comboBoxBuilding, self.dlg.comboBoxEvrTree, self.dlg.comboBoxDecTree, self.dlg.comboBoxGrass]:
+            cbox.setCurrentIndex(-1)
+
+        reg_list = sorted(set(list(db_dict['Region']['Region'])))
+        self.dlg.comboBoxRegion.addItems(reg_list)
+        self.dlg.comboBoxRegion.setCurrentIndex(-1)
+        self.dlg.comboBoxCountry.addItems(sorted(set(list(db_dict['Country']['descOrigin']))))
+        self.dlg.comboBoxCountry.setCurrentIndex(-1)
+        
+        self.dlg.comboBoxRegion.currentIndexChanged.connect(lambda: self.region_changed(db_dict))
+        self.dlg.comboBoxCountry.currentIndexChanged.connect(lambda: self.country_changed(db_dict))
+
+        self.dlg.checkBoxTypology.stateChanged.connect(lambda: self.use_typologies())
+        self.dlg.checkBox_day.stateChanged.connect(lambda: self.popdaystate())
+
+        self.dlg.layerComboManagerPolygrid.setCurrentIndex(-1)
+        self.dlg.layerComboManagerPolygrid.setFilters(QgsMapLayerProxyModel.PolygonLayer)
+        self.dlg.layerComboManagerPolygrid.setFixedWidth(175)
+        self.dlg.layerComboManagerPolyField.setFilters(QgsFieldProxyModel.LongLong)
+        self.dlg.layerComboManagerPolygrid.layerChanged.connect(self.dlg.layerComboManagerPolyField.setLayer)
+
+        # New for Typology database
+        self.dlg.layerComboManagerDSM.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.dlg.layerComboManagerDSM.setFixedWidth(175)
+        self.dlg.layerComboManagerDSM.setCurrentIndex(-1)
+        self.dlg.layerComboManagerDEM.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.dlg.layerComboManagerDEM.setFixedWidth(175)
+        self.dlg.layerComboManagerDEM.setCurrentIndex(-1)
+        self.dlg.layerComboManagerCDSM.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.dlg.layerComboManagerCDSM.setFixedWidth(175)
+        self.dlg.layerComboManagerCDSM.setCurrentIndex(-1)
+        self.dlg.layerComboManagerLC.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.dlg.layerComboManagerLC.setFixedWidth(175)
+        self.dlg.layerComboManagerLC.setCurrentIndex(-1)
+
+        self.dlg.layerComboManagerPolygridTypo.setFilters(QgsMapLayerProxyModel.PolygonLayer)
+        self.dlg.layerComboManagerPolygridTypo.setFixedWidth(175)
+        self.dlg.layerComboManagerPolygridTypo.setCurrentIndex(-1)
+
+        self.dlg.pop_density.setFilters(QgsFieldProxyModel.Numeric)
+        self.dlg.layerComboManagerPolygrid.layerChanged.connect(self.dlg.pop_density.setLayer)
+
+        self.dlg.pop_density_day.setFilters(QgsFieldProxyModel.Numeric)
+        self.dlg.layerComboManagerPolygrid.layerChanged.connect(self.dlg.pop_density_day.setLayer)
+    
+        self.dlg.pushButtonImportLCF.clicked.connect(lambda: self.set_LCFfile_path())
+        self.dlg.pushButtonImportIMPVeg.clicked.connect(lambda: self.set_IMPvegfile_path())
+
+        self.dlg.pushButtonImportIMPVeg_eve.clicked.connect(lambda: self.set_IMPvegfile_path_eve())
+        self.dlg.pushButtonImportIMPVeg_dec.clicked.connect(lambda: self.set_IMPvegfile_path_dec())
+
+        self.dlg.pushButtonImportIMPBuild.clicked.connect(lambda: self.set_IMPfile_path())
+        self.dlg.pushButtonImportMet.clicked.connect(lambda: self.set_metfile_path())
+
+        self.dlg.spinBoxStartDLS.valueChanged.connect(lambda: self.start_DLS_changed(self.dlg.spinBoxStartDLS.value()))
+        self.dlg.spinBoxEndDLS.valueChanged.connect(lambda: self.end_DLS_changed(self.dlg.spinBoxEndDLS.value()))
+
+        self.dlg.spinBoxSoilMoisture.valueChanged.connect(lambda: self.soil_moisture_changed(self.dlg.spinBoxSoilMoisture.
+                                                                                           value()))
+        self.dlg.comboBoxLeafCycle.currentIndexChanged.connect(lambda: self.leaf_cycle_changed(self.dlg.comboBoxLeafCycle.
+                                                                                             currentIndex()))
+        self.dlg.fileCodeLineEdit.textChanged.connect(lambda: self.file_code_changed(self.dlg.fileCodeLineEdit.text()))
+        self.dlg.lineEditUTC.textChanged.connect(lambda: self.utc_changed(self.dlg.lineEditUTC.text()))
+
+        #SS related GUI things
+        self.dlg.pushButtonImportSS.clicked.connect(lambda: self.set_SSfolder_path())
+        self.dlg.SS_comboBox.currentIndexChanged.connect(lambda: self.height_option_SS(self.dlg.SS_comboBox.currentIndex()))
+        self.dlg.SS_LineEdit_constant.textChanged.connect(lambda: self.vertHeights_changed(self.dlg.SS_LineEdit_constant.text()))
+        self.dlg.spinBoxLayers.valueChanged.connect(lambda: self.layersSS_changed(self.dlg.spinBoxLayers.value()))
+        self.dlg.SS_checkBox_skew.stateChanged.connect(lambda: self.SS_skew())
+
 
     def tr(self, message):
         return QCoreApplication.translate('SUEWSPrepareDatabase', message)
@@ -246,7 +347,6 @@ class SUEWSPrepareDatabase:
         self.ss_dir = None
         # self.land_use_file_path = None
         self.dlg.textOutput.clear()
-        self.setup_tabs()
         self.dlg.show()
         self.dlg.exec_()
         self.layerComboManagerPolygrid = None
@@ -296,151 +396,12 @@ class SUEWSPrepareDatabase:
             self.dlg.textOutput.setText(self.output_dir[0])
             self.dlg.runButton.setEnabled(1)
 
-
-    def setup_tabs(self):
-        self.dlg.tabWidget.clear()
-        # self.widget_list = []
-
-        main_tab = MainTab()
-        self.setup_maintab(main_tab)
-
-        self.dlg.tabWidget.addTab(main_tab, "Main settings")
-
-
-    def setup_maintab(self, widget):
-
-        self.LCF_from_file = True
-        self.IMP_from_file = True
-        self.IMPveg_from_file = True
-        # widget.LCF_Frame.hide()
-        # widget.IMP_Frame.hide()
-        # widget.IMPveg_Frame.hide()
-
-        self.comboBoxRegion = True
-        self.comboBoxCountry = True
-        self.comboBoxPaved = True
-        self.comboBoxBuilding = True
-        self.comboBoxGrass = True
-        self.comboBoxEvrTree = True
-        self.comboBoxDecTree = True
-        
-        #timezone = gpd.read_file(self.plugin_dir + '/Input/timezones/ne_10m_time_zones.shp')
-
-        # Region
-        db_path = self.plugin_dir + '/Input/database.xlsx'  # TODO When in UMEP Toolbox, set this path to db in database manager
-        reg = pd.read_excel(db_path, sheet_name='Region', index_col= 'ID')
-        country = pd.read_excel(db_path, sheet_name='Country', index_col= 'ID')
-        veg = pd.read_excel(db_path, sheet_name='Veg', index_col= 'ID')
-        nonveg = pd.read_excel(db_path, sheet_name='NonVeg', index_col= 'ID')
-        
-        nonveg['descOrigin'] = nonveg['Color']  + ' ' + nonveg['Description'] + ', ' + nonveg['Origin']
-        veg['descOrigin'] = veg['Description'] + ', ' + veg['Origin']
-
-        building_list = nonveg['descOrigin'].loc[nonveg['Surface'] == 'Buildings']
-        paved_list = nonveg['descOrigin'].loc[nonveg['Surface'] == 'Paved']
-        grass_list = veg['descOrigin'].loc[veg['Surface'] == 'Grass']
-        dec_tree_list = veg['descOrigin'].loc[veg['Surface'] == 'Decidous Tree']
-        evr_tree_list = veg['descOrigin'].loc[veg['Surface'] == 'Evergreen Tree']
-
-        widget.comboBoxPaved.addItems(sorted(paved_list))
-        widget.comboBoxBuilding.addItems(sorted(building_list))
-        widget.comboBoxGrass.addItems(sorted(grass_list))
-        widget.comboBoxEvrTree.addItems(sorted(evr_tree_list))
-        widget.comboBoxDecTree.addItems(sorted(dec_tree_list))
-
-        for cbox in [widget.comboBoxPaved, widget.comboBoxBuilding, widget.comboBoxEvrTree, widget.comboBoxDecTree, widget.comboBoxGrass]:
-            cbox.setCurrentIndex(-1)
-
-        reg_list = sorted(list(reg['Region'].unique()))
-        widget.comboBoxRegion.addItems(reg_list)
-        widget.comboBoxRegion.setCurrentIndex(-1)
-        country['descOrigin'] = country['Country'] + ', ' + country['City']
-
-        widget.comboBoxCountry.addItems(sorted(list(country['descOrigin'].unique())))
-        widget.comboBoxCountry.setCurrentIndex(-1)
-
-        #widget.LCF_checkBox.stateChanged.connect(lambda: self.hide_show_LCF(widget))
-        #widget.IMP_checkBox.stateChanged.connect(lambda: self.hide_show_IMP(widget))
-        # widget.IMPveg_checkBox.stateChanged.connect(lambda: self.hide_show_IMPveg(widget))
-        widget.comboBoxRegion.currentIndexChanged.connect(lambda: self.region_changed(widget, country))
-        widget.comboBoxCountry.currentIndexChanged.connect(lambda: self.country_changed(widget, country, veg, nonveg, reg))
-
-        # widget.LUF_checkBox.stateChanged.connect(lambda: self.LUF_file(widget))
-        # widget.WallArea_checkBox.stateChanged.connect(lambda: self.enable_wall_area(widget))
-        widget.checkBoxTypology.stateChanged.connect(lambda: self.use_typologies(widget))
-        widget.checkBox_day.stateChanged.connect(lambda: self.popdaystate(widget))
-
-        self.layerComboManagerPolygrid = QgsMapLayerComboBox(widget.widgetPolygonLayer)
-        self.layerComboManagerPolygrid.setCurrentIndex(-1)
-        self.layerComboManagerPolygrid.setFilters(QgsMapLayerProxyModel.PolygonLayer)
-        self.layerComboManagerPolygrid.setFixedWidth(175)
-        self.layerComboManagerPolyField = QgsFieldComboBox(widget.widgetPolyField)
-        self.layerComboManagerPolyField.setFilters(QgsFieldProxyModel.LongLong)
-        self.layerComboManagerPolygrid.layerChanged.connect(self.layerComboManagerPolyField.setLayer)
-
-        # New for Typology database
-        self.layerComboManagerDSM = QgsMapLayerComboBox(widget.widgetDSM)
-        self.layerComboManagerDSM.setFilters(QgsMapLayerProxyModel.RasterLayer)
-        self.layerComboManagerDSM.setFixedWidth(175)
-        self.layerComboManagerDSM.setCurrentIndex(-1)
-        self.layerComboManagerDEM = QgsMapLayerComboBox(widget.widgetDEM)
-        self.layerComboManagerDEM.setFilters(QgsMapLayerProxyModel.RasterLayer)
-        self.layerComboManagerDEM.setFixedWidth(175)
-        self.layerComboManagerDEM.setCurrentIndex(-1)
-        self.layerComboManagerLC = QgsMapLayerComboBox(widget.widgetLC)
-        self.layerComboManagerLC.setFilters(QgsMapLayerProxyModel.RasterLayer)
-        self.layerComboManagerLC.setFixedWidth(175)
-        self.layerComboManagerLC.setCurrentIndex(-1)
-        self.layerComboManagerPolygridTypo = QgsMapLayerComboBox(widget.widgetPolygonLayerTypo)
-        self.layerComboManagerPolygridTypo.setFilters(QgsMapLayerProxyModel.PolygonLayer)
-        self.layerComboManagerPolygridTypo.setFixedWidth(175)
-
-        # self.reg_cbox = QComboBox(self.dlg.comboBoxRegion)
-        # self.country_cbox = QComboBox(self.dlg.comboBoxCountry)
-       
-        self.pop_density = QgsFieldComboBox(widget.widgetPop)
-        self.pop_density.setFilters(QgsFieldProxyModel.Numeric)
-        self.layerComboManagerPolygrid.layerChanged.connect(self.pop_density.setLayer)
-
-        self.pop_density_day = QgsFieldComboBox(widget.widgetPopDay)
-        self.pop_density_day.setFilters(QgsFieldProxyModel.Numeric)
-        self.layerComboManagerPolygrid.layerChanged.connect(self.pop_density_day.setLayer)
-    
-        widget.pushButtonImportLCF.clicked.connect(lambda: self.set_LCFfile_path(widget))
-        widget.pushButtonImportIMPVeg.clicked.connect(lambda: self.set_IMPvegfile_path(widget))
-
-        widget.pushButtonImportIMPVeg_eve.clicked.connect(lambda: self.set_IMPvegfile_path_eve(widget))
-        widget.pushButtonImportIMPVeg_dec.clicked.connect(lambda: self.set_IMPvegfile_path_dec(widget))
-
-        widget.pushButtonImportIMPBuild.clicked.connect(lambda: self.set_IMPfile_path(widget))
-        widget.pushButtonImportMet.clicked.connect(lambda: self.set_metfile_path(widget))
-        # widget.pushButtonImportLUF.clicked.connect(lambda: self.set_LUFfile_path(widget))
-
-        widget.spinBoxStartDLS.valueChanged.connect(lambda: self.start_DLS_changed(widget.spinBoxStartDLS.value()))
-        widget.spinBoxEndDLS.valueChanged.connect(lambda: self.end_DLS_changed(widget.spinBoxEndDLS.value()))
-
-        widget.spinBoxSoilMoisture.valueChanged.connect(lambda: self.soil_moisture_changed(widget.spinBoxSoilMoisture.
-                                                                                           value()))
-        widget.comboBoxLeafCycle.currentIndexChanged.connect(lambda: self.leaf_cycle_changed(widget.comboBoxLeafCycle.
-                                                                                             currentIndex()))
-        widget.fileCodeLineEdit.textChanged.connect(lambda: self.file_code_changed(widget.fileCodeLineEdit.text()))
-        widget.lineEditUTC.textChanged.connect(lambda: self.utc_changed(widget.lineEditUTC.text()))
-        # self.layerComboManagerPolygrid.layerChanged.connect(lambda: self.grid_layer_changed(widget, timezone))
-
-        #SS related GUI things
-        widget.pushButtonImportSS.clicked.connect(lambda: self.set_SSfolder_path(widget))
-        widget.SS_comboBox.currentIndexChanged.connect(lambda: self.height_option_SS(widget.SS_comboBox.currentIndex()))
-        widget.SS_LineEdit_constant.textChanged.connect(lambda: self.vertHeights_changed(widget.SS_LineEdit_constant.text()))
-        widget.spinBoxLayers.valueChanged.connect(lambda: self.layersSS_changed(widget.spinBoxLayers.value()))
-        widget.SS_checkBox_skew.stateChanged.connect(lambda: self.SS_skew(widget))
-
-
-    def set_SSfolder_path(self, widget):
+    def set_SSfolder_path(self):
         self.SSDialog.open()
         result = self.SSDialog.exec_()
         if result == 1:
             self.ss_dir = self.SSDialog.selectedFiles()
-            widget.textInputIMPDataSS.setText(self.ss_dir[0])
+            self.dlg.textInputIMPDataSS.setText(self.ss_dir[0])
 
 
     def height_option_SS(self, value):
@@ -455,8 +416,8 @@ class SUEWSPrepareDatabase:
         self.vertheights = heights
 
 
-    def SS_skew(self, widget):
-        if widget.SS_checkBox_skew.isChecked():
+    def SS_skew(self):
+        if self.dlg.SS_checkBox_skew.isChecked():
             self.skew = 2
         else:
             self.skew = 1
@@ -481,125 +442,119 @@ class SUEWSPrepareDatabase:
         self.file_code = code
 
 
-    def region_changed(self, widget, country):
-        region_sel = widget.comboBoxRegion.currentText()
-        country['descOrigin'] = country['Country'] + ', ' + country['City']
+    def region_changed(self, db_dict):
 
-        country_list = list(country['descOrigin'].loc[country['Region'] == region_sel])
-        widget.comboBoxCountry.clear()
-        widget.comboBoxCountry.addItems(country_list)
+        region_sel = self.dlg.comboBoxRegion.currentText()
+        country_list = list(db_dict['Country']['descOrigin'].loc[db_dict['Country']['Region'] == region_sel])
+        self.dlg.comboBoxCountry.clear()
+        self.dlg.comboBoxCountry.addItems(country_list)
 
-
-    def print_reg(self, widget):
-        region_sel = widget.comboBoxRegion.currentText()
+    def print_reg(self):
+        region_sel = self.dlg.comboBoxRegion.currentText()
         return region_sel
     
    
-    def print_country(self, widget):
-        country_sel = widget.comboBoxCountry.currentText()
+    def print_country(self):
+        country_sel = self.dlg.comboBoxCountry.currentText()
         return country_sel
     
+    def country_changed(self, db_dict):
 
-    def country_changed(self, widget, country, veg, nonveg, reg):
-
-        country_sel = widget.comboBoxCountry.currentText()
-        reg_sel = widget.comboBoxRegion.currentText()
+        country_sel = self.dlg.comboBoxCountry.currentText()
+        reg_sel = self.dlg.comboBoxRegion.currentText()
 
         self.country_str = country_sel
         self.region_str = reg_sel
-
-        country['descOrigin'] = country['Country'] + ', ' + country['City']
         
-        # Uodate region according to country if country is chosen before region
+        # Update region according to country if country is chosen before region
         try:
-            if  country.loc[country['descOrigin'] == country_sel]['Region'].item() == reg_sel:
+            if  db_dict['Country'].loc[db_dict['Country']['descOrigin'] == country_sel]['Region'].item() == reg_sel:
                 pass
             else:
-                reg_list = [widget.comboBoxRegion.itemText(i) for i in range(widget.comboBoxRegion.count())]
-                indexer = reg_list.index(country['Region'].loc[country['descOrigin'] == country_sel].item())
-                widget.comboBoxRegion.setCurrentIndex(indexer)
+                reg_list = [self.dlg.comboBoxRegion.itemText(i) for i in range(self.dlg.comboBoxRegion.count())]
+                indexer = reg_list.index(db_dict['Country']['Region'].loc[db_dict['Country']['descOrigin'] == country_sel].item())
+                self.dlg.comboBoxRegion.setCurrentIndex(indexer)
         except:
             pass
-      
-        try:
-            id = country.loc[country['descOrigin'] == country_sel ].index.item()
-        except:
-            id = country.index[0]
 
-        df_country = country.loc[id]
-
-        def decide_country_region(sel_table, col, comboBox):
-            if str(df_country[col]) == 'nan':
-                    try:
-                        var = reg.loc[reg['Region'] == df_country['Region'], col].item()
-                        var_text = sel_table.loc[var, 'descOrigin']
-                        cbox_list = [comboBox.itemText(i) for i in range(comboBox.count())]
-                        indexer = cbox_list.index(var_text)
-                    except:
-                        indexer = 0
-            else:
-                var = df_country[col]
-                var_text = sel_table.loc[var, 'descOrigin']
-                cbox_list = [comboBox.itemText(i) for i in range(comboBox.count())]
-                indexer = cbox_list.index(var_text)
+        # Function to test if a parameter is found in Country. If not, the same parameter for Region is then selected.   
+        def decide_country_region(col, country_sel, reg_sel, comboBox):
+            country_df = db_dict['Country'][db_dict['Country']['descOrigin'] == country_sel]
+            try:
+                if str(country_df[col].item()) == 'nan':
+                        try:
+                            reg_df = db_dict['Region'][db_dict['Region']['Region'] == reg_sel]
+                            var = reg_df[col].item()
+                            var_text = db_dict[surf_df_dict[col]].loc[var, 'descOrigin']
+                            cbox_list = [comboBox.itemText(i) for i in range(comboBox.count())]
+                            indexer = cbox_list.index(var_text)
+                        except:
+                            indexer = 0
+                else:
+                    var = country_df[col].item()
+                    var_text = db_dict[surf_df_dict[col]].loc[var, 'descOrigin']
+                    cbox_list = [comboBox.itemText(i) for i in range(comboBox.count())]
+                    indexer = cbox_list.index(var_text)
+        
+                comboBox.setCurrentIndex(indexer)
+            except:
+                pass
     
-            comboBox.setCurrentIndex(indexer)
-    
-        decide_country_region(nonveg, 'Paved', widget.comboBoxPaved)
-        decide_country_region(nonveg, 'Buildings', widget.comboBoxBuilding)
-        decide_country_region(veg, 'Evergreen Tree', widget.comboBoxEvrTree)
-        decide_country_region(veg, 'Decidous Tree', widget.comboBoxDecTree)
-        decide_country_region(veg, 'Grass', widget.comboBoxGrass)
+        decide_country_region('Paved',country_sel, reg_sel, self.dlg.comboBoxPaved)
+        decide_country_region('Buildings', country_sel, reg_sel, self.dlg.comboBoxBuilding)
+        decide_country_region('Evergreen Tree',country_sel, reg_sel, self.dlg.comboBoxEvrTree)
+        decide_country_region('Decidous Tree',country_sel, reg_sel, self.dlg.comboBoxDecTree)
+        decide_country_region('Grass',country_sel, reg_sel, self.dlg.comboBoxGrass)
 
 
-    def use_typologies(self, widget):
-        if widget.checkBoxTypology.isChecked():
+    def use_typologies(self):
+        if self.dlg.checkBoxTypology.isChecked():
             self.typologies = 1
         else:
             self.typologies = 0
 
 
-    def popdaystate(self, widget):
-        if widget.checkBox_day.isChecked():
+    def popdaystate(self):
+        if self.dlg.checkBox_day.isChecked():
             self.daypop = 1
         else:
             self.daypop = 0
 
 
-    def set_LCFfile_path(self, widget):
+    def set_LCFfile_path(self):
         self.fileDialogISO.open()
         result = self.fileDialogISO.exec_()
         if result == 1:
             self.LCFfile_path = self.fileDialogISO.selectedFiles()
-            widget.textInputLCFData.setText(self.LCFfile_path[0])
+            self.dlg.textInputLCFData.setText(self.LCFfile_path[0])
         else:
             self.LCFfile_path = None
-            widget.textInputLCFData.setText('')
+            self.dlg.textInputLCFData.setText('')
 
 
-    def set_IMPfile_path(self, widget): #TODO Change the same as function above
+    def set_IMPfile_path(self): #TODO Change the same as function above
         self.IMPfile_path = self.fileDialogISO.getOpenFileName()
-        widget.textInputIMPData.setText(self.IMPfile_path[0])
+        self.dlg.textInputIMPData.setText(self.IMPfile_path[0])
 
 
-    def set_IMPvegfile_path(self, widget):
+    def set_IMPvegfile_path(self):
         self.IMPvegfile_path = self.fileDialogISO.getOpenFileName()
-        widget.textInputIMPVegData.setText(self.IMPvegfile_path[0])
+        self.dlg.textInputIMPVegData.setText(self.IMPvegfile_path[0])
 
 
-    def set_IMPvegfile_path_dec(self, widget):
+    def set_IMPvegfile_path_dec(self):
         self.IMPvegfile_path_dec = self.fileDialogISO.getOpenFileName()
-        widget.textInputIMPDecData.setText(self.IMPvegfile_path_dec)
+        self.dlg.textInputIMPDecData.setText(self.IMPvegfile_path_dec)
 
 
-    def set_IMPvegfile_path_eve(self, widget):
+    def set_IMPvegfile_path_eve(self):
         self.IMPvegfile_path_dec = self.fileDialogISO.getOpenFileName()
-        widget.textInputIMPEveData.setText(self.IMPvegfile_path_eve[0])
+        self.dlg.textInputIMPEveData.setText(self.IMPvegfile_path_eve[0])
 
 
-    def set_metfile_path(self, widget):
+    def set_metfile_path(self):
         self.Metfile_path = self.fileDialog.getOpenFileName()
-        widget.textInputMetData.setText(self.Metfile_path[0])
+        self.dlg.textInputMetData.setText(self.Metfile_path[0])
 
 
     def start_DLS_changed(self, value):
@@ -610,11 +565,7 @@ class SUEWSPrepareDatabase:
         self.end_DLS = value
 
 
-    def unload_widget(self):
-        self.dlg.tabWidget.clear()
-
-
-    def generate(self, widget):
+    def generate(self):
         # First check that all part of the interface have been filled in correclty
         # output dir
         if self.output_dir is None:
@@ -648,7 +599,7 @@ class SUEWSPrepareDatabase:
             return
 
         # # check polygon grid
-        poly = self.layerComboManagerPolygrid.currentLayer()
+        poly = self.dlg.layerComboManagerPolygrid.currentLayer()
         if poly is None:
             QMessageBox.critical(None, "Error", "No valid Polygon layer is selected")
             return
@@ -657,7 +608,7 @@ class SUEWSPrepareDatabase:
             QMessageBox.critical(None, "Error", "No valid Polygon layer is selected")
             return
         
-        poly_field = self.layerComboManagerPolyField.currentField()
+        poly_field = self.dlg.layerComboManagerPolyField.currentField()
         if poly_field == '':
             QMessageBox.critical(None, "Error", "An attribute field with unique fields must be selected")
             return
@@ -671,12 +622,12 @@ class SUEWSPrepareDatabase:
             return
 
         # population density  from polygon grid
-        if self.pop_density.currentField() == '':
+        if self.dlg.pop_density.currentField() == '':
             QMessageBox.critical(None, "Error", "An attribute field including night-time population density (pp/ha) must be selected")
             return
 
         if self.daypop == 1:
-            if self.pop_density_day.currentField() == '':
+            if self.dlg.pop_density_day.currentField() == '':
                 QMessageBox.critical(None, "Error", "An attribute field including working population density (pp/ha) must be selected")
                 return            
 
@@ -721,33 +672,34 @@ class SUEWSPrepareDatabase:
             QMessageBox.critical(None, "Error", "Specify a file code prefix")
             return
 
-        vlayer.source()
+        # vlayer.source()
 
         # # DSM layer for aggegation
-        dsmlayer = self.layerComboManagerDSM.currentLayer()
+        dsmlayer = self.dlg.layerComboManagerDSM.currentLayer()
         if dsmlayer is None:
             QMessageBox.critical(self.dlg, "Error", "No valid ground and building DSM is selected")
             return
 
-        demlayer = self.layerComboManagerDEM.currentLayer()
+        demlayer = self.dlg.layerComboManagerDEM.currentLayer()
         if demlayer is None:
+            QMessageBox.critical(self.dlg, "Error", "No valid DEM selected")
+            return
+        
+        cdsmlayer = self.dlg.layerComboManagerCDSM.currentLayer()
+        if cdsmlayer is None:
             QMessageBox.critical(self.dlg, "Error", "No valid DEM selected")
             return
 
         # # Land cover layer for aggegation
-        lclayer = self.layerComboManagerLC.currentLayer()
+        lclayer = self.dlg.layerComboManagerLC.currentLayer()
         if lclayer is None:
             QMessageBox.critical(self.dlg, "Error", "No valid land cover grid is selected")
             return   
 
-        polyTypolayer = self.layerComboManagerPolygridTypo.currentLayer()
-        if polyTypolayer is None:
+        polyTypolayer = self.dlg.layerComboManagerPolygridTypo.currentLayer()
+        if self.typologies == 1 and polyTypolayer is None:
             QMessageBox.critical(None, "Error", "No valid Urban typology polygon layer is selected")
             return     
-
-        #TODO add check for Region,
-        #TODO add checker for CRS 
-        #  
 
         # self.dlg.progressBar.setMaximum(vlayer.featureCount())     
 
@@ -789,14 +741,19 @@ class SUEWSPrepareDatabase:
         temp_folder = plugin_dir + '/agg'
         build_raster_out = temp_folder + '/buildings.tif'
 
-        ss_dict = {}
-        veg_dict = {}
-        nonVeg_dict = {}
-        blend_dict= {}
-        dict_out = {}
+        ss_dict = {}            # SiteSelect Dict. This is the final dict where all parameters for each grid are found. 
+        veg_dict = {}           # dict for populating and sorting Veg parameter
+        nonVeg_dict = {}        # dict for populating and sorting NonVeg parameter
+        blend_dict= {}          # dict for aggregating and creating new codes if needed when using typologies
+        dict_out = {}           # Unknown TODO Describe
+        country_conv_dict = {}  # Dict for getting selected Country parameters
+        reg_conv_dict = {}      # Dict for getting selected Regional parameters
+        parameter_dict = {}        # Unkown TODO Describe
 
+        # List of surfaces where aggregation will be done
         surface_list = ['Paved', 'Buildings','Bare Soil']
 
+        # Dict to set correct Surface from output of ZonalHistogram
         frac_to_surf_dict = {
             'hist_1' : 'Paved', 
             'hist_2' : 'Buildings', 
@@ -807,6 +764,7 @@ class SUEWSPrepareDatabase:
             'hist_7' : 'Water',
             } 
 
+        # Dict for setting correct codes from surfaces
         surf_to_code_dict = {
             'Paved' : 'Code_Paved',
             'Buildings' : 'Code_Bldgs',
@@ -816,34 +774,38 @@ class SUEWSPrepareDatabase:
             'Decidous Tree' :  'Code_DecTr',
             'Water' : 'Code_Water' 
             } 
-
+    
         # Read DB
         db_path = self.plugin_dir + '/Input/database.xlsx'  # TODO When in UMEP Toolbox, set this path to db in database manager
-        Type, veg, nonveg, water, ref, alb, em, OHM, LAI, st, cnd, LGP, dr, VG, ANOHM, BIOCO2, MVCND, por, reg, snow, AnEm, prof, ws, soil, ESTM, irr, country, type_id_dict,country_id_dict, reg_id_dict = read_DB(db_path)
+        db_dict = read_DB(db_path)
 
-        country_conv_dict = {} 
-        reg_conv_dict = {}
-        for index in list(country.index):
-            country_conv_dict[index] = country.loc[index, 'Country'] + ', ' + country.loc[index, 'City']
+        type_id_dict = {}   # Dict used in aggregation for assigning correct Typology
+        for row in db_dict['Types'].index:
+            type_id_dict[db_dict['Types'].loc[row, 'descOrigin']] = row 
+        
+        # Get ID Values from Region and Country that will be needed for assinging correct parameters later on
+        for index in list(db_dict['Country'].index):
+            country_conv_dict[index] = db_dict['Country'].loc[index, 'Country'] + ', ' + db_dict['Country'].loc[index, 'City']
         country_conv_dict_inv = {v: k for k, v in country_conv_dict.items()}
-        for index in list(reg.index):
-            reg_conv_dict[index] = reg.loc[index, 'Region']
-        reg_conv_dict_inv = {v: k for k, v in reg_conv_dict.items()}
-    
-        # reg_sel = reg.loc[[reg_conv_dict_inv[region_str]]]
-        country_sel = country.loc[[country_conv_dict_inv[country_str]]]
 
-        column_list = country.drop(columns = ['Region','Country','City']).columns
-        column_dict = {}
+        for index in list(db_dict['Region'].index):
+            reg_conv_dict[index] = db_dict['Region'].loc[index, 'Region']
+        country_sel = db_dict['Country'].loc[[country_conv_dict_inv[country_str]]]
+        
+        # Drop irrelevant (for what to come) columns
+        column_list = db_dict['Country'].drop(columns = ['Region','Country','City']).columns
+        
+        # Set parameters from regional or country level and populate that into the parameter_dict
         for column in column_list:
-            column_dict[column] = decide_country_or_region(column, country_sel, reg)
+            parameter_dict[column] = decide_country_or_region(column, country_sel, db_dict['Region'])
 
-        # Fill Anthropogeinc Emissions
-        AnEm_dict = fill_SUEWS_AnthropogenicEmission(column_dict['AnthropogenicCode'], column_dict, AnEm) # FIX!
-        snow_dict = fill_SUEWS_Snow(column_dict['SnowCode'], snow, alb, em, ANOHM)
-        water_dict = fill_SUEWS_Water(column_dict['Water'], water, alb, em, st, dr, ANOHM, ws, column_dict)
-        cond_dict = sel_to_dict(cnd, 'Cnd', column_dict)
-        # snow_dict = sel_to_dict(snow, 'Water_Code', column_dict)
+        # set correct values and write txt.files based on the parameters found at country/regional level 
+        AnEm_dict = fill_SUEWS_AnthropogenicEmission(parameter_dict['AnthropogenicCode'], parameter_dict, db_dict) # FIX!
+        snow_dict = fill_SUEWS_Snow(parameter_dict['SnowCode'], db_dict)
+        water_dict = fill_SUEWS_Water(parameter_dict['Water'], db_dict, parameter_dict)
+
+        cond_dict = db_dict['Conductance'].loc[parameter_dict['Conductance']].to_dict()
+        cond_dict['Code'] = parameter_dict['Conductance']
 
         if LCF_from_file:
             LCF_dict = read_morph_txt(LCFfile_path[0])
@@ -854,6 +816,7 @@ class SUEWSPrepareDatabase:
         if IMPveg_from_file:
             IMPveg_dict = read_morph_txt(IMPvegfile_path[0])
         
+        # IF Using Typologies then aggregation is needed. Otherwise no aggregation will be done
         if checkBoxTypologies == 1:
         # DEM & DSM to array
 
@@ -868,10 +831,17 @@ class SUEWSPrepareDatabase:
             dataSet = gdal.Open(filePath_dsm)
             dsm_arr = dataSet.ReadAsArray().astype(float)
             
+            # If need to use CDSM
+            # provider = dsmlayer.dataProvider()
+            # filePath_cdsm = str(provider.dataSourceUri())
+            # dataSet = gdal.Open(filePath_cdsm)
+            # cdsm_arr = dataSet.ReadAsArray().astype(float)
+            
             provider = lclayer.dataProvider()
             filePath_lc = str(provider.dataSourceUri())
-            dataSet = gdal.Open(filePath_lc)
-            # lc_arr = dataSet.ReadAsArray().astype(float)
+            # If need to have Lc as Array
+            # dataSet = gdal.Open(filePath_lc)
+            # lc_arr = dataSet.ReadAsArray().astype(float) # lc not needed to be array at the moment. 
 
             # # Clean temp folder
             try:
@@ -880,17 +850,17 @@ class SUEWSPrepareDatabase:
                 print ("Error: %s - %s." % (e.filename, e.strerror))
 
             os.mkdir(temp_folder)
+            
+            geodata_output = {} # Dict for storing the output of the QGIS geodata processes
 
-            output = {}
-
-            # TODO Clip rastesr to speed up process
-            # parin = {'INPUT': vlayer, 'OUTPUT':'TEMPORARY_OUTPUT'}
-            # output['bbox'] = processing.run("native:boundingboxes",parin)
+            # TODO Clip rasters to speed up process
+            # parin = {'INPUT': vlayer, 'geodata_output':'TEMPORARY_OUTPUT'}
+            # geodata_output['bbox'] = processing.run("native:boundingboxes",parin)
             # parin = {
             #     'INPUT':vlayer,
-            #     'OVERLAY': output['bbox'],
+            #     'OVERLAY': geodata_output['bbox'],
             #     'OUTPUT':'TEMPORARY_OUTPUT'}
-            # output['clip'] = processing.run("native:clip", parin)
+            # geodata_output['clip'] = processing.run("native:clip", parin)
             
             # Grid classified shp-file containing SUEWS typologies
             intersectPrefix = 'i'
@@ -900,7 +870,16 @@ class SUEWSPrepareDatabase:
             'OVERLAY' : polyTypolayer, 
             'OVERLAY_FIELDS' : [], 
             'OVERLAY_FIELDS_PREFIX' : intersectPrefix }
-            output['gridded_shp'] = processing.run('native:intersection', parin)
+            geodata_output['gridded_shp'] = processing.run('native:intersection', parin)
+
+            # Dissolve on GridID and Typology. 
+            parin = {
+                'INPUT':geodata_output['gridded_shp']['OUTPUT'], 
+                'FIELD':['ID','inewfield'],
+                'SEPARATE_DISJOINT':False,
+                'OUTPUT': temp_folder + '/urbantypelayer_diss.shp'}
+            
+            geodata_output['gridded_shp_diss'] =processing.run("native:dissolve", parin)
 
             # isolate buildings in dsm to be able to calculate mean height
             build_arr = dsm_arr-dem_arr
@@ -912,96 +891,69 @@ class SUEWSPrepareDatabase:
 
             # Zonal statistics to calculate mean height within gridded polygon layer
             parin = {
-                'INPUT':output['gridded_shp']['OUTPUT'],
+                'INPUT':geodata_output['gridded_shp_diss']['OUTPUT'],
                 'INPUT_RASTER': build_raster_out,
                 'RASTER_BAND':1,
                 'COLUMN_PREFIX': height_prefix,
                 'STATISTICS':[2], # [2] == mean
                 'OUTPUT': temp_folder + '/zon_bldheight.shp' } # 'TEMPORARY_OUTPUT'}
-            output['gridded_shp_bld'] = processing.run("native:zonalstatisticsfb", parin)
+            geodata_output['gridded_shp_bld'] = processing.run("native:zonalstatisticsfb", parin)
 
             # Zonal histogram to calculate fractions of lc in all gridded typologies
             prefix = 'hist_'
             parin =  {
                 'INPUT_RASTER': filePath_lc,
                 'RASTER_BAND': 1,
-                'INPUT_VECTOR': output['gridded_shp']['OUTPUT'],
+                'INPUT_VECTOR': geodata_output['gridded_shp_diss']['OUTPUT'],
                 'COLUMN_PREFIX': prefix,
                 'OUTPUT': temp_folder + '/zon_hist.shp' } # 'TEMPORARY_OUTPUT'}
-            output['gridded_shp_lc'] = processing.run("native:zonalhistogram",parin)
+            geodata_output['gridded_shp_lc'] = processing.run("native:zonalhistogram",parin)
 
             # obtain pixelsize of raster in order to be able to calculate fractions later on
             lc_raster = gdal.Open(filePath_lc)
             lc_raster_gt = lc_raster.GetGeoTransform()
             pixelSizeX = lc_raster_gt[1]
 
-            # vector layer gridded typologies
-            vlayer_gt = output['gridded_shp']['OUTPUT'] #QgsVectorLayer(, "polygon", "ogr")
-
-            field_list= []
-            for fieldName in vlayer_gt.fields():
-                field_list.append(fieldName.name())
-
-            type_index = field_list.index(type_id)
-            pai_dict = {}
-
-            for feature in vlayer_gt.getFeatures():
-                feat_id = int(feature.attribute(poly_field))
-                pai_dict[feat_id] = { i : 0 for i in list(vlayer_gt.uniqueValues(type_index))}
-
-            for feature in vlayer_gt.getFeatures():
-                feat_id = int(feature.attribute(poly_field))
-                typology = feature.attribute(type_id)
-                area = feature.geometry().area()
-
-                pai_dict[feat_id][typology] = area
-
             # vector layer with building heights
-            vlayer_bh =output['gridded_shp_bld']['OUTPUT']
+            vlayer_bh = QgsVectorLayer(geodata_output['gridded_shp_bld']['OUTPUT'], 'polygon', 'ogr')
 
+            # Retrieve correct attribute column from vectorlayer
             field_list= []
             for fieldName in vlayer_bh.fields():
                 field_list.append(fieldName.name())
 
             type_index = field_list.index(type_id)
-            area_dict = {}
 
+            area_dict = {}  # dict used for aggregation on volume for each Grid and Typology
+            # Loop to setup the area dict
             for feature in vlayer_bh.getFeatures():
                 feat_id = int(feature.attribute(poly_field))
                 area_dict[feat_id] = { i : 0 for i in list(vlayer_bh.uniqueValues(type_index))}
-                pai_dict[feat_id] = { i : 0 for i in list(vlayer_bh.uniqueValues(type_index))}
-
+        
+            # Loop for assigning typology volume for each typology in each grid
             for feature in vlayer_bh.getFeatures():
                 feat_id = int(feature.attribute(poly_field))
                 typology = feature.attribute(type_id)
-                build_h = feature.attribute(height_prefix+'mean')
+                build_h = feature.attribute(height_prefix)
                 area = feature.geometry().area()
                 try:
                     volume = area * build_h
                 except:
+                    print('ERROR in volume calc for ID:',  feat_id, 'Typology: ', typology)
                     volume = area * 1
                 
                 area_dict[feat_id][typology] = area_dict[feat_id][typology] + volume
             
-            frac_dict_bh = {} # create a new dictionary with fracions and remove typologies with fracion 0
-
+            frac_dict_bh = {} # create a new dictionary with fractions and remove typologies with fracion 0
+            
+            # Calculate fractions of typology for each grid based on Volume 
             for i in area_dict:
                 total_vol = sum(area_dict[i].values())
                 frac_dict_bh[i] = {k:(v/total_vol) for k, v in area_dict[i].items() }
                 frac_dict_bh[i] = {k:v for (k,v) in frac_dict_bh[i].items() if v > 0}
 
-            # Calculate fractions of LC_classes hist_number indicate same as SUEWS surfaces, paved, building etc.
-            vlayer_lc = output['gridded_shp_lc']['OUTPUT']
-
-            field_list= ['hist_1', 'hist_2','hist_3','hist_4', 'hist_5','hist_6','hist_7'] # 'hist_1' : Paved, 'hist_2' : Buildings, 'hist_3' : 'Evergreen Trees', 'hist_4' : 'Evergreen Trees', 'hist_5': 'Grass' ,'hist_6': 'Bare Soil', 'hist_7' : 'Water'
-
-            types_list= []
-            for fieldName in vlayer_lc.fields():
-                types_list.append(fieldName.name())
-
-            type_index = types_list.index(type_id)
-
-            area_dict = {}
+            # # Calculate fractions of LC_classes hist_number indicate same as SUEWS surfaces, paved, building etc.
+            vlayer_lc = QgsVectorLayer(geodata_output['gridded_shp_lc']['OUTPUT'], 'polygon', 'ogr')
 
             for feature in vlayer_lc.getFeatures():
                 feat_id = int(feature.attribute(poly_field))
@@ -1016,7 +968,7 @@ class SUEWSPrepareDatabase:
                     except:
                         area_dict[feat_id][typology][gridtype] = 0 # 0 if no frac exist
 
-            frac_dict_lc = {} # create a new dictionary with fracions  
+            frac_dict_lc = {} # create a new dictionary with fracions of each land_cover 
             typology_list = list(area_dict[list(area_dict.keys())[0]].keys())
 
             for i in area_dict:
@@ -1047,25 +999,35 @@ class SUEWSPrepareDatabase:
                             frac_dict_lc[id][typology][surf] = frac_dict_lc[id][typology][surf] / frac_dict_surf[id][surf]
                         except:
                             pass
-        
-            for id in frac_dict_bh: # CHange to ID for GRID!
 
-                type_list = list(frac_dict_bh[id].keys())
+            
+            # FOR AGGREGATION
+            # frac_dict_bh have volymetrical fraction for each gridID and typology
+        
+            #############################################################################################
+            # Now all fractions is calculated. Here the aggregation and filling of SUEWS_.txt files begin
+            # vlayer == grid layer
+            for feature in vlayer.getFeatures(): 
+                id = int(feature.attribute(poly_field))
+
+                type_list = list(area_dict[id].keys())
                 type_list_int = []
 
                 for element in type_list:
                     type_list_int.append(type_id_dict[element])
-
+                
+                # Create key with ID for grid in both dicts
                 ss_dict[id] = {}
                 dict_out[id] = {}
         
-                # SUEWS_NonVeg
-                nonVeg_dict[id] = fill_SUEWS_NonVeg(Type, nonveg, alb, em, st, dr, ANOHM, ws, column_dict, urbType = type_list_int)
-        
+                # SUEWS_NonVeg  
+                # Read and fill the dict of NonVeg attributes with codes that are found in typolpogies or regional/country
+                nonVeg_dict[id] = fill_SUEWS_NonVeg(db_dict, parameter_dict, urbType = type_list_int)
+
+                # add ID for grid if something needs to be aggregated
                 blend_dict[id] = {}
-                
                 for surface in surface_list:
-                    blend_dict[id][surface] = {}
+                    blend_dict[id][surface] = {}    # Check for codes for each GridID
                     dict_out[id][surface] = {}
 
                     params = list(nonVeg_dict[id][surface_list[0]][type_list_int[0]].keys())
@@ -1076,56 +1038,64 @@ class SUEWSPrepareDatabase:
                         for typology in type_list_int:
                             blend_dict[id][surface][param][typology] = nonVeg_dict[id][surface][typology][param]
 
-                    # Check if the codes needs to be averaged or not
+                    # Check if the codes needs to be averaged or not. 
                     unique_values = list(set(list(blend_dict[id][surface]['Code'].values())))        
-
+                    
+                    # if only one code exists, no need to aggregate.  
                     if len(unique_values) == 1:
-                        ss_dict[id][surf_to_code_dict[surface]] = str(unique_values[0]) # if they all same, just set same code
-                        dict_out[id][surface] = nonVeg_dict[id][surface][typology]
+                        ss_dict[id][surf_to_code_dict[surface]] = str(unique_values[0])    # if they all same, just set same code
+                        dict_out[id][surface] = nonVeg_dict[id][surface][typology]         
                     else:
-                        tab, OHM, ESTM = blend_nonveg(blend_dict, surface, frac_dict_bh, frac_dict_lc, id, ESTM, OHM,type_id_dict, frac_to_surf_dict, column_dict)
-                        ss_dict[id][surf_to_code_dict[surface]] = tab[surface]['Code']
-                        dict_out[id][surface] = tab[surface]
-                        
-            dict_out[9999] = fill_SUEWS_NonVeg(Type, nonveg, alb, em, st, dr, ANOHM, ws, column_dict, urbType = False)
+                        tab, db_dict = blend_nonveg(blend_dict, surface, frac_dict_bh, frac_dict_lc, id, db_dict ,type_id_dict, frac_to_surf_dict, parameter_dict) # This needs to be foxed #TODO
+                        # ss_dict[id][surf_to_code_dict[surface]] = tab[surface]['Code']     # The surface code for this gridID is set here
+                        dict_out[id][surface] = tab[surface]['Code']                                # dict out or ss_dict??
+            
+            # prepare the parameters collected to for writing SUEWS_NonVeg
+            dict_out[9999] = fill_SUEWS_NonVeg(db_dict, parameter_dict, urbType = True)
 
+            # write to SUEWS_NonVeg
             save_NonVeg_types(dict_out, save_txt_folder)
-        
-            nonVeg_dict = dict_out.copy()
+            nonVeg_dict = dict_out.copy()  # copy this and rename it nonVeg_dict to avoid different names in coming steps
+
+        # If not using Typologies
         else:
-            nonVeg_dict = fill_SUEWS_NonVeg(Type, nonveg, alb, em, st, dr, ANOHM, ws, column_dict, urbType = False)
+            # prepare the parameters collected to for writing SUEWS_NonVeg
+            nonVeg_dict = fill_SUEWS_NonVeg(db_dict, parameter_dict, urbType = False)
+            # write to SUEWS_NonVeg
             save_SUEWS_txt(pd.DataFrame.from_dict(nonVeg_dict, orient='index').set_index('Code'), 'SUEWS_NonVeg.txt', save_txt_folder)      
 
-        veg_dict = fill_SUEWS_Veg(Type, veg, alb, em, LAI, st, LGP, dr, VG, ANOHM,  MVCND, por, ws, urbType = False, column_dict = column_dict)
+        # Write SUEWS.txt files SUEWS_veg, SUEWS_AnthropogenicEmission, SUEWS_Water and SUEWS_Conductance
+        veg_dict = fill_SUEWS_Veg(db_dict, parameter_dict, urbType = False, )
         save_SUEWS_txt(pd.DataFrame.from_dict(veg_dict, orient='index').set_index('Code'), 'SUEWS_Veg.txt', save_txt_folder)
         save_SUEWS_txt(pd.DataFrame.from_dict(AnEm_dict, orient = 'index').T.set_index('Code'), 'SUEWS_AnthropogenicEmission.txt', save_txt_folder)
         save_SUEWS_txt(pd.DataFrame.from_dict(water_dict, orient = 'index').set_index('Code'), 'SUEWS_Water.txt', save_txt_folder)
         save_SUEWS_txt(pd.DataFrame.from_dict(cond_dict, orient = 'index').T.set_index('Code'), 'SUEWS_Conductance.txt', save_txt_folder)
+    
+        save_SUEWS_txt(db_dict['Irrigation'].loc[[parameter_dict['IrrigationCode']]].rename_axis('Code'), 'SUEWS_Irrigation.txt', save_txt_folder)
+        save_SUEWS_txt(db_dict['Soil'].loc[[parameter_dict['SoilTypeCode']]].rename_axis('Code'), 'SUEWS_Soil.txt', save_txt_folder)
 
+        # write SUEWS_Snow
         save_snow(snow_dict, save_txt_folder)
 
         # Save Profiles
         profiles = ['TrafficRate_WD','TrafficRate_WE', 'EnergyUseProfWD','EnergyUseProfWE','ActivityProfWD','ActivityProfWE','PopProfWD','PopProfWE', 'SnowClearingProfWD', 'SnowClearingProfWE','WaterUseProfManuWD','WaterUseProfManuWE','WaterUseProfAutoWD','WaterUseProfAutoWE']        
         profiles_list = []
         for i in profiles:
-            profiles_list.append(column_dict[i])
+            profiles_list.append(parameter_dict[i])
             profiles_list = list(set(profiles_list))
 
-        fill_SUEWS_profiles(profiles_list, save_txt_folder, prof) # TODO IMORGON!
+        fill_SUEWS_profiles(profiles_list, save_txt_folder, db_dict['Profiles']) 
         # presave leads to save_SUEWS_txt
         # presave(prof, 'Profiles', profiles_list, save_txt_folder)
-        presave(irr, 'Irrigation', [column_dict['IrrigationCode']], save_txt_folder)
-        presave(soil, 'Soil', [column_dict['SoilTypeCode']], save_txt_folder)
+        # save_SUEWS_txt(df.loc[var_list].rename_axis('Code'), ('SUEWS_' + name + '.txt'), save_folder)
 
-        # Spartacus
-        # ? 
+        # presave(db_dict['Soil'], 'Soil', list(parameter_dict['SoilTypeCode']), save_txt_folder)
 
-        ########################### CALC ################################
-        
-        ESTM_list = []
+        ESTM_list = []  # Remove
         OHM_list = []
         BIOCO2_list = []
-
+        
+        # Iterate through all parameter dicts to ensure that all used ESTM, OHM and Biogen codes are written into the SUEWS.txt files
         for dict_sel in [nonVeg_dict, veg_dict, snow_dict, water_dict ]:
         
             try:
@@ -1157,23 +1127,27 @@ class SUEWSPrepareDatabase:
                             OHM_list.append(dict_sel[feat_id][surf]['OHMCode_SummerDry'])
                             OHM_list.append(dict_sel[feat_id][surf]['OHMCode_WinterWet'])
                             OHM_list.append(dict_sel[feat_id][surf]['OHMCode_WinterWet'])
-
+        
+        # Remove duplicates
         ESTM_list = list(set(ESTM_list))
         OHM_list = list(set(OHM_list))
         BIOCO2_list = list(set(BIOCO2_list))
 
-        presave(ESTM, 'ESTMCoefficients', ESTM_list, save_txt_folder)
-        presave(OHM, 'OHMCoefficients', OHM_list, save_txt_folder)
-        presave(BIOCO2, 'BiogenCO2', BIOCO2_list, save_txt_folder)
+        # save SUEWS_ESTMCoefficients.txt, SUEWS_OHMCoefficients.txt and SUEWS_BiogenCO2.txt
+        presave(db_dict['ESTM'], 'ESTMCoefficients', ESTM_list, save_txt_folder)
+        presave(db_dict['OHM'], 'OHMCoefficients', OHM_list, save_txt_folder)
+        presave(db_dict['Biogen CO2'], 'BiogenCO2', BIOCO2_list, save_txt_folder)
 
         # ################################################################################################################################
-        
+        #                                               Writing SiteSelect        
         # ################################################################################################################################
 
         ind = 1
         # Loop Start for each Grid
         for feature in vlayer.getFeatures():
-
+            # 
+            # NOT SURE WHAT THIS IS BELOW??
+            #  
             # if self.killed is True:
             #     break
             # new_line = [None] * (len(self.nbr_header) - 3)
@@ -1187,34 +1161,20 @@ class SUEWSPrepareDatabase:
             # #     break
             # # new_line = [None] * (len(nbr_header) - 3)
             # print_line = True
+            
             feat_id = int(feature.attribute(poly_field))
     
             print('Processing ID: ' + str(feat_id))
-            year = None
-            year2 = None
-            ss_dict[feat_id] = {}
+            year = None     # Not sure what this is, but it works
+            year2 = None    # Not surre what this is, but it works
+            
+            ss_dict[feat_id] = {}  # Set new key for grid in ss_dicts
 
             # Write GridLayoutXXX.nml
             print(ss_dir[0] + '/' + file_code + '_IMPGrid_SS_' + str(feat_id) + '.txt')
             ssVect = np.loadtxt(ss_dir[0] + '/' + file_code + '_IMPGrid_SS_' + str(feat_id) + '.txt', skiprows = 1) #vertical info from IMP calc
             writeGridLayout(ssVect, heightMethod, vertheights, nlayers, skew, file_code, str(feat_id), save_txt_folder)
-            
-            try:
-                ss_dict[feat_id]['Code_Paved'] = nonVeg_dict[feat_id]['Paved']['Code']
-                ss_dict[feat_id]['Code_Bldgs'] = nonVeg_dict[feat_id]['Buildings']['Code']
-                ss_dict[feat_id]['Code_Bsoil'] = nonVeg_dict[feat_id]['Bare Soil']['Code']
-            
-                # if grid doesnt contain any typology, set to standard for region/country
-                # nonVeg_dict will not have information for grids without typloogy and raise error
-            except:
-                ss_dict[feat_id]['Code_Paved'] = column_dict['Paved']
-                ss_dict[feat_id]['Code_Bldgs'] = column_dict['Buildings']
-                ss_dict[feat_id]['Code_Bsoil'] = column_dict['Bare Soil']
-
-            ss_dict[feat_id]['Code_EveTr'] = veg_dict['Evergreen Tree']['Code']
-            ss_dict[feat_id]['Code_DecTr'] = veg_dict['Decidous Tree']['Code']
-            ss_dict[feat_id]['Code_Grass'] = veg_dict['Grass']['Code']
-            ss_dict[feat_id]['Code_Water'] = water_dict['Water']['Code']
+        
 
             if Metfile_path is None:
                 QMessageBox.critical(None, "Error", "Meteorological data file has not been provided,"
@@ -1284,25 +1244,14 @@ class SUEWSPrepareDatabase:
 
             else:
                 hectare = area
+            # gdalver == GDAL-version
             gdalver = float(gdal.__version__[0])
             lonlat = transform.TransformPoint(centroid.x(), centroid.y())
-            code = "lat"
-
-            if gdalver == 3.:
-                ss_dict[feat_id][code] =  '%.6f' % lonlat[0] #changed to gdal 3
-            else:
-                ss_dict[feat_id][code] =  '%.6f' % lonlat[1] #changed to gdal 3
-
-            code = "lng"
-            if gdalver == 3.:
-                ss_dict[feat_id][code] =  '%.6f' % lonlat[1] #changed to gdal 3
-            else:
-                ss_dict[feat_id][code] =  '%.6f' % lonlat[0] #changed to gdal 3
-
-            altitude = 0
-            day = 1
-            hour = 0
-            minute = 0
+            
+            altitude = 0    # TODO Is this not set?
+            day = 1         # 
+            hour = 0        #
+            minute = 0      # 
 
             if LCF_from_file:
                 LCF_paved     = LCF_dict[feat_id]['Paved']
@@ -1312,6 +1261,7 @@ class SUEWSPrepareDatabase:
                 LCF_grass     = LCF_dict[feat_id]['Grass']
                 LCF_baresoil  = LCF_dict[feat_id]['Baresoil']
                 LCF_water     = LCF_dict[feat_id]['Water']
+            
             # else:
             #     LCF_paved = feature.attribute(LCF_paved.getFieldName())
             #     LCF_buildings = feature.attribute(LCF_buildings.getFieldName())
@@ -1320,7 +1270,8 @@ class SUEWSPrepareDatabase:
             #     LCF_grass = feature.attribute(LCF_grass.getFieldName())
             #     LCF_baresoil = feature.attribute(LCF_baresoil.getFieldName())
             #     LCF_water = feature.attribute(LCF_water.getFieldName())
-
+            
+            # 
             irrFr_EveTr = 0
             irrFr_DecTr = 0
             irrFr_Grass = 0
@@ -1431,6 +1382,8 @@ class SUEWSPrepareDatabase:
             else:
                 pop_density_day = pop_density_night
 
+
+            # TODO Not sure on these settings
             LUMPS_drate = 0.25
             LUMPS_Cover = 1
             LUMPS_MaxRes = 10
@@ -1455,7 +1408,8 @@ class SUEWSPrepareDatabase:
             Fraction7of8 = 0
             GridConn8of8 = 0
             Fraction8of8 = 0
-    
+
+            # WithinGrid not solved yet.
             WhitinGridPav = 661
             WhitinGridBldg = 662
             WhitinGridEve = 663
@@ -1464,6 +1418,7 @@ class SUEWSPrepareDatabase:
             WhitinGridUnmanBsoil = 666
             WhitinGridWaterCode = 667
 
+            # TODO Remove, for now, just keep to make SUEWS work
             Fr_ESTMClass_Paved1 = 0.  ## Already in dict
             Fr_ESTMClass_Paved2 = 1.  ## Already in dict
             Fr_ESTMClass_Paved3 = 0.  ## Already in dict
@@ -1481,7 +1436,7 @@ class SUEWSPrepareDatabase:
             Code_ESTMClass_Bldgs4 = 99999 ## Already in dict
             Code_ESTMClass_Bldgs5 = 99999 ## Already in dict
 
-            SUEWS_param_dict ={
+            ss_dict[feat_id] ={
                 # 
                 "Year" : year,
                 "StartDLS": start_DLS,
@@ -1524,18 +1479,18 @@ class SUEWSPrepareDatabase:
                 "FAI_EveTr" : IMPveg_fai_eve,
                 "FAI_DecTr" : IMPveg_fai_dec,
                 "AreaWall" : (float(IMP_wai) * hectare * 10000.),
-                "CondCode" : column_dict['Cnd'],
+                "CondCode" : parameter_dict['Conductance'],
                 "SnowCode" : snow_dict['Code'],
-                'TrafficRate_WD' : column_dict['TrafficRate_WD'],
-                'TrafficRate_WE' : column_dict['TrafficRate_WE'], 
-                'SnowClearingProfWD' : column_dict['SnowClearingProfWD'], 
-                'SnowClearingProfWE' : column_dict['SnowClearingProfWE'], 
-                'AnthropogenicCode': column_dict['AnthropogenicCode'], 
-                'IrrigationCode':  column_dict['IrrigationCode'], 
-                'WaterUseProfManuWD': column_dict['WaterUseProfManuWD'], 
-                'WaterUseProfManuWE': column_dict['WaterUseProfManuWE'], 
-                'WaterUseProfAutoWD': column_dict['WaterUseProfAutoWD'], 
-                'WaterUseProfAutoWE' : column_dict['WaterUseProfAutoWE'], 
+                'TrafficRate_WD' : parameter_dict['TrafficRate_WD'],
+                'TrafficRate_WE' : parameter_dict['TrafficRate_WE'], 
+                'SnowClearingProfWD' : parameter_dict['SnowClearingProfWD'], 
+                'SnowClearingProfWE' : parameter_dict['SnowClearingProfWE'], 
+                'AnthropogenicCode': parameter_dict['AnthropogenicCode'], 
+                'IrrigationCode':  parameter_dict['IrrigationCode'], 
+                'WaterUseProfManuWD': parameter_dict['WaterUseProfManuWD'], 
+                'WaterUseProfManuWE': parameter_dict['WaterUseProfManuWE'], 
+                'WaterUseProfAutoWD': parameter_dict['WaterUseProfAutoWD'], 
+                'WaterUseProfAutoWE' : parameter_dict['WaterUseProfAutoWE'], 
                 # Population
                 "PopDensDay" : '%.3f' % pop_density_day,
                 "PopDensNight" : '%.3f' % pop_density_night,
@@ -1591,8 +1546,38 @@ class SUEWSPrepareDatabase:
                 "Code_ESTMClass_Paved3": Code_ESTMClass_Paved3,  
             }
 
-            for code in SUEWS_param_dict.keys():
-                ss_dict[feat_id][code] = str(SUEWS_param_dict[code])
+               # Set Surface codes for each Grid in SiteSelect 
+            try:
+                ss_dict[feat_id]['Code_Paved'] = nonVeg_dict[feat_id]['Paved']['Code']
+                ss_dict[feat_id]['Code_Bldgs'] = nonVeg_dict[feat_id]['Buildings']['Code']
+                ss_dict[feat_id]['Code_Bsoil'] = nonVeg_dict[feat_id]['Bare Soil']['Code']
+            
+                # if grid doesnt contain any typology, set to standard for region/country
+                # nonVeg_dict will not have information for grids without typloogy and raise error. Thus, Except statement
+            except:
+                ss_dict[feat_id]['Code_Paved'] = parameter_dict['Paved']
+                ss_dict[feat_id]['Code_Bldgs'] = parameter_dict['Buildings']
+                ss_dict[feat_id]['Code_Bsoil'] = parameter_dict['Bare Soil']
+
+            ss_dict[feat_id]['Code_EveTr'] = veg_dict['Evergreen Tree']['Code']
+            ss_dict[feat_id]['Code_DecTr'] = veg_dict['Decidous Tree']['Code']
+            ss_dict[feat_id]['Code_Grass'] = veg_dict['Grass']['Code']
+            ss_dict[feat_id]['Code_Water'] = water_dict['Water']['Code']
+
+            code = "lat"
+            if gdalver == 3.:
+                ss_dict[feat_id][code] =  '%.6f' % lonlat[0] #changed to gdal 3
+            else:
+                ss_dict[feat_id][code] =  '%.6f' % lonlat[1] #changed to gdal 3
+
+            code = "lng"
+            if gdalver == 3.:
+                ss_dict[feat_id][code] =  '%.6f' % lonlat[1] #changed to gdal 3
+            else:
+                ss_dict[feat_id][code] =  '%.6f' % lonlat[0] #changed to gdal 3
+
+            # for code in SUEWS_param_dict.keys():
+            #     ss_dict[feat_id][code] = str(SUEWS_param_dict[code])
 
         ss_txt_p = plugin_dir +'/Input/SUEWS_SiteSelect.txt' # TODO Fix to set path wihtin UMEP Toolbox
         save_SiteSelect(ss_dict, save_txt_folder, ss_txt_p)
@@ -1602,7 +1587,6 @@ class SUEWSPrepareDatabase:
 
         # Response to issue #462. Should change in future versions
         copyfile(plugin_dir + '/Input/' + 'ESTMinput.nml', output_dir[0] + "/" + 'ESTMinput.nml')
-        copyfile(plugin_dir + '/Input/' + 'GridLayout.nml', output_dir[0] + "/" + 'GridLayout' + str(file_code) + '.nml') #TODO WHat?
 
         copyfile(plugin_dir + '/Input/' + 'SUEWS_SPARTACUS.nml', output_dir[0] + "/" + 'SUEWS_SPARTACUS.nml')
         # TODO Fix withinGridWaterDist

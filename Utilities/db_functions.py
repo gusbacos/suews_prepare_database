@@ -1,12 +1,28 @@
 from time import sleep
 import pandas as pd
 import numpy as np
-from osgeo import gdal
 from datetime import datetime
 from osgeo.gdalconst import *
 import os
-os.environ['USE_PYGEOS'] = '0'
-import geopandas as gpd
+
+def read_DB(db_path):
+    db_sh = pd.ExcelFile(db_path)
+    sheets = db_sh.sheet_names
+    db = pd.read_excel(db_path, sheet_name= sheets, index_col= 0)
+    # add 
+    for col in sheets:
+        if col == 'Types':
+            db[col]['descOrigin'] = db[col]['Type'].astype(str) + ', ' + db[col]['Origin'].astype(str)
+        elif col == 'References': 
+            db[col]['authorYear'] = db[col]['Author'].astype(str) + ', ' + db[col]['Publication Year'].astype(str)
+        elif col == 'Country':
+            db[col]['descOrigin'] = db[col]['Country'].astype(str) + ', ' + db[col]['City'].astype(str)  
+        elif col == 'Region':
+            pass
+        else:
+            db[col]['descOrigin'] = db[col]['Description'].astype(str) + ', ' + db[col]['Origin'].astype(str)
+    return db
+
 
 table_id_dict = {
     'Region': 10,
@@ -20,8 +36,8 @@ table_id_dict = {
     'Water': 25,
 
     'Biogen': 30,
-    'LAI': 31,
-    'LGP': 32,
+    'Leaf Area Index': 31,
+    'Leaf Growth Power': 32,
     'MVC': 33,
     'Porosity': 34,
     'VegetationGrowth': 35,
@@ -42,10 +58,9 @@ table_id_dict = {
     'Irrigation': 61,
     
     'Ref': 90,
-
 }
 
-
+# for creating new_codes when aggregating
 def create_code(table_name):
 
     sleep(0.0000000000001) # Slow down to make code unique
@@ -55,92 +70,30 @@ def create_code(table_name):
     code = int(table_code + doy + ms[3:])
     return code
 
+surf_df_dict = {
+    'Paved' : 'NonVeg',
+    'Buildings' : 'NonVeg',
+    'Evergreen Tree' : 'Veg',
+    'Decidous Tree' : 'Veg',
+    'Grass' : 'Veg',
+    'Bare Soil' : 'NonVeg',
+    'Water' : 'Water',           
+}
+
 def round_dict(in_dict):
     in_dict = {k: round(v, 4) for k, v in in_dict.items()}
     return in_dict 
 
-def read_region(db_path):
-    reg = pd.read_excel(db_path, sheet_name = 'Region', index_col=  'ID', engine = 'openpyxl')
-    return reg
-
-def read_DB(db_path):
-         
-    idx_col = 'ID'
-    # Lod 0
-    reg = pd.read_excel(db_path, sheet_name = 'Region', index_col=  idx_col, engine = 'openpyxl')
-    reg.name = 'Region'
-    country = pd.read_excel(db_path, sheet_name = 'Country', index_col=  idx_col, engine = 'openpyxl')
-    country.name = 'Country'
-    # Lod 1
-    Type = pd.read_excel(db_path, sheet_name = 'Types', index_col=  idx_col, engine = 'openpyxl')
-    Type.name = 'Types'
-    # Lod 2
-    veg = pd.read_excel(db_path, sheet_name = 'Veg', index_col = idx_col, engine = 'openpyxl')
-    veg.name = 'Veg'
-    nonveg = pd.read_excel(db_path, sheet_name = 'NonVeg', index_col = idx_col, engine = 'openpyxl')
-    nonveg.name = 'NonVeg'
-    water = pd.read_excel(db_path, sheet_name = 'Water', index_col = idx_col, engine = 'openpyxl')
-    water.name = 'Water'
-    ref = pd.read_excel(db_path, sheet_name = 'References', index_col = idx_col, engine = 'openpyxl')
-    ref.name = 'References'
-    # Lod 3
-    alb =  pd.read_excel(db_path, sheet_name = 'Albedo', index_col = idx_col, engine = 'openpyxl')
-    alb.name = 'Albedo'
-    em =  pd.read_excel(db_path, sheet_name = 'Emissivity', index_col = idx_col, engine = 'openpyxl')
-    em.name = 'Emissivity'
-    OHM =  pd.read_excel(db_path, sheet_name = 'OHM', index_col = idx_col, engine = 'openpyxl') # Away from Veg
-    OHM.name = 'OHM'
-    LAI =  pd.read_excel(db_path, sheet_name = 'LAI', index_col = idx_col, engine = 'openpyxl')
-    LAI.name = 'LAI'
-    st = pd.read_excel(db_path, sheet_name = 'Storage', index_col = idx_col, engine = 'openpyxl')
-    st.name = 'Storage'
-    cnd = pd.read_excel(db_path, sheet_name = 'Conductance', index_col = idx_col, engine = 'openpyxl') # Away from Veg
-    cnd.name = 'Conductance'
-    LGP = pd.read_excel(db_path, sheet_name = 'LGP', index_col = idx_col, engine = 'openpyxl')
-    LGP.name = 'LGP'
-    dr = pd.read_excel(db_path, sheet_name = 'Drainage', index_col = idx_col, engine = 'openpyxl')
-    dr.name = 'Drainage'
-    VG = pd.read_excel(db_path, sheet_name = 'VegetationGrowth', index_col = idx_col, engine = 'openpyxl')
-    VG.name = 'VegetationGrowth'
-    ANOHM = pd.read_excel(db_path, sheet_name = 'ANOHM', index_col = idx_col, engine = 'openpyxl')
-    ANOHM.name = 'ANOHM'
-    BIOCO2 = pd.read_excel(db_path, sheet_name = 'BiogenCO2',index_col = idx_col, engine = 'openpyxl')
-    BIOCO2.name = 'BiogenCO2'
-    MVCND = pd.read_excel(db_path, sheet_name= 'MaxVegetationConductance', index_col = idx_col, engine = 'openpyxl')
-    MVCND.name = 'MaxVegetationConductance'
-    por = pd.read_excel(db_path, sheet_name = 'Porosity', index_col = idx_col, engine = 'openpyxl')
-    por.name = 'Porosity'
-    snow = pd.read_excel(db_path, sheet_name = 'Snow', index_col = idx_col, engine = 'openpyxl')
-    snow.name = 'Snow'
-    AnEm = pd.read_excel(db_path, sheet_name = 'AnthropogenicEmission',index_col = idx_col, engine = 'openpyxl')
-    AnEm.name = 'AnthropogenicEmission'
-    prof = pd.read_excel(db_path, sheet_name= 'Profiles', index_col = idx_col, engine = 'openpyxl')
-    prof.name = 'Profiles'
-    ws = pd.read_excel(db_path, sheet_name = 'WaterState', index_col = idx_col, engine = 'openpyxl')
-    ws.name = 'WaterState'
-    soil = pd.read_excel(db_path, sheet_name = 'Soil', index_col = idx_col, engine = 'openpyxl')
-    soil.name = 'Soil'
-    ESTM = pd.read_excel(db_path, sheet_name = 'ESTM', index_col = idx_col, engine = 'openpyxl')
-    ESTM.name = 'ESTM'
-    irr = pd.read_excel(db_path, sheet_name= 'Irrigation', index_col = idx_col, engine = 'openpyxl')
-    irr.name = 'Irrigation'
-
-    type_id_dict = {val: key for key, val in pd.Series((Type['Type'] + ', ' + Type['Origin'] ),index=Type.reset_index()['ID']).to_dict().items()}
-    country_id_dict = {val: key for key, val in pd.Series((country['Region'] + ', ' + country['Country'] + ', ' + country['City'] ),index=country.reset_index()['ID']).to_dict().items()}
-    reg_id_dict = {val: key for key, val in pd.Series((reg['Region']),index=reg.reset_index()['ID']).to_dict().items()}
-
-
-    return Type, veg, nonveg, water, ref, alb, em, OHM, LAI, st, cnd, LGP, dr, VG, ANOHM, BIOCO2, MVCND, por, reg, snow, AnEm, prof, ws, soil, ESTM, irr, country, type_id_dict,country_id_dict, reg_id_dict
-
+# function to examine DB if there is a parameter set for country, if not then use parameter set for region 
 def decide_country_or_region(col, country_sel, reg):
     if str(country_sel[col].item()) == 'nan':
         var = reg.loc[reg['Region'] == country_sel['Region'].item(), col].item()
     else:
         var = country_sel[col].item()    
     return var
+# def fill_SUEWS_NonVeg(Type, table, alb, em, st, dr, ANOHM, ws, column_dict, urbType = False,):    
 
-def fill_SUEWS_NonVeg(Type, table, alb, em, st, dr, ANOHM, ws, column_dict, urbType = False,):
-    
+def fill_SUEWS_NonVeg(db_dict, column_dict, urbType = False,):    
     table_dict = {}
     surf_list = ['Paved', 'Buildings', 'Bare Soil']
     if urbType != False:
@@ -150,33 +103,33 @@ def fill_SUEWS_NonVeg(Type, table, alb, em, st, dr, ANOHM, ws, column_dict, urbT
                 if i == 'Bare Soil':
                     locator = column_dict['Bare Soil']
                 else:
-                    locator = Type.loc[j, i]
+                    locator = db_dict['Types'].loc[j, i]
 
                 table_dict[i][j] = {
                 'Code' : locator,
-                'AlbedoMin' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_min'],
-                'AlbedoMax' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_max'],
-                'Emissivity' : em.loc[table.loc[locator, 'Em'], 'Emissivity'],
-                'StorageMin' :  st.loc[table.loc[locator, 'St'], 'StorageMin'],
-                'StorageMax' : st.loc[table.loc[locator, 'St'], 'StorageMax'],
-                'WetThreshold' : dr.loc[table.loc[locator, 'Dr'], 'WetThreshold'],
-                'StateLimit' : ws.loc[table.loc[locator, 'Ws'], 'StateLimit'],
-                'DrainageEq' : dr.loc[table.loc[locator, 'Dr'], 'DrainageEq'],
-                'DrainageCoef1' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef1'],
-                'DrainageCoef2' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef2'],
+                'AlbedoMin' :   db_dict['Albedo'].loc[db_dict['NonVeg'].loc[locator, 'Albedo'], 'Alb_min'],
+                'AlbedoMax' :   db_dict['Albedo'].loc[db_dict['NonVeg'].loc[locator, 'Albedo'], 'Alb_max'],
+                'Emissivity' : db_dict['Emissivity'].loc[db_dict['NonVeg'].loc[locator, 'Emissivity'], 'Emissivity'],
+                'StorageMin' :  db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[locator, 'Water Storage'], 'StorageMin'],
+                'StorageMax' : db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[locator, 'Water Storage'], 'StorageMax'],
+                'WetThreshold' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[locator, 'Drainage'], 'WetThreshold'],
+                'StateLimit' : -9999, # Not used for Non Veg
+                'DrainageEq' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[locator, 'Drainage'], 'DrainageEq'],
+                'DrainageCoef1' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[locator, 'Drainage'], 'DrainageCoef1'],
+                'DrainageCoef2' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[locator, 'Drainage'], 'DrainageCoef2'],
                 'SoilTypeCode' : column_dict['SoilTypeCode'], #table.loc[locator, 'SoilTypeCode'],  36),
                 'SnowLimPatch' : 190,
                 'SnowLimRemove': 90,    
-                'OHMCode_SummerWet' : table.loc[locator, 'OHMSummerWet'],
-                'OHMCode_SummerDry' : table.loc[locator, 'OHMSummerDry'],
-                'OHMCode_WinterWet' : table.loc[locator, 'OHMWinterWet'],
-                'OHMCode_WinterDry' : table.loc[locator, 'OHMWinterDry'],
+                'OHMCode_SummerWet' : db_dict['NonVeg'].loc[locator, 'OHMSummerWet'],
+                'OHMCode_SummerDry' : db_dict['NonVeg'].loc[locator, 'OHMSummerDry'],
+                'OHMCode_WinterWet' : db_dict['NonVeg'].loc[locator, 'OHMWinterWet'],
+                'OHMCode_WinterDry' : db_dict['NonVeg'].loc[locator, 'OHMWinterDry'],
                 'OHMThresh_SW' : 10, # table.loc[locator, 'OHMThresh_SW'],
                 'OHMThresh_WD' : 0.9, #table.loc[locator, 'OHMThresh_WD'],
-                'ESTMCode' : table.loc[locator, 'ESTM'],
-                'AnOHM_Cp' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Cp'],
-                'AnOHM_Kk' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Kk'],
-                'AnOHM_Ch' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Ch'],
+                'ESTMCode' : db_dict['NonVeg'].loc[locator, 'ESTM'],
+                'AnOHM_Cp' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[locator, 'ANOHM'],  'AnOHM_Cp'],
+                'AnOHM_Kk' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[locator, 'ANOHM'],  'AnOHM_Kk'],
+                'AnOHM_Ch' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[locator, 'ANOHM'],  'AnOHM_Ch'],
             }
                 
     elif urbType == False:
@@ -186,70 +139,70 @@ def fill_SUEWS_NonVeg(Type, table, alb, em, st, dr, ANOHM, ws, column_dict, urbT
             locator = column_dict[i]
             table_dict[i] = {
                 'Code' : locator,
-                'AlbedoMin' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_min'],
-                'AlbedoMax' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_max'],
-                'Emissivity' : em.loc[table.loc[locator, 'Em'], 'Emissivity'],
-                'StorageMin' :  st.loc[table.loc[locator, 'St'], 'StorageMin'],
-                'StorageMax' : st.loc[table.loc[locator, 'St'], 'StorageMax'],
-                'WetThreshold' : dr.loc[table.loc[locator, 'Dr'], 'WetThreshold'],
-                'StateLimit' : ws.loc[table.loc[locator, 'Ws'], 'StateLimit'],
-                'DrainageEq' : dr.loc[table.loc[locator, 'Dr'], 'DrainageEq'],
-                'DrainageCoef1' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef1'],
-                'DrainageCoef2' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef2'],
+                'AlbedoMin' :   db_dict['Albedo'].loc[db_dict['NonVeg'].loc[locator, 'Albedo'], 'Alb_min'],
+                'AlbedoMax' :   db_dict['Albedo'].loc[db_dict['NonVeg'].loc[locator, 'Albedo'], 'Alb_max'],
+                'Emissivity' : db_dict['Emissivity'].loc[db_dict['NonVeg'].loc[locator, 'Emissivity'], 'Emissivity'],
+                'StorageMin' :  db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[locator, 'Water Storage'], 'StorageMin'],
+                'StorageMax' : db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[locator, 'Water Storage'], 'StorageMax'],
+                'WetThreshold' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[locator, 'Drainage'], 'WetThreshold'],
+                'StateLimit' : -9999, # Not used for Non Veg
+                'DrainageEq' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[locator, 'Drainage'], 'DrainageEq'],
+                'DrainageCoef1' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[locator, 'Drainage'], 'DrainageCoef1'],
+                'DrainageCoef2' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[locator, 'Drainage'], 'DrainageCoef2'],
                 'SoilTypeCode' : column_dict['SoilTypeCode'], #table.loc[locator, 'SoilTypeCode'],  36),
                 'SnowLimPatch' : 190,
                 'SnowLimRemove': 90,    
-                'OHMCode_SummerWet' : table.loc[locator, 'OHMSummerWet'],
-                'OHMCode_SummerDry' : table.loc[locator, 'OHMSummerDry'],
-                'OHMCode_WinterWet' : table.loc[locator, 'OHMWinterWet'],
-                'OHMCode_WinterDry' : table.loc[locator, 'OHMWinterDry'],
+                'OHMCode_SummerWet' : db_dict['NonVeg'].loc[locator, 'OHMSummerWet'],
+                'OHMCode_SummerDry' : db_dict['NonVeg'].loc[locator, 'OHMSummerDry'],
+                'OHMCode_WinterWet' : db_dict['NonVeg'].loc[locator, 'OHMWinterWet'],
+                'OHMCode_WinterDry' : db_dict['NonVeg'].loc[locator, 'OHMWinterDry'],
                 'OHMThresh_SW' : 10, # table.loc[locator, 'OHMThresh_SW'],
                 'OHMThresh_WD' : 0.9, #table.loc[locator, 'OHMThresh_WD'],
-                'ESTMCode' : table.loc[locator, 'ESTM'],
-                'AnOHM_Cp' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Cp'],
-                'AnOHM_Kk' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Kk'],
-                'AnOHM_Ch' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Ch'],
+                'ESTMCode' : db_dict['NonVeg'].loc[locator, 'ESTM'],
+                'AnOHM_Cp' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[locator, 'ANOHM'],  'AnOHM_Cp'],
+                'AnOHM_Kk' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[locator, 'ANOHM'],  'AnOHM_Kk'],
+                'AnOHM_Ch' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[locator, 'ANOHM'],  'AnOHM_Ch'],
             }
                     
     return table_dict
 
-def fill_SUEWS_Water(locator, table, alb, em, st, dr, ANOHM, ws, column_dict):
+def fill_SUEWS_Water(locator, db_dict, column_dict):
 
     table_dict = {}
 
     table_dict['Water'] = {
         'Code' : locator,
-        'AlbedoMin' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_min'],
-        'AlbedoMax' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_max'],
-        'Emissivity' : em.loc[table.loc[locator, 'Em'], 'Emissivity'],
-        'StorageMin' :  st.loc[table.loc[locator, 'St'], 'StorageMin'],
-        'StorageMax' : st.loc[table.loc[locator, 'St'], 'StorageMax'],
-        'WetThreshold' : dr.loc[table.loc[locator, 'Dr'], 'WetThreshold'],
-        'StateLimit' : ws.loc[table.loc[locator, 'Ws'], 'StateLimit'],
-        'WaterDepth' : ws.loc[table.loc[locator, 'Ws'], 'WaterDepth'],
-        'DrainageEq' : dr.loc[table.loc[locator, 'Dr'], 'DrainageEq'],
-        'DrainageCoef1' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef1'],
-        'DrainageCoef2' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef2'],
+        'AlbedoMin' :   db_dict['Albedo'].loc[db_dict['Water'].loc[locator, 'Albedo'], 'Alb_min'],
+        'AlbedoMax' :   db_dict['Albedo'].loc[db_dict['Water'].loc[locator, 'Albedo'], 'Alb_max'],
+        'Emissivity' : db_dict['Emissivity'].loc[db_dict['Water'].loc[locator, 'Emissivity'], 'Emissivity'],
+        'StorageMin' :  db_dict['Water Storage'].loc[db_dict['Water'].loc[locator, 'Water Storage'], 'StorageMin'],
+        'StorageMax' : db_dict['Water Storage'].loc[db_dict['Water'].loc[locator, 'Water Storage'], 'StorageMax'],
+        'WetThreshold' : db_dict['Drainage'].loc[db_dict['Water'].loc[locator, 'Drainage'], 'WetThreshold'],
+        'StateLimit' : db_dict['Water State'].loc[db_dict['Water'].loc[locator, 'Water State'], 'StateLimit'],
+        'WaterDepth' : db_dict['Water State'].loc[db_dict['Water'].loc[locator, 'Water State'], 'WaterDepth'],
+        'DrainageEq' : db_dict['Drainage'].loc[db_dict['Water'].loc[locator, 'Drainage'], 'DrainageEq'],
+        'DrainageCoef1' : db_dict['Drainage'].loc[db_dict['Water'].loc[locator, 'Drainage'], 'DrainageCoef1'],
+        'DrainageCoef2' : db_dict['Drainage'].loc[db_dict['Water'].loc[locator, 'Drainage'], 'DrainageCoef2'],
         'SoilTypeCode' : column_dict['SoilTypeCode'], #table.loc[locator, 'SoilTypeCode'],  36),
         'SnowLimPatch' : -9999,
         'SnowLimRemove': -9999,    
-        'OHMCode_SummerWet' : table.loc[locator, 'OHMSummerWet'],
-        'OHMCode_SummerDry' : table.loc[locator, 'OHMSummerDry'],
-        'OHMCode_WinterWet' : table.loc[locator, 'OHMWinterWet'],
-        'OHMCode_WinterDry' : table.loc[locator, 'OHMWinterDry'],
+        'OHMCode_SummerWet' : db_dict['Water'].loc[locator, 'OHMSummerWet'],
+        'OHMCode_SummerDry' : db_dict['Water'].loc[locator, 'OHMSummerDry'],
+        'OHMCode_WinterWet' : db_dict['Water'].loc[locator, 'OHMWinterWet'],
+        'OHMCode_WinterDry' : db_dict['Water'].loc[locator, 'OHMWinterDry'],
         'OHMThresh_SW' : 10, # table.loc[locator, 'OHMThresh_SW'],
         'OHMThresh_WD' : 0.9, #table.loc[locator, 'OHMThresh_WD'],
-        'ESTMCode' : table.loc[locator, 'ESTM'],
-        'AnOHM_Cp' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Cp'],
-        'AnOHM_Kk' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Kk'],
-        'AnOHM_Ch' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Ch'],
+        'ESTMCode' : db_dict['Water'].loc[locator, 'ESTM'],
+        'AnOHM_Cp' : db_dict['ANOHM'].loc[db_dict['Water'].loc[locator, 'ANOHM'],  'AnOHM_Cp'],
+        'AnOHM_Kk' : db_dict['ANOHM'].loc[db_dict['Water'].loc[locator, 'ANOHM'],  'AnOHM_Kk'],
+        'AnOHM_Ch' : db_dict['ANOHM'].loc[db_dict['Water'].loc[locator, 'ANOHM'],  'AnOHM_Ch'],
     }
     
     return table_dict
 
-def fill_SUEWS_Veg(Type, veg, alb, em, LAI, st, LGP, dr, VG, ANOHM,  MVCND, por, ws, column_dict , urbType = False):
+def fill_SUEWS_Veg(db_dict, column_dict , urbType = False):
 
-    table = veg
+    table = db_dict['Veg']
     table_dict = {}
     
     if urbType != False:
@@ -257,35 +210,35 @@ def fill_SUEWS_Veg(Type, veg, alb, em, LAI, st, LGP, dr, VG, ANOHM,  MVCND, por,
             table_dict[i] = {}
             for j in urbType:
 
-                locator = Type.loc[j, i]
+                locator = db_dict['Types'].loc[j, i]
                 table_dict[i][j] = {
                     'Code' : locator,
-                    'AlbedoMin' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_min'],
-                    'AlbedoMax' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_max'],
-                    'Emissivity' : em.loc[table.loc[locator, 'Em'], 'Emissivity'],
-                    'StorageMin' :  st.loc[table.loc[locator, 'St'], 'StorageMin'],
-                    'StorageMax' : st.loc[table.loc[locator, 'St'], 'StorageMax'],
-                    'WetThreshold' : dr.loc[table.loc[locator, 'Dr'], 'WetThreshold'],
-                    'StateLimit' : ws.loc[table.loc[locator, 'Ws'], 'StateLimit'],
-                    'DrainageEq' : dr.loc[table.loc[locator, 'Dr'], 'DrainageEq'],
-                    'DrainageCoef1' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef1'],
-                    'DrainageCoef2' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef2'],
+                    'AlbedoMin' :   db_dict['Albedo'].loc[table.loc[locator, 'Albedo'], 'Alb_min'],
+                    'AlbedoMax' :   db_dict['Albedo'].loc[table.loc[locator, 'Albedo'], 'Alb_max'],
+                    'Emissivity' : db_dict['Emissivity'].loc[table.loc[locator, 'Emissivity'], 'Emissivity'],
+                    'StorageMin' :  db_dict['Water Storage'].loc[table.loc[locator, 'Water Storage'], 'StorageMin'],
+                    'StorageMax' : db_dict['Water Storage'].loc[table.loc[locator, 'Water Storage'], 'StorageMax'],
+                    'WetThreshold' : db_dict['Drainage'].loc[table.loc[locator, 'Drainage'], 'WetThreshold'],
+                    'StateLimit' : db_dict['Water State'].loc[table.loc[locator, 'Water State'], 'StateLimit'],
+                    'DrainageEq' : db_dict['Drainage'].loc[table.loc[locator, 'Drainage'], 'DrainageEq'],
+                    'DrainageCoef1' : db_dict['Drainage'].loc[table.loc[locator, 'Drainage'], 'DrainageCoef1'],
+                    'DrainageCoef2' : db_dict['Drainage'].loc[table.loc[locator, 'Drainage'], 'DrainageCoef2'],
                     'SoilTypeCode' : column_dict['SoilTypeCode'], #table.loc[locator, 'SoilTypeCode'],  36),
                     'SnowLimPatch' : 190,
-                    'BaseT' :       VG.loc[table.loc[locator, 'VG'], 'BaseT'],
-                    'BaseTe' :      VG.loc[table.loc[locator, 'VG'], 'BaseTe'],
-                    'GDDFull' :     VG.loc[table.loc[locator, 'VG'], 'GDDFull'],
-                    'SDDFull' :     VG.loc[table.loc[locator, 'VG'], 'SDDFull'],
-                    'LAIMin' :      LAI.loc[table.loc[locator, 'LAI'], 'LAIMin'],
-                    'LAIMax' :      LAI.loc[table.loc[locator, 'LAI'], 'LAIMax'],
-                    'PorosityMin' : por.loc[table.loc[locator, 'Por'], 'PorosityMin'],
-                    'PorosityMax' : por.loc[table.loc[locator, 'Por'], 'PorosityMax'],
-                    'MaxConductance' : MVCND.loc[table.loc[locator, 'MVCND'], 'MaxConductance'],
-                    'LAIEq' :       LAI.loc[table.loc[locator, 'LAI'], 'LAIEq'],
-                    'LeafGrowthPower1' : LGP.loc[table.loc[locator, 'LGP'], 'LeafGrowthPower1'],
-                    'LeafGrowthPower2' : LGP.loc[table.loc[locator, 'LGP'], 'LeafGrowthPower2'],
-                    'LeafOffPower1' : LGP.loc[table.loc[locator, 'LGP'], 'LeafOffPower1'],
-                    'LeafOffPower2' : LGP.loc[table.loc[locator, 'LGP'], 'LeafOffPower2'],    
+                    'BaseT' :       db_dict['Vegetation Growth'].loc[table.loc[locator, 'Vegetation Growth'], 'BaseT'],
+                    'BaseTe' :      db_dict['Vegetation Growth'].loc[table.loc[locator, 'Vegetation Growth'], 'BaseTe'],
+                    'GDDFull' :     db_dict['Vegetation Growth'].loc[table.loc[locator, 'Vegetation Growth'], 'GDDFull'],
+                    'SDDFull' :     db_dict['Vegetation Growth'].loc[table.loc[locator, 'Vegetation Growth'], 'SDDFull'],
+                    'LAIMin' :      db_dict['Leaf Area Index'].loc[table.loc[locator, 'Leaf Area Index'], 'LAIMin'],
+                    'LAIMax' :      db_dict['Leaf Area Index'].loc[table.loc[locator, 'Leaf Area Index'], 'LAIMax'],
+                    'LAIEq' :       db_dict['Leaf Area Index'].loc[table.loc[locator, 'Leaf Area Index'], 'LAIEq'],
+                    'PorosityMin' : db_dict['Porosity'].loc[table.loc[locator, 'Porosity'], 'PorosityMin'],
+                    'PorosityMax' : db_dict['Porosity'].loc[table.loc[locator, 'Porosity'], 'PorosityMax'],
+                    'MaxConductance' : db_dict['Max Vegetation Conductance'].loc[table.loc[locator, 'Max Vegetation Conductance'], 'MaxConductance'],
+                    'LeafGrowthPower1' : db_dict['Leaf Growth Power'].loc[table.loc[locator, 'Leaf Growth Power'], 'LeafGrowthPower1'],
+                    'LeafGrowthPower2' : db_dict['Leaf Growth Power'].loc[table.loc[locator, 'Leaf Growth Power'], 'LeafGrowthPower2'],
+                    'LeafOffPower1' : db_dict['Leaf Growth Power'].loc[table.loc[locator, 'Leaf Growth Power'], 'LeafOffPower1'],
+                    'LeafOffPower2' : db_dict['Leaf Growth Power'].loc[table.loc[locator, 'Leaf Growth Power'], 'LeafOffPower2'],    
                     'OHMCode_SummerWet' : table.loc[locator, 'OHMSummerWet'],
                     'OHMCode_SummerDry' : table.loc[locator, 'OHMSummerDry'],
                     'OHMCode_WinterWet' : table.loc[locator, 'OHMWinterWet'],
@@ -293,9 +246,9 @@ def fill_SUEWS_Veg(Type, veg, alb, em, LAI, st, LGP, dr, VG, ANOHM,  MVCND, por,
                     'OHMThresh_SW' : 10,#table.loc[locator, 'OHMThresh_SW'],
                     'OHMThresh_WD' : 0.9,#table.loc[locator, 'OHMThresh_WD'],
                     'ESTMCode' : table.loc[locator, 'ESTM'],
-                    'AnOHM_Cp' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Cp'],
-                    'AnOHM_Kk' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Kk'],
-                    'AnOHM_Ch' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Ch'],
+                    'AnOHM_Cp' : db_dict['ANOHM'].loc[table.loc[locator, 'ANOHM'],  'AnOHM_Cp'],
+                    'AnOHM_Kk' : db_dict['ANOHM'].loc[table.loc[locator, 'ANOHM'],  'AnOHM_Kk'],
+                    'AnOHM_Ch' : db_dict['ANOHM'].loc[table.loc[locator, 'ANOHM'],  'AnOHM_Ch'],
                     'BiogenCO2Code' : column_dict['Biogen']
                 }
 
@@ -307,32 +260,32 @@ def fill_SUEWS_Veg(Type, veg, alb, em, LAI, st, LGP, dr, VG, ANOHM,  MVCND, por,
             locator = column_dict[i]
             table_dict[i] = {
                     'Code' : locator,
-                    'AlbedoMin' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_min'],
-                    'AlbedoMax' :   alb.loc[table.loc[locator, 'Alb'], 'Alb_max'],
-                    'Emissivity' : em.loc[table.loc[locator, 'Em'], 'Emissivity'],
-                    'StorageMin' :  st.loc[table.loc[locator, 'St'], 'StorageMin'],
-                    'StorageMax' : st.loc[table.loc[locator, 'St'], 'StorageMax'],
-                    'WetThreshold' : dr.loc[table.loc[locator, 'Dr'], 'WetThreshold'],
-                    'StateLimit' : ws.loc[table.loc[locator, 'Ws'], 'StateLimit'],
-                    'DrainageEq' : dr.loc[table.loc[locator, 'Dr'], 'DrainageEq'],
-                    'DrainageCoef1' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef1'],
-                    'DrainageCoef2' : dr.loc[table.loc[locator, 'Dr'], 'DrainageCoef2'],
+                    'AlbedoMin' :   db_dict['Albedo'].loc[table.loc[locator, 'Albedo'], 'Alb_min'],
+                    'AlbedoMax' :   db_dict['Albedo'].loc[table.loc[locator, 'Albedo'], 'Alb_max'],
+                    'Emissivity' : db_dict['Emissivity'].loc[table.loc[locator, 'Emissivity'], 'Emissivity'],
+                    'StorageMin' :  db_dict['Water Storage'].loc[table.loc[locator, 'Water Storage'], 'StorageMin'],
+                    'StorageMax' : db_dict['Water Storage'].loc[table.loc[locator, 'Water Storage'], 'StorageMax'],
+                    'WetThreshold' : db_dict['Drainage'].loc[table.loc[locator, 'Drainage'], 'WetThreshold'],
+                    'StateLimit' : db_dict['Water State'].loc[table.loc[locator, 'Water State'], 'StateLimit'],
+                    'DrainageEq' : db_dict['Drainage'].loc[table.loc[locator, 'Drainage'], 'DrainageEq'],
+                    'DrainageCoef1' : db_dict['Drainage'].loc[table.loc[locator, 'Drainage'], 'DrainageCoef1'],
+                    'DrainageCoef2' : db_dict['Drainage'].loc[table.loc[locator, 'Drainage'], 'DrainageCoef2'],
                     'SoilTypeCode' : column_dict['SoilTypeCode'], #table.loc[locator, 'SoilTypeCode'],  36),
                     'SnowLimPatch' : 190,
-                    'BaseT' :       VG.loc[column_dict['Vegetation Growth'], 'BaseT'], #VG.loc[table.loc[locator, 'VG'], 'BaseT'],
-                    'BaseTe' :      VG.loc[column_dict['Vegetation Growth'], 'BaseTe'],#VG.loc[table.loc[locator, 'VG'], 'BaseTe'],
-                    'GDDFull' :     VG.loc[column_dict['Vegetation Growth'], 'GDDFull'],#VG.loc[table.loc[locator, 'VG'], 'GDDFull'],
-                    'SDDFull' :     VG.loc[column_dict['Vegetation Growth'], 'SDDFull'],#VG.loc[table.loc[locator, 'VG'], 'SDDFull'],
-                    'LAIMin' :      LAI.loc[table.loc[locator, 'LAI'], 'LAIMin'],
-                    'LAIMax' :      LAI.loc[table.loc[locator, 'LAI'], 'LAIMax'],
-                    'PorosityMin' : por.loc[table.loc[locator, 'Por'], 'PorosityMin'],
-                    'PorosityMax' : por.loc[table.loc[locator, 'Por'], 'PorosityMax'],
-                    'MaxConductance' : MVCND.loc[table.loc[locator, 'MVCND'], 'MaxConductance'],
-                    'LAIEq' :       LAI.loc[table.loc[locator, 'LAI'], 'LAIEq'],
-                    'LeafGrowthPower1' : LGP.loc[table.loc[locator, 'LGP'], 'LeafGrowthPower1'],
-                    'LeafGrowthPower2' : LGP.loc[table.loc[locator, 'LGP'], 'LeafGrowthPower2'],
-                    'LeafOffPower1' : LGP.loc[table.loc[locator, 'LGP'], 'LeafOffPower1'],
-                    'LeafOffPower2' : LGP.loc[table.loc[locator, 'LGP'], 'LeafOffPower2'],    
+                    'BaseT' :       db_dict['Vegetation Growth'].loc[column_dict['Vegetation Growth'], 'BaseT'], #db_dict['Vegetation Growth'].loc[table.loc[locator, 'Vegetation Growth'], 'BaseT'],
+                    'BaseTe' :      db_dict['Vegetation Growth'].loc[column_dict['Vegetation Growth'], 'BaseTe'],#db_dict['Vegetation Growth'].loc[table.loc[locator, 'Vegetation Growth'], 'BaseTe'],
+                    'GDDFull' :     db_dict['Vegetation Growth'].loc[column_dict['Vegetation Growth'], 'GDDFull'],#db_dict['Vegetation Growth'].loc[table.loc[locator, 'Vegetation Growth'], 'GDDFull'],
+                    'SDDFull' :     db_dict['Vegetation Growth'].loc[column_dict['Vegetation Growth'], 'SDDFull'],#db_dict['Vegetation Growth'].loc[table.loc[locator, 'Vegetation Growth'], 'SDDFull'],
+                    'LAIMin' :      db_dict['Leaf Area Index'].loc[table.loc[locator, 'Leaf Area Index'], 'LAIMin'],
+                    'LAIMax' :      db_dict['Leaf Area Index'].loc[table.loc[locator, 'Leaf Area Index'], 'LAIMax'],
+                    'PorosityMin' : db_dict['Porosity'].loc[table.loc[locator, 'Porosity'], 'PorosityMin'],
+                    'PorosityMax' : db_dict['Porosity'].loc[table.loc[locator, 'Porosity'], 'PorosityMax'],
+                    'MaxConductance' : db_dict['Max Vegetation Conductance'].loc[table.loc[locator, 'Max Vegetation Conductance'], 'MaxConductance'],
+                    'LAIEq' :       db_dict['Leaf Area Index'].loc[table.loc[locator, 'Leaf Area Index'], 'LAIEq'],
+                    'LeafGrowthPower1' : db_dict['Leaf Growth Power'].loc[table.loc[locator, 'Leaf Growth Power'], 'LeafGrowthPower1'],
+                    'LeafGrowthPower2' : db_dict['Leaf Growth Power'].loc[table.loc[locator, 'Leaf Growth Power'], 'LeafGrowthPower2'],
+                    'LeafOffPower1' : db_dict['Leaf Growth Power'].loc[table.loc[locator, 'Leaf Growth Power'], 'LeafOffPower1'],
+                    'LeafOffPower2' : db_dict['Leaf Growth Power'].loc[table.loc[locator, 'Leaf Growth Power'], 'LeafOffPower2'],    
                     'OHMCode_SummerWet' : table.loc[locator, 'OHMSummerWet'],
                     'OHMCode_SummerDry' : table.loc[locator, 'OHMSummerDry'],
                     'OHMCode_WinterWet' : table.loc[locator, 'OHMWinterWet'],
@@ -340,49 +293,49 @@ def fill_SUEWS_Veg(Type, veg, alb, em, LAI, st, LGP, dr, VG, ANOHM,  MVCND, por,
                     'OHMThresh_SW' : 10,#table.loc[locator, 'OHMThresh_SW'],
                     'OHMThresh_WD' : 0.9,#table.loc[locator, 'OHMThresh_WD'],
                     'ESTMCode' : table.loc[locator, 'ESTM'],
-                    'AnOHM_Cp' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Cp'],
-                    'AnOHM_Kk' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Kk'],
-                    'AnOHM_Ch' : ANOHM.loc[table.loc[locator, 'ANOHM'],  'AnOHM_Ch'],
+                    'AnOHM_Cp' : db_dict['ANOHM'].loc[table.loc[locator, 'ANOHM'],  'AnOHM_Cp'],
+                    'AnOHM_Kk' : db_dict['ANOHM'].loc[table.loc[locator, 'ANOHM'],  'AnOHM_Kk'],
+                    'AnOHM_Ch' : db_dict['ANOHM'].loc[table.loc[locator, 'ANOHM'],  'AnOHM_Ch'],
                     'BiogenCO2Code' : column_dict['Biogen'] #table.loc[locator, 'BIOGEN']
                 }
     return table_dict
 
-def fill_SUEWS_Snow(snow_sel, snow, alb, em, ANOHM):
+def fill_SUEWS_Snow(snow_sel, db_dict):
     
     locator = snow_sel
 
     table_dict = {
         'Code' : locator,
-        'RadMeltFactor' : snow.loc[locator, 'RadMeltFactor'], 
-        'TempMeltFactor': snow.loc[locator, 'TempMeltFactor'],
-        'AlbedoMin' : alb.loc[snow.loc[locator, 'Alb'], 'Alb_min'],
-        'AlbedoMax' : alb.loc[snow.loc[locator, 'Alb'], 'Alb_max'],
-        'Emissivity' : em.loc[snow.loc[locator, 'Em'], 'Emissivity'],
-        'tau_a' : snow.loc[locator, 'tau_a'],
-        'tau_f' : snow.loc[locator, 'tau_f'],
-        'PrecipLimAlb' : snow.loc[locator, 'PrecipLimAlb'],
-        'SnowDensMin' : snow.loc[locator, 'SnowDensMin'],
-        'SnowDensMax' : snow.loc[locator, 'SnowDensMax'],
-        'tau_r' : snow.loc[locator, 'tau_r'], 
-        'CRWMin' : snow.loc[locator, 'CRWMin'],
-        'CRWMax' : snow.loc[locator, 'CRWMax'],
-        'PrecipLimSnow' : snow.loc[locator, 'PrecipLimSnow'],
-        'OHMCode_SummerWet' : snow.loc[locator, 'OHMCode_SummerWet'],
-        'OHMCode_SummerDry' : snow.loc[locator, 'OHMCode_SummerDry'],
-        'OHMCode_WinterWet' : snow.loc[locator, 'OHMCode_WinterWet'],
-        'OHMCode_WinterDry' : snow.loc[locator, 'OHMCode_WinterDry'],
+        'RadMeltFactor' : db_dict['Snow'].loc[locator, 'RadMeltFactor'], 
+        'TempMeltFactor': db_dict['Snow'].loc[locator, 'TempMeltFactor'],
+        'AlbedoMin' : db_dict['Albedo'].loc[db_dict['Snow'].loc[locator, 'Albedo'], 'Alb_min'],
+        'AlbedoMax' : db_dict['Albedo'].loc[db_dict['Snow'].loc[locator, 'Albedo'], 'Alb_max'],
+        'Emissivity' : db_dict['Emissivity'].loc[db_dict['Snow'].loc[locator, 'Emissivity'], 'Emissivity'],
+        'tau_a' : db_dict['Snow'].loc[locator, 'tau_a'],
+        'tau_f' : db_dict['Snow'].loc[locator, 'tau_f'],
+        'PrecipLimAlb' : db_dict['Snow'].loc[locator, 'PrecipLimAlb'],
+        'SnowDensMin' : db_dict['Snow'].loc[locator, 'SnowDensMin'],
+        'SnowDensMax' : db_dict['Snow'].loc[locator, 'SnowDensMax'],
+        'tau_r' : db_dict['Snow'].loc[locator, 'tau_r'], 
+        'CRWMin' : db_dict['Snow'].loc[locator, 'CRWMin'],
+        'CRWMax' : db_dict['Snow'].loc[locator, 'CRWMax'],
+        'PrecipLimSnow' : db_dict['Snow'].loc[locator, 'PrecipLimSnow'],
+        'OHMCode_SummerWet' : db_dict['Snow'].loc[locator, 'OHMCode_SummerWet'],
+        'OHMCode_SummerDry' : db_dict['Snow'].loc[locator, 'OHMCode_SummerDry'],
+        'OHMCode_WinterWet' : db_dict['Snow'].loc[locator, 'OHMCode_WinterWet'],
+        'OHMCode_WinterDry' : db_dict['Snow'].loc[locator, 'OHMCode_WinterDry'],
         'OHMThresh_SW' : 10,
         'OHMThresh_WD' : 0.9,
-        'ESTMCode' : snow.loc[locator, 'ESTM'],
-        'AnOHM_Cp' : ANOHM.loc[snow.loc[locator, 'ANOHM'],  'AnOHM_Cp'],
-        'AnOHM_Kk' : ANOHM.loc[snow.loc[locator, 'ANOHM'],  'AnOHM_Kk'],
-        'AnOHM_Ch' : ANOHM.loc[snow.loc[locator, 'ANOHM'],  'AnOHM_Ch'],
+        'ESTMCode' : db_dict['Snow'].loc[locator, 'ESTM'],
+        'AnOHM_Cp' : db_dict['ANOHM'].loc[db_dict['Snow'].loc[locator, 'ANOHM'],  'AnOHM_Cp'],
+        'AnOHM_Kk' : db_dict['ANOHM'].loc[db_dict['Snow'].loc[locator, 'ANOHM'],  'AnOHM_Kk'],
+        'AnOHM_Ch' : db_dict['ANOHM'].loc[db_dict['Snow'].loc[locator, 'ANOHM'],  'AnOHM_Ch'],
     }
 
     return table_dict
 
-def fill_SUEWS_AnthropogenicEmission(AnthropogenicCode, reg_sel, table):
-
+def fill_SUEWS_AnthropogenicEmission(AnthropogenicCode, parameter_dict, db_dict):
+    table = db_dict['AnthropogenicEmission']
     locator = AnthropogenicCode
 
     table_dict = {
@@ -404,14 +357,14 @@ def fill_SUEWS_AnthropogenicEmission(AnthropogenicCode, reg_sel, table):
         'TCritic_Heating_WE' : table.loc[locator, 'TCritic_Heating_WE'],
         'TCritic_Cooling_WD' : table.loc[locator, 'TCritic_Cooling_WD'],
         'TCritic_Cooling_WE' : table.loc[locator, 'TCritic_Cooling_WE'],
-        'EnergyUseProfWD' : reg_sel['EnergyUseProfWD'], #.item() ,
-        'EnergyUseProfWE' : reg_sel['EnergyUseProfWE'], #.item() ,
-        'ActivityProfWD' : reg_sel['ActivityProfWD'], #.item(),
-        'ActivityProfWE' : reg_sel['ActivityProfWE'], #.item(),
-        'TraffProfWD' : reg_sel['TrafficRate_WD'], #.item(),
-        'TraffProfWE' : reg_sel['TrafficRate_WD'], #.item(),
-        'PopProfWD' : reg_sel['PopProfWD'], #.item(),
-        'PopProfWE' : reg_sel['PopProfWE'], #.item() ,
+        'EnergyUseProfWD' : parameter_dict['EnergyUseProfWD'], #.item() ,
+        'EnergyUseProfWE' : parameter_dict['EnergyUseProfWE'], #.item() ,
+        'ActivityProfWD' : parameter_dict['ActivityProfWD'], #.item(),
+        'ActivityProfWE' : parameter_dict['ActivityProfWE'], #.item(),
+        'TraffProfWD' : parameter_dict['TrafficRate_WD'], #.item(),
+        'TraffProfWE' : parameter_dict['TrafficRate_WD'], #.item(),
+        'PopProfWD' : parameter_dict['PopProfWD'], #.item(),
+        'PopProfWE' : parameter_dict['PopProfWE'], #.item() ,
         'MinQFMetab' : table.loc[locator, 'MinQFMetab'],
         'MaxQFMetab' : table.loc[locator, 'MaxQFMetab'],
         'MinFCMetab' : table.loc[locator, 'MinFCMetab'],
@@ -429,23 +382,18 @@ def fill_SUEWS_AnthropogenicEmission(AnthropogenicCode, reg_sel, table):
     
     return table_dict
 
-def new_table_edit(table, table_dict, values, param, name, frac_dict, surface):
+# Aggregation of OHM Parameters
+def new_table_edit(db_dict, table_dict, values, param, name, frac_dict, surface):
 
-    index = list(table.reset_index()['ID'])
-    index = [str(i) for i in index]
-    edit_index_dict = {k: k for k in index}
-    edit_dict = {} 
     weights_dict = {}
     weights_dict = {k : 0 for k in values['Code'].keys()}
 
     for i in list(values['Code'].keys()):
         weights_dict[i] ={}
         weights_dict[i]['Code'] = values[param][i]
-        weights_dict[i]['Weight'] = 0
+        weights_dict[i]['Weight'] = + frac_dict[i]
 
-    for i in list(values['Code'].keys()):
-        weights_dict[i]['Weight'] =  + frac_dict[i]
-
+    # Create dicts for fractions to be aggregates
     weight_dict_merged ={}
     weight_dict_merged['Code'] = {}
     for i in weights_dict:
@@ -456,136 +404,138 @@ def new_table_edit(table, table_dict, values, param, name, frac_dict, surface):
         weight = weights_dict[i]['Weight']
         weight_dict_merged['Code'][code] = weight_dict_merged['Code'][code] + weight
 
-    for type in list(values[param].values()):
-        edit_dict[type] = table.loc[edit_index_dict[type]]
+    #params = different ohm codes in db_dict['OHM']
 
     blend_edit_dict = {}
-    edit_params = (list(edit_dict[type].keys()))
 
-    for p in edit_params:
-        blend_edit_dict[p] = {}
-    
-        for edit_code in list(edit_dict.keys()):
-            blend_edit_dict[p][edit_code] = edit_dict[edit_code][p]
-    new_edit_dict ={}
+    # edit_params = (list(edit_dict[type].keys()))
+    edit_params = list(values[param].values())
 
-    new_code = create_code(name) #name + str(str(round(time.time()*1000))))
+    edit_params = list(values[param].values())
+
+    for edit_code in ['a1', 'a2', 'a3']:
+        blend_edit_dict[edit_code] = {}
+        for p in edit_params:
+            blend_edit_dict[edit_code][p] = db_dict['OHM'].loc[p,edit_code]
+
+    new_code = create_code(name)
 
     new_edit_dict = {'Code' : new_code}
     weight = list(list(weight_dict_merged['Code'].values()))
-    
-    for i in edit_params:
+
+
+    for i in ['a1', 'a2', 'a3']:
         try:
             new_edit_dict[i] = np.average(list(blend_edit_dict[i].values()), weights = weight)
         except:
             new_edit_dict[i] = -999.
 
-    table_dict[surface] = round_dict(table_dict[surface])            
-
     table_dict[surface][param]  = new_edit_dict['Code']
     new_edit_dict['Code'] = new_code
-    dict_df = pd.DataFrame(new_edit_dict, index = [0]).set_index('Code')
-    dict_df = dict_df.rename_axis('ID')
-    table = pd.concat([table, dict_df])
 
-    return edit_dict, table
+    dict_df = pd.DataFrame(new_edit_dict, index = [0]).set_index('Code')
+
+    dict_df = dict_df.rename_axis('ID')
+    db_dict[name] = pd.concat([db_dict[name], dict_df])
+
+    return db_dict
 
 # Not used at the moment. Pehaps in future. Beware of many equation choices that cannot be averaged
-def blend_veg(in_dict, surface, frac_dict_lc, id, ESTM, OHM, BIOCO2, type_id_dict, frac_to_surf_dict):
+# def blend_veg(in_dict, surface, frac_dict_lc, id, ESTM, OHM, BIOCO2, type_id_dict, frac_to_surf_dict):
 
-    table_dict = {}
-    values = in_dict[id][surface]
-    code_order = list(values.keys())
-    rev_frac_to_surf_dict = dict((v, k) for k, v in frac_to_surf_dict.items())
-    surf = rev_frac_to_surf_dict[surface]
+#     table_dict = {}
+#     values = in_dict[id][surface]
+#     code_order = list(values.keys())
+#     rev_frac_to_surf_dict = dict((v, k) for k, v in frac_to_surf_dict.items())
+#     surf = rev_frac_to_surf_dict[surface]
     
 
-    fractions = {}
-    for typology in frac_dict_lc[id].keys():
-        try: 
-            fractions[typology] = frac_dict_lc[id][typology][surf]
-        except:
-            fractions[typology] = 1 / len(list(frac_dict_lc[id].keys())) # How to deal with this?
+#     fractions = {}
+#     for typology in frac_dict_lc[id].keys():
+#         try: 
+#             fractions[typology] = frac_dict_lc[id][typology][surf]
+#         except:
+#             fractions[typology] = 1 / len(list(frac_dict_lc[id].keys())) # How to deal with this?
 
-    code = create_code('Veg')
+#     code = create_code('Veg')
 
-    frac_dict_lc_int = {type_id_dict[k] : fractions[k] for k in fractions}
-    fractions = list(fractions.values())
+#     frac_dict_lc_int = {type_id_dict[k] : fractions[k] for k in fractions}
+#     fractions = list(fractions.values())
 
-    if len(list(set(list(values['DrainageEq'].values())))) < 1:
-        DrainageEq = np.average(list(values['DrainageEq'].values()), weights = fractions)
-        DrainageCoef1 = np.average(list(values['DrainageCoef1'].values()), weights = fractions)
-        DrainageCoef2 =  np.average(list(values['DrainageCoef2'].values()), weights = fractions)
+#     if len(list(set(list(values['DrainageEq'].values())))) < 1:
+#         DrainageEq = np.average(list(values['DrainageEq'].values()), weights = fractions)
+#         DrainageCoef1 = np.average(list(values['DrainageCoef1'].values()), weights = fractions)
+#         DrainageCoef2 =  np.average(list(values['DrainageCoef2'].values()), weights = fractions)
 
-    else: 
-        DrainageEq = np.average(list(values['DrainageEq'].values()), weights = fractions)
-        DrainageCoef1 = np.average(list(values['DrainageCoef1'].values()), weights = fractions)
-        DrainageCoef2 =  np.average(list(values['DrainageCoef2'].values()), weights = fractions)
+#     else: 
+#         DrainageEq = np.average(list(values['DrainageEq'].values()), weights = fractions)
+#         DrainageCoef1 = np.average(list(values['DrainageCoef1'].values()), weights = fractions)
+#         DrainageCoef2 =  np.average(list(values['DrainageCoef2'].values()), weights = fractions)
 
     
 
-    table_dict[surface] = {
-            'Code' : code, # Give new Code
-            'AlbedoMin' :   np.average(list(values['AlbedoMin'].values()), weights = fractions),
-            'AlbedoMax' :   np.average(list(values['AlbedoMax'].values()), weights = fractions),
-            'Emissivity' : np.average(list(values['Emissivity'].values()), weights = fractions),
-            'StorageMin' :  np.average(list(values['StorageMin'].values()), weights = fractions),
-            'StorageMax' : np.average(list(values['StorageMax'].values()), weights = fractions),
-            'WetThreshold' : np.average(list(values['WetThreshold'].values()), weights = fractions),
-            'StateLimit' : np.average(list(values['StateLimit'].values()), weights = fractions),
-            'DrainageEq' : 0,#DrainageEq,
-            'DrainageCoef1' : 0,#DrainageCoef1,
-            'DrainageCoef2' : 0,#DrainageCoef2,
-            'SoilTypeCode' : 50, #not avearageable 
-            'SnowLimPatch' : np.average(list(values['SnowLimPatch'].values()), weights = fractions),
-            'BaseT' :        np.average(list(values['BaseT'].values()), weights = fractions),
-            'BaseTe' :       np.average(list(values['BaseTe'].values()), weights = fractions),
-            'GDDFull' :     np.average(list(values['GDDFull'].values()), weights = fractions),
-            'SDDFull' :      np.average(list(values['SDDFull'].values()), weights = fractions),
-            'LAIMin' :       np.average(list(values['LAIMin'].values()), weights = fractions),
-            'LAIMax' :       np.average(list(values['LAIMax'].values()), weights = fractions),
-            'PorosityMin' :  np.average(list(values['PorosityMin'].values()), weights = fractions),
-            'PorosityMax' :  np.average(list(values['PorosityMax'].values()), weights = fractions),
-            'MaxConductance' :  np.average(list(values['MaxConductance'].values()), weights = fractions),
-            'LAIEq' :        np.average(list(values['LAIEq'].values()), weights = fractions),
-            'LeafGrowthPower1' :  np.average(list(values['LeafGrowthPower1'].values()), weights = fractions),
-            'LeafGrowthPower2' :  np.average(list(values['LeafGrowthPower2'].values()), weights = fractions),
-            'LeafOffPower1' :  np.average(list(values['LeafOffPower1'].values()), weights = fractions),
-            'LeafOffPower2' :  np.average(list(values['LeafOffPower2'].values()), weights = fractions),     
-            # 'OHMCode_SummerWet' : not avearageable 
-            # 'OHMCode_SummerDry' : not avearageable 
-            # 'OHMCode_WinterWet' : not avearageable 
-            # 'OHMCode_WinterDry' : not avearageable 
-            'OHMThresh_SW' : 10,#np.average(list(values['OHMThresh_SW'].values()), weights = fractions), 
-            'OHMThresh_WD' : 0.9,# np.average(list(values['OHMThresh_WD'].values()), weights = fractions), 
-            # 'ESTMCode' : not avearageable 
-            'AnOHM_Cp' : np.average(list(values['AnOHM_Cp'].values()), weights = fractions),
-            'AnOHM_Kk' : np.average(list(values['AnOHM_Kk'].values()), weights = fractions),
-            'AnOHM_Ch' : np.average(list(values['AnOHM_Ch'].values()), weights = fractions),
-            # 'BiogenCO2Code' : not avearageable 
+#     table_dict[surface] = {
+#             'Code' : code, # Give new Code
+#             'AlbedoMin' :   np.average(list(values['AlbedoMin'].values()), weights = fractions),
+#             'AlbedoMax' :   np.average(list(values['AlbedoMax'].values()), weights = fractions),
+#             'Emissivity' : np.average(list(values['Emissivity'].values()), weights = fractions),
+#             'StorageMin' :  np.average(list(values['StorageMin'].values()), weights = fractions),
+#             'StorageMax' : np.average(list(values['StorageMax'].values()), weights = fractions),
+#             'WetThreshold' : np.average(list(values['WetThreshold'].values()), weights = fractions),
+#             'StateLimit' : np.average(list(values['StateLimit'].values()), weights = fractions),
+#             'DrainageEq' : 0,#DrainageEq,
+#             'DrainageCoef1' : 0,#DrainageCoef1,
+#             'DrainageCoef2' : 0,#DrainageCoef2,
+#             'SoilTypeCode' : 50, #not avearageable 
+#             'SnowLimPatch' : np.average(list(values['SnowLimPatch'].values()), weights = fractions),
+#             'BaseT' :        np.average(list(values['BaseT'].values()), weights = fractions),
+#             'BaseTe' :       np.average(list(values['BaseTe'].values()), weights = fractions),
+#             'GDDFull' :     np.average(list(values['GDDFull'].values()), weights = fractions),
+#             'SDDFull' :      np.average(list(values['SDDFull'].values()), weights = fractions),
+#             'LAIMin' :       np.average(list(values['LAIMin'].values()), weights = fractions),
+#             'LAIMax' :       np.average(list(values['LAIMax'].values()), weights = fractions),
+#             'PorosityMin' :  np.average(list(values['PorosityMin'].values()), weights = fractions),
+#             'PorosityMax' :  np.average(list(values['PorosityMax'].values()), weights = fractions),
+#             'MaxConductance' :  np.average(list(values['MaxConductance'].values()), weights = fractions),
+#             'LAIEq' :        np.average(list(values['LAIEq'].values()), weights = fractions),
+#             'LeafGrowthPower1' :  np.average(list(values['LeafGrowthPower1'].values()), weights = fractions),
+#             'LeafGrowthPower2' :  np.average(list(values['LeafGrowthPower2'].values()), weights = fractions),
+#             'LeafOffPower1' :  np.average(list(values['LeafOffPower1'].values()), weights = fractions),
+#             'LeafOffPower2' :  np.average(list(values['LeafOffPower2'].values()), weights = fractions),     
+#             # 'OHMCode_SummerWet' : not avearageable 
+#             # 'OHMCode_SummerDry' : not avearageable 
+#             # 'OHMCode_WinterWet' : not avearageable 
+#             # 'OHMCode_WinterDry' : not avearageable 
+#             'OHMThresh_SW' : 10,#np.average(list(values['OHMThresh_SW'].values()), weights = fractions), 
+#             'OHMThresh_WD' : 0.9,# np.average(list(values['OHMThresh_WD'].values()), weights = fractions), 
+#             # 'ESTMCode' : not avearageable 
+#             'AnOHM_Cp' : np.average(list(values['AnOHM_Cp'].values()), weights = fractions),
+#             'AnOHM_Kk' : np.average(list(values['AnOHM_Kk'].values()), weights = fractions),
+#             'AnOHM_Ch' : np.average(list(values['AnOHM_Ch'].values()), weights = fractions),
+#             # 'BiogenCO2Code' : not avearageable 
 
-        }
+#         }
 
-    for param in ['OHMCode_SummerWet', 'OHMCode_SummerDry', 'OHMCode_WinterWet' ,'OHMCode_WinterDry', 'ESTMCode', 'BiogenCO2Code']:
-        unique_values = list(set(list(values[param].values())))
-            # print(param, unique_values)
-        if len(unique_values) == 1:
-            table_dict[surface][param] = unique_values[0]
+#     for param in ['OHMCode_SummerWet', 'OHMCode_SummerDry', 'OHMCode_WinterWet' ,'OHMCode_WinterDry', 'ESTMCode', 'BiogenCO2Code']:
+#         unique_values = list(set(list(values[param].values())))
+#             # print(param, unique_values)
+#         if len(unique_values) == 1:
+#             table_dict[surface][param] = unique_values[0]
             
-        else:
-            if param == 'ESTMCode':
-                table_edit, ESTM = new_table_edit(ESTM, table_dict, values, param, 'ESTM', frac_dict_lc_int, surface)
+#         else:
+#             if param == 'ESTMCode':
+#                 table_edit, ESTM = new_table_edit(ESTM, table_dict, values, param, 'ESTM', frac_dict_lc_int, surface)
                 
-            elif param == 'BiogenCO2Code':
-                table_edit, BIOCO2 = new_table_edit(BIOCO2, table_dict, values, param, 'BIOGEN', frac_dict_lc_int, surface)
+#             elif param == 'BiogenCO2Code':
+#                 table_edit, BIOCO2 = new_table_edit(BIOCO2, table_dict, values, param, 'BIOGEN', frac_dict_lc_int, surface)
                 
-            else: # This is OHM Coefficients
-                table_edit, OHM = new_table_edit(OHM, table_dict, values, param, 'OHM', frac_dict_lc_int, surface)
+#             else: # This is OHM Coefficients
+#                 table_edit, OHM = new_table_edit(OHM, table_dict, values, param, 'OHM', frac_dict_lc_int, surface)
                 
 
-        table_dict[surface] = round_dict(table_dict[surface])            
+#         table_dict[surface] = round_dict(table_dict[surface])            
          
-    return table_dict, OHM, ESTM, BIOCO2
+#     return table_dict, OHM, ESTM, BIOCO2
 
 def fill_SUEWS_profiles(profiles_list ,save_folder, prof):
 
@@ -632,8 +582,7 @@ def fill_SUEWS_profiles(profiles_list ,save_folder, prof):
 
     df_m.to_csv(save_folder + 'SUEWS_Profiles.txt', sep = '\t' ,index = False)
 
-
-def blend_nonveg(in_dict, surface, frac_dict_bh, frac_dict_lc, id, ESTM, OHM, type_id_dict, frac_to_surf_dict, column_dict):
+def blend_nonveg(in_dict, surface, frac_dict_bh, frac_dict_lc, id, db_dict, type_id_dict, frac_to_surf_dict, column_dict):
 
     table_dict = {}
     values = in_dict[id][surface]
@@ -665,6 +614,9 @@ def blend_nonveg(in_dict, surface, frac_dict_bh, frac_dict_lc, id, ESTM, OHM, ty
         
         code = create_code('NonVeg') #name + str(int(str(int(round(time.time()*1000))))
 
+    
+    print('Values:', values)
+
     table_dict[surface] = {
         'Code' : code, # Give new Code
         'AlbedoMin' :   np.average(list(values['AlbedoMin'].values()), weights = fractions),
@@ -691,11 +643,13 @@ def blend_nonveg(in_dict, surface, frac_dict_bh, frac_dict_lc, id, ESTM, OHM, ty
         'AnOHM_Kk' : np.average(list(values['AnOHM_Kk'].values()), weights = fractions),
         'AnOHM_Ch' : np.average(list(values['AnOHM_Ch'].values()), weights = fractions),
     }
-
+    new_edit = pd.DataFrame.from_dict(table_dict[surface],orient = 'index').T.set_index('Code')
+    db_dict['NonVeg'] = pd.concat([db_dict['NonVeg'], new_edit])
+    
     if surface == 'Water':
         table_dict[surface]['WaterDepth'] = np.average(list(values['WaterDepth'].values()), weights = fractions)
     
-    for param in ['OHMCode_SummerWet', 'OHMCode_SummerDry', 'OHMCode_WinterWet' ,'OHMCode_WinterDry', 'ESTMCode']:
+    for param in ['OHMCode_SummerWet', 'OHMCode_SummerDry', 'OHMCode_WinterWet' ,'OHMCode_WinterDry']:
         unique_values = list(set(list(values[param].values())))
         
         if len(unique_values) == 1:
@@ -703,21 +657,17 @@ def blend_nonveg(in_dict, surface, frac_dict_bh, frac_dict_lc, id, ESTM, OHM, ty
         else:
             values_list = list(values[param].values())
             frac_majority = list(frac_dict_int.values())
-            # frac frac_majority_idx  = 
             table_dict[surface][param] = values_list[frac_majority.index(max(frac_majority))]
 
-            # if param == 'ESTMCode':
-            #     table_edit, ESTM = new_table_edit(ESTM, table_dict, values, param, 'ESTM', frac_dict_int, surface)
-                
             # else: # This is OHM Coefficients
-            #     table_edit, OHM = new_table_edit(OHM, table_dict, values, param, 'OHM', frac_dict_int, surface)
+            db_dict = new_table_edit(db_dict, table_dict, values, param, 'OHM', frac_dict_int, surface)
 
-        table_dict[surface] = round_dict(table_dict[surface])            
-
-    return table_dict, OHM, ESTM
+        table_dict[surface] = round_dict(table_dict[surface])
+        
+    return table_dict, db_dict
 
 def save_SUEWS_txt(df_m, table_name, save_folder):
-    col = ['General Type', 'Surface', 'Description', 'Origin', 'Ref', 'Season', 'Day' ,'Profile Type']
+    col = ['General Type', 'Surface', 'Description', 'Origin', 'Ref', 'Season', 'Day' ,'Profile Type', 'descOrigin']
     dropFilter = df_m.filter(col)
     df_m.drop(dropFilter, inplace= True, axis = 1)
     df_m.reset_index(inplace = True)
@@ -795,121 +745,42 @@ def save_SiteSelect(dict, save_folder, path_to_ss):
     cd = cd + list(df_m.filter(like= 'WD'))
     cd = cd + list(df_m.filter(like= 'WE'))
 
-
     df_m = df_m.swaplevel(0,1,1)
     df_m.loc[-1] = np.nan
     df_m.iloc[-1, 0] = -9
     df_m.loc[-2]= np.nan
     df_m.iloc[-1, 0] = -9
 
-
-
     df_m.to_csv(save_folder + 'SUEWS_SiteSelect.txt', sep = '\t' ,index = False)
 
-def presave(table, name, var_list, save_folder):
+def presave(table, name ,var_list, save_folder):
 
-    df = table.copy()
-    index_list = []
-    [index_list.append(i) for i in table.index]
-    list_str = [x for x in index_list if isinstance(x, str)]
+    df = table.loc[var_list]
+    df = df.drop(columns=df.select_dtypes(include='object').columns).rename_axis('Code')
+    save_SUEWS_txt(df, ('SUEWS_' + name + '.txt'), save_folder)
 
-    for i in list_str:
-        df.rename(index={i : i},inplace=True)
-
-    df = df.drop(columns=df.select_dtypes(include='object').columns)
-
-    save_SUEWS_txt(df.loc[var_list].rename_axis('Code'), ('SUEWS_' + name + '.txt'), save_folder)
-
-def sel_to_dict(table, var, column_dict):
-
-    code = column_dict[var]
-    out_dict = table.loc[code].to_dict()
-    out_dict['Code'] = code
-    return out_dict
 
 def read_morph_txt(txt_file):
     morph_dict = pd.read_csv(txt_file, delim_whitespace=True, index_col=[0]).to_dict(orient='index')
     return morph_dict  
 
-def get_utc(grid_path, timezone):
+
+# Not used. To big TimeZones.shp file
+# def get_utc(grid_path, timezone):
     
-    # timezone
-    grid = gpd.read_file(grid_path)
+#     # timezone
+#     grid = gpd.read_file(grid_path)
     
-    # Set of grid to crs of timezones vectorlayer (WGS 84)
-    grid_crs = grid.to_crs(timezone.crs)
+#     # Set of grid to crs of timezones vectorlayer (WGS 84)
+#     grid_crs = grid.to_crs(timezone.crs)
 
-    try:
-        spatial_join = gpd.sjoin(left_df=grid_crs,
-                                    right_df=timezone,
-                                    how="inner", op='within')
-        utc = spatial_join.iloc[0]['zone']
-    except:
-        utc = 0
-        print('UTC calc not working')
-    return utc
-
-# Not used now, pehaps later .
-def read_LUCY_txt(df):
-    df['ID'] = np.arange(df.shape[0])+1
-    df.set_index('ID', inplace = True)
-
-
-def load_lucy(LUCY_path, region):
-
-    hours = list(range(0,24))
-    hours = [str(x) for x in hours]
-    weekdays = ['monday', 'tuesday', 'wednesday','thursday','friday', 'saturday','sunday']
-    days =  list(range(1,366))
-    days = [str(x) for x in days]
-
-    lucy_suews_dict = {
-        75 : 1,
-        125 : 1.5,
-        175 : 2 
-    }
-
-    # Read txtfiles 
-    id = pd.read_csv(LUCY_path + 'CountryID.txt', sep = ';', names = ['ID', 'Name', 'ID2'], index_col= 'ID') 
-    weekdayhours = pd.read_csv(LUCY_path + 'weekdayhours.txt', sep = '\t', names = hours)
-    weekenddays = pd.read_csv(LUCY_path + 'weekenddays.txt', sep = '\t', names = weekdays)
-    weekendhours = pd.read_csv(LUCY_path + 'weekendhours.txt', sep = '\t', names = hours)
-    metabolism = pd.read_csv(LUCY_path + 'Metabolism.txt', sep = '\t', names = hours)
-    metabolism = metabolism.replace(lucy_suews_dict)
-    summercooling = pd.read_csv(LUCY_path + 'CountriesSummerCooling.txt',sep = '\t')
-    holidays = pd.read_csv(LUCY_path + 'fixedpublicholidays.txt', sep = '\t', names = days)
-    ecstatus = pd.read_csv(LUCY_path + 'CountriesEconomicStatus.txt', sep = '\t')
-
-    # Fix-ID
-    read_LUCY_txt(weekdayhours)
-    read_LUCY_txt(weekendhours)
-    read_LUCY_txt(weekenddays)
-    read_LUCY_txt(metabolism)
-    read_LUCY_txt(summercooling)
-    read_LUCY_txt(holidays)
-    read_LUCY_txt(ecstatus)
-    
-    # Drop all Nan
-    ecstatus['ecStatus'] = ecstatus.sum(axis = 1)
-    ecstatus = ecstatus[['Country', 'ecStatus']]
-
-    indexer = (id.loc[id['Name'] == region]).index.item()
-    weekenddays = weekenddays.loc[indexer]
-    weekdayhours = weekdayhours.loc[indexer]
-    weekendhours = weekendhours.loc[indexer]
-    weekenddays = weekenddays.loc[indexer]
-    hum_activity = metabolism.loc[indexer]
-    summercooling = summercooling.loc[indexer]
-    holidays = holidays.loc[indexer]
-    ecstatus = ecstatus.loc[indexer]
-    Buildings_energy_use = weekendhours.loc[indexer]
-
-    QF_wd = weekdayhours.loc[indexer]
-    QF_We = weekendhours.loc[indexer]
-    Tr_wd = weekdayhours.loc[indexer]
-    Tr_we = weekendhours.loc[indexer]
-    HA_wd = metabolism.loc[indexer]
-    HA_we = metabolism.loc[indexer]
-
-    # return QF_wd, QF_We, Tr_wd , Tr_we, HA_wd, HA_we
+#     try:
+#         spatial_join = gpd.sjoin(left_df=grid_crs,
+#                                     right_df=timezone,
+#                                     how="inner", op='within')
+#         utc = spatial_join.iloc[0]['zone']
+#     except:
+#         utc = 0
+#         print('UTC calc not working')
+#     return utc
 
