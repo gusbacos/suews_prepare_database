@@ -2,7 +2,7 @@ from time import sleep
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from osgeo.gdalconst import *
+#from osgeo.gdalconst import *
 import os
 
 def read_DB(db_path):
@@ -615,7 +615,7 @@ def blend_nonveg(in_dict, surface, frac_dict_bh, frac_dict_lc, id, db_dict, type
         code = create_code('NonVeg') #name + str(int(str(int(round(time.time()*1000))))
 
     
-    print('Values:', values)
+    # print('Values:', values)
 
     table_dict[surface] = {
         'Code' : code, # Give new Code

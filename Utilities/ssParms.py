@@ -137,6 +137,6 @@ def writeGridLayout(ssVect, heightMethod, vertHeights, nlayer, skew, fileCode, f
 
     #TODO here we need to add other parameters based on typology
 
-    write_GridLayout_file(ssDict, outputFolder + '/', 'GridLayout' +  fileCode + featID + '.nml')
+    write_GridLayout_file(ssDict, outputFolder + '/', 'GridLayout' +  fileCode + featID)
 
 

@@ -43,8 +43,11 @@ from osgeo import gdal, osr
 from .Utilities import f90nml
 from .Utilities import RoughnessCalcFunction as rg
 from .Utilities.misc import saveraster
-from .Utilities.db_functions import *
-from .Utilities.ssParms import *
+from .Utilities.db_functions import (read_DB, decide_country_or_region, fill_SUEWS_NonVeg, fill_SUEWS_Water, 
+                                     fill_SUEWS_Veg, fill_SUEWS_Snow, fill_SUEWS_AnthropogenicEmission, 
+                                     fill_SUEWS_profiles, blend_nonveg, save_SUEWS_txt, save_snow, 
+                                     save_NonVeg_types, save_SiteSelect, presave, read_morph_txt)
+from .Utilities.ssParms import writeGridLayout
 from shutil import copyfile, rmtree
 # import copy
 # from .prepare_workertypo import Worker
@@ -321,7 +324,7 @@ class SUEWSPrepareDatabase:
         icon_path = ':/plugins/suews_prepare_database/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u'SUEWS Prepare (Database Typologies)'),
+            text=self.tr(u'SUEWS Prepare - Database Typologies'),
             callback=self.run,
             parent=self.iface.mainWindow())
 
@@ -330,7 +333,7 @@ class SUEWSPrepareDatabase:
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginMenu(
-                self.tr(u'&SUEWS Prepare (Database Typologies)'),
+                self.tr(u'&SUEWS Prepare - Database Typologies'),
                 action)
             self.iface.removeToolBarIcon(action)
 
@@ -532,24 +535,56 @@ class SUEWSPrepareDatabase:
             self.dlg.textInputLCFData.setText('')
 
 
-    def set_IMPfile_path(self): #TODO Change the same as function above
-        self.IMPfile_path = self.fileDialogISO.getOpenFileName()
-        self.dlg.textInputIMPData.setText(self.IMPfile_path[0])
+    def set_IMPfile_path(self):
+        self.fileDialogISO.open()
+        result = self.fileDialogISO.exec_()
+        if result == 1:
+            self.IMPfile_path = self.fileDialogISO.selectedFiles()
+            self.dlg.textInputIMPData.setText(self.IMPfile_path[0])
+        else:
+            self.IMPfile_path = None
+            self.dlg.textInputIMPData.setText('')
+        # self.IMPfile_path = self.fileDialogISO.getOpenFileName()
+        # self.dlg.textInputIMPData.setText(self.IMPfile_path[0])
 
 
     def set_IMPvegfile_path(self):
-        self.IMPvegfile_path = self.fileDialogISO.getOpenFileName()
-        self.dlg.textInputIMPVegData.setText(self.IMPvegfile_path[0])
+        self.fileDialogISO.open()
+        result = self.fileDialogISO.exec_()
+        if result == 1:
+            self.IMPvegfile_path = self.fileDialogISO.selectedFiles()
+            self.dlg.textInputIMPVegData.setText(self.IMPvegfile_path[0])
+        else:
+            self.IMPvegfile_path = None
+            self.dlg.textInputIMPVegData.setText('')
+        # self.IMPvegfile_path = self.fileDialogISO.getOpenFileName()
+        # self.dlg.textInputIMPVegData.setText(self.IMPvegfile_path[0])
 
 
     def set_IMPvegfile_path_dec(self):
-        self.IMPvegfile_path_dec = self.fileDialogISO.getOpenFileName()
-        self.dlg.textInputIMPDecData.setText(self.IMPvegfile_path_dec)
+        self.fileDialogISO.open()
+        result = self.fileDialogISO.exec_()
+        if result == 1:
+            self.IMPvegfile_path_dec = self.fileDialogISO.selectedFiles()
+            self.dlg.textInputIMPDecData.setText(self.IMPvegfile_path_dec[0])
+        else:
+            self.IMPvegfile_path_dec = None
+            self.dlg.textInputIMPDecData.setText('')
+        # self.IMPvegfile_path_dec = self.fileDialogISO.getOpenFileName()
+        # self.dlg.textInputIMPDecData.setText(self.IMPvegfile_path_dec)
 
 
     def set_IMPvegfile_path_eve(self):
-        self.IMPvegfile_path_dec = self.fileDialogISO.getOpenFileName()
-        self.dlg.textInputIMPEveData.setText(self.IMPvegfile_path_eve[0])
+        self.fileDialogISO.open()
+        result = self.fileDialogISO.exec_()
+        if result == 1:
+            self.IMPvegfile_path_eve = self.fileDialogISO.selectedFiles()
+            self.dlg.textInputIMPEveData.setText(self.IMPvegfile_path_eve[0])
+        else:
+            self.IMPvegfile_path_eve = None
+            self.dlg.textInputIMPEveData.setText('')
+        # self.IMPvegfile_path_dec = self.fileDialogISO.getOpenFileName()
+        # self.dlg.textInputIMPEveData.setText(self.IMPvegfile_path_eve[0])
 
 
     def set_metfile_path(self):
@@ -687,7 +722,7 @@ class SUEWSPrepareDatabase:
         
         cdsmlayer = self.dlg.layerComboManagerCDSM.currentLayer()
         if cdsmlayer is None:
-            QMessageBox.critical(self.dlg, "Error", "No valid DEM selected")
+            QMessageBox.critical(self.dlg, "Error", "No valid vegetation DSM (CDSM) selected")
             return
 
         # # Land cover layer for aggegation
@@ -700,6 +735,11 @@ class SUEWSPrepareDatabase:
         if self.typologies == 1 and polyTypolayer is None:
             QMessageBox.critical(None, "Error", "No valid Urban typology polygon layer is selected")
             return     
+        
+        # Region check
+        if self.dlg.comboBoxRegion.currentIndex() == -1:
+            QMessageBox.critical(self.dlg, "Error", "No region has been selected")
+            return
 
         # self.dlg.progressBar.setMaximum(vlayer.featureCount())     
 
@@ -1009,6 +1049,7 @@ class SUEWSPrepareDatabase:
             # vlayer == grid layer
             for feature in vlayer.getFeatures(): 
                 id = int(feature.attribute(poly_field))
+                print('Processing ID for aggregation: ' + str(id))
 
                 type_list = list(area_dict[id].keys())
                 type_list_int = []
@@ -1024,7 +1065,7 @@ class SUEWSPrepareDatabase:
                 # Read and fill the dict of NonVeg attributes with codes that are found in typolpogies or regional/country
                 nonVeg_dict[id] = fill_SUEWS_NonVeg(db_dict, parameter_dict, urbType = type_list_int)
 
-                # add ID for grid if something needs to be aggregated
+                # add ID for grid if something needs to be aggregated (nonVeg things)
                 blend_dict[id] = {}
                 for surface in surface_list:
                     blend_dict[id][surface] = {}    # Check for codes for each GridID
@@ -1039,13 +1080,16 @@ class SUEWSPrepareDatabase:
                             blend_dict[id][surface][param][typology] = nonVeg_dict[id][surface][typology][param]
 
                     # Check if the codes needs to be averaged or not. 
-                    unique_values = list(set(list(blend_dict[id][surface]['Code'].values())))        
-                    
+                    unique_values = list(set(list(blend_dict[id][surface]['Code'].values())))    
+
+                    print('unique values:' + str(unique_values))
                     # if only one code exists, no need to aggregate.  
                     if len(unique_values) == 1:
+                        print('onecode')
                         ss_dict[id][surf_to_code_dict[surface]] = str(unique_values[0])    # if they all same, just set same code
                         dict_out[id][surface] = nonVeg_dict[id][surface][typology]         
                     else:
+                        print('morecodes')
                         tab, db_dict = blend_nonveg(blend_dict, surface, frac_dict_bh, frac_dict_lc, id, db_dict ,type_id_dict, frac_to_surf_dict, parameter_dict) # This needs to be foxed #TODO
                         # ss_dict[id][surf_to_code_dict[surface]] = tab[surface]['Code']     # The surface code for this gridID is set here
                         dict_out[id][surface] = tab[surface]['Code']                                # dict out or ss_dict??
@@ -1139,7 +1183,7 @@ class SUEWSPrepareDatabase:
         presave(db_dict['Biogen CO2'], 'BiogenCO2', BIOCO2_list, save_txt_folder)
 
         # ################################################################################################################################
-        #                                               Writing SiteSelect        
+        #                                               Writing SiteSelect and GridLayoutXXX.nml      
         # ################################################################################################################################
 
         ind = 1
@@ -1171,7 +1215,7 @@ class SUEWSPrepareDatabase:
             ss_dict[feat_id] = {}  # Set new key for grid in ss_dicts
 
             # Write GridLayoutXXX.nml
-            print(ss_dir[0] + '/' + file_code + '_IMPGrid_SS_' + str(feat_id) + '.txt')
+            # print(ss_dir[0] + '/' + file_code + '_IMPGrid_SS_' + str(feat_id) + '.txt')
             ssVect = np.loadtxt(ss_dir[0] + '/' + file_code + '_IMPGrid_SS_' + str(feat_id) + '.txt', skiprows = 1) #vertical info from IMP calc
             writeGridLayout(ssVect, heightMethod, vertheights, nlayers, skew, file_code, str(feat_id), save_txt_folder)
         

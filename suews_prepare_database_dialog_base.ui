@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1190</width>
-    <height>620</height>
+    <width>1320</width>
+    <height>736</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -1417,8 +1417,8 @@ p, li { white-space: pre-wrap; }
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1003</x>
-     <y>443</y>
+     <x>1307</x>
+     <y>723</y>
     </hint>
     <hint type="destinationlabel">
      <x>530</x>
@@ -1433,12 +1433,12 @@ p, li { white-space: pre-wrap; }
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>135</x>
-     <y>105</y>
+     <x>158</x>
+     <y>136</y>
     </hint>
     <hint type="destinationlabel">
-     <x>373</x>
-     <y>129</y>
+     <x>452</x>
+     <y>169</y>
     </hint>
    </hints>
   </connection>
@@ -1449,12 +1449,12 @@ p, li { white-space: pre-wrap; }
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>295</x>
-     <y>231</y>
+     <x>452</x>
+     <y>286</y>
     </hint>
     <hint type="destinationlabel">
-     <x>359</x>
-     <y>255</y>
+     <x>452</x>
+     <y>315</y>
     </hint>
    </hints>
   </connection>
@@ -1465,12 +1465,60 @@ p, li { white-space: pre-wrap; }
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>295</x>
-     <y>231</y>
+     <x>452</x>
+     <y>286</y>
     </hint>
     <hint type="destinationlabel">
-     <x>258</x>
-     <y>255</y>
+     <x>369</x>
+     <y>315</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBox_twovegfiles</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>pushButtonImportIMPVeg</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>569</x>
+     <y>474</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>607</x>
+     <y>438</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBox_twovegfiles</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>pushButtonImportIMPVeg_eve</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>541</x>
+     <y>475</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>560</x>
+     <y>528</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBox_twovegfiles</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>pushButtonImportIMPVeg_dec</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>515</x>
+     <y>480</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>542</x>
+     <y>607</y>
     </hint>
    </hints>
   </connection>
