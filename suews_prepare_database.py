@@ -21,6 +21,7 @@
  *                                                                         *
  ***************************************************************************/
 """
+
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import  QAction, QMessageBox, QLabel, QLineEdit, QGridLayout, QVBoxLayout, QSpacerItem, QSizePolicy, QFileDialog, QComboBox
@@ -43,25 +44,17 @@ from osgeo import gdal, osr
 from .Utilities import f90nml
 from .Utilities import RoughnessCalcFunction as rg
 from .Utilities.misc import saveraster
-from .Utilities.db_functions import (read_DB, decide_country_or_region, fill_SUEWS_NonVeg, fill_SUEWS_Water, 
+from .Utilities.db_functions import (read_DB, decide_country_or_region, fill_SUEWS_NonVeg, fill_SUEWS_NonVeg_typologies,  fill_SUEWS_Water, 
                                      fill_SUEWS_Veg, fill_SUEWS_Snow, fill_SUEWS_AnthropogenicEmission, 
-                                     fill_SUEWS_profiles, blend_nonveg, save_SUEWS_txt, save_snow, 
-                                     save_NonVeg_types, save_SiteSelect, presave, read_morph_txt)
+                                     fill_SUEWS_profiles, blend_SUEWS_NonVeg, save_SUEWS_txt, save_snow, 
+                                     save_NonVeg_types, save_SiteSelect, presave, read_morph_txt, surf_df_dict)
+
 from .Utilities.ssParms import writeGridLayout
 from shutil import copyfile, rmtree
-# import copy
+
 # from .prepare_workertypo import Worker
-
-##############################################################
-
 import processing
-
-# importing native QGIS tools
-# from qgis.analysis import QgsNativeAlgorithms
-# QgsApplication.processingRegistry().addProvider(QgsNativeAlgorithms())
-
 ################################################################
-
 
 class SUEWSPrepareDatabase:
     """QGIS Plugin Implementation."""
@@ -194,8 +187,8 @@ class SUEWSPrepareDatabase:
         # 'descOrigin' is a column created in read_DB to have a readable and understandable indexer shown to the user instead of using the ID
         # The lists here are the ones populating comboboxes for regional parameters
         building_list = db_dict['NonVeg']['descOrigin'].loc[db_dict['NonVeg']['Surface'] == 'Buildings']
-        paved_list = db_dict['NonVeg']['descOrigin'].loc[db_dict['NonVeg']['Surface'] == 'Paved']
-        grass_list = db_dict['Veg']['descOrigin'].loc[db_dict['Veg']['Surface'] == 'Grass']
+        paved_list =    db_dict['NonVeg']['descOrigin'].loc[db_dict['NonVeg']['Surface'] == 'Paved']
+        grass_list =    db_dict['Veg']['descOrigin'].loc[db_dict['Veg']['Surface'] == 'Grass']
         dec_tree_list = db_dict['Veg']['descOrigin'].loc[db_dict['Veg']['Surface'] == 'Decidous Tree']
         evr_tree_list = db_dict['Veg']['descOrigin'].loc[db_dict['Veg']['Surface'] == 'Evergreen Tree']
 
@@ -385,11 +378,9 @@ class SUEWSPrepareDatabase:
         self.comboBoxEvrTree = None
         self.comboBoxDecTree = None
 
-
     def help(self):
         url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Urban%20Energy%20Balance%20SUEWS%20Database%20Manager.html"
         webbrowser.open_new_tab(url)
-
 
     def set_output_folder(self):
         self.outputDialog.open()
@@ -406,18 +397,14 @@ class SUEWSPrepareDatabase:
             self.ss_dir = self.SSDialog.selectedFiles()
             self.dlg.textInputIMPDataSS.setText(self.ss_dir[0])
 
-
     def height_option_SS(self, value):
         self.heightMethod = value
-
 
     def layersSS_changed(self, value):
         self.nlayers = value
 
-
     def vertHeights_changed(self, heights):      
         self.vertheights = heights
-
 
     def SS_skew(self):
         if self.dlg.SS_checkBox_skew.isChecked():
@@ -485,14 +472,14 @@ class SUEWSPrepareDatabase:
             country_df = db_dict['Country'][db_dict['Country']['descOrigin'] == country_sel]
             try:
                 if str(country_df[col].item()) == 'nan':
-                        try:
-                            reg_df = db_dict['Region'][db_dict['Region']['Region'] == reg_sel]
-                            var = reg_df[col].item()
-                            var_text = db_dict[surf_df_dict[col]].loc[var, 'descOrigin']
-                            cbox_list = [comboBox.itemText(i) for i in range(comboBox.count())]
-                            indexer = cbox_list.index(var_text)
-                        except:
-                            indexer = 0
+                    try:
+                        reg_df = db_dict['Region'][db_dict['Region']['Region'] == reg_sel]
+                        var = reg_df[col].item()
+                        var_text = db_dict[surf_df_dict[col]].loc[var, 'descOrigin']
+                        cbox_list = [comboBox.itemText(i) for i in range(comboBox.count())]
+                        indexer = cbox_list.index(var_text)
+                    except:
+                        indexer = 0
                 else:
                     var = country_df[col].item()
                     var_text = db_dict[surf_df_dict[col]].loc[var, 'descOrigin']
@@ -502,7 +489,7 @@ class SUEWSPrepareDatabase:
                 comboBox.setCurrentIndex(indexer)
             except:
                 pass
-    
+
         decide_country_region('Paved',country_sel, reg_sel, self.dlg.comboBoxPaved)
         decide_country_region('Buildings', country_sel, reg_sel, self.dlg.comboBoxBuilding)
         decide_country_region('Evergreen Tree',country_sel, reg_sel, self.dlg.comboBoxEvrTree)
@@ -740,7 +727,8 @@ class SUEWSPrepareDatabase:
         if self.dlg.comboBoxRegion.currentIndex() == -1:
             QMessageBox.critical(self.dlg, "Error", "No region has been selected")
             return
-
+        
+        # TODO 
         # self.dlg.progressBar.setMaximum(vlayer.featureCount())     
 
         #Here worker loop starts. We make function. Then it is easier to put in worker latery
@@ -790,20 +778,6 @@ class SUEWSPrepareDatabase:
         reg_conv_dict = {}      # Dict for getting selected Regional parameters
         parameter_dict = {}        # Unkown TODO Describe
 
-        # List of surfaces where aggregation will be done
-        surface_list = ['Paved', 'Buildings','Bare Soil']
-
-        # Dict to set correct Surface from output of ZonalHistogram
-        frac_to_surf_dict = {
-            'hist_1' : 'Paved', 
-            'hist_2' : 'Buildings', 
-            'hist_3' : 'Grass', 
-            'hist_4' : 'Evergreen Tree' ,
-            'hist_5' : 'Decidous Tree' , 
-            'hist_6' : 'Bare Soil',
-            'hist_7' : 'Water',
-            } 
-
         # Dict for setting correct codes from surfaces
         surf_to_code_dict = {
             'Paved' : 'Code_Paved',
@@ -844,6 +818,8 @@ class SUEWSPrepareDatabase:
         snow_dict = fill_SUEWS_Snow(parameter_dict['SnowCode'], db_dict)
         water_dict = fill_SUEWS_Water(parameter_dict['Water'], db_dict, parameter_dict)
 
+        # TODO Fill NonVegPavedBsoil
+
         cond_dict = db_dict['Conductance'].loc[parameter_dict['Conductance']].to_dict()
         cond_dict['Code'] = parameter_dict['Conductance']
 
@@ -863,14 +839,16 @@ class SUEWSPrepareDatabase:
             gdal.AllRegister()
             provider = demlayer.dataProvider()
             filePath_dem = str(provider.dataSourceUri())
-            dataSet = gdal.Open(filePath_dem)
-            dem_arr = dataSet.ReadAsArray().astype(float)
+            dem = gdal.Open(filePath_dem)
+            dem_arr = dem.ReadAsArray().astype(float)
 
             provider = dsmlayer.dataProvider()
             filePath_dsm = str(provider.dataSourceUri())
-            dataSet = gdal.Open(filePath_dsm)
-            dsm_arr = dataSet.ReadAsArray().astype(float)
-            
+            dsm = gdal.Open(filePath_dsm)
+            dsm_arr = dsm.ReadAsArray().astype(float)
+    
+            pixelSize = dsm.GetGeoTransform()[1]    
+
             # If need to use CDSM
             # provider = dsmlayer.dataProvider()
             # filePath_cdsm = str(provider.dataSourceUri())
@@ -879,6 +857,7 @@ class SUEWSPrepareDatabase:
             
             provider = lclayer.dataProvider()
             filePath_lc = str(provider.dataSourceUri())
+        
             # If need to have Lc as Array
             # dataSet = gdal.Open(filePath_lc)
             # lc_arr = dataSet.ReadAsArray().astype(float) # lc not needed to be array at the moment. 
@@ -894,22 +873,15 @@ class SUEWSPrepareDatabase:
             geodata_output = {} # Dict for storing the output of the QGIS geodata processes
 
             # TODO Clip rasters to speed up process
-            # parin = {'INPUT': vlayer, 'geodata_output':'TEMPORARY_OUTPUT'}
-            # geodata_output['bbox'] = processing.run("native:boundingboxes",parin)
-            # parin = {
-            #     'INPUT':vlayer,
-            #     'OVERLAY': geodata_output['bbox'],
-            #     'OUTPUT':'TEMPORARY_OUTPUT'}
-            # geodata_output['clip'] = processing.run("native:clip", parin)
-            
+
             # Grid classified shp-file containing SUEWS typologies
             intersectPrefix = 'i'
             parin = { 'INPUT' : vlayer,
-            'INPUT_FIELDS' : [], 
-            'OUTPUT' : temp_folder + '/urbantypelayer.shp', # 'TEMPORARY_OUTPUT',#urbantypelayer,
-            'OVERLAY' : polyTypolayer, 
-            'OVERLAY_FIELDS' : [], 
-            'OVERLAY_FIELDS_PREFIX' : intersectPrefix }
+                'INPUT_FIELDS' : [], 
+                'OUTPUT' : temp_folder + '/urbantypelayer.shp', # 'TEMPORARY_OUTPUT',#urbantypelayer,
+                'OVERLAY' : polyTypolayer, 
+                'OVERLAY_FIELDS' : [], 
+                'OVERLAY_FIELDS_PREFIX' : intersectPrefix }
             geodata_output['gridded_shp'] = processing.run('native:intersection', parin)
 
             # Dissolve on GridID and Typology. 
@@ -926,190 +898,136 @@ class SUEWSPrepareDatabase:
             build_arr[np.where(build_arr < 1.0)] = np.nan
             saveraster(gdal.Open(filePath_dsm), build_raster_out, build_arr)
 
-            type_id = 'inewfield'
-            height_prefix = '_bldheight'
+            ################# Start calculating volumetric fractions ###########################
 
-            # Zonal statistics to calculate mean height within gridded polygon layer
-            parin = {
-                'INPUT':geodata_output['gridded_shp_diss']['OUTPUT'],
-                'INPUT_RASTER': build_raster_out,
-                'RASTER_BAND':1,
-                'COLUMN_PREFIX': height_prefix,
-                'STATISTICS':[2], # [2] == mean
-                'OUTPUT': temp_folder + '/zon_bldheight.shp' } # 'TEMPORARY_OUTPUT'}
-            geodata_output['gridded_shp_bld'] = processing.run("native:zonalstatisticsfb", parin)
+            # This dictionary retrieve the Code for selected typologies. The Reclassifier uses String values, but later on we need codes in Int
+            str_to_code_dict = db_dict['Types']['descOrigin'].to_dict() # TODO Change this to below when we have removed typology level buildings
+            # str_to_code_dict = db_dict['NonVeg']['descOrigin'].to_dict() # TODO Use this later on instead
+            str_to_code_dict = {v: k for k, v in str_to_code_dict.items()}  # This is just the same dictionary but inverted
 
-            # Zonal histogram to calculate fractions of lc in all gridded typologies
-            prefix = 'hist_'
-            parin =  {
-                'INPUT_RASTER': filePath_lc,
-                'RASTER_BAND': 1,
-                'INPUT_VECTOR': geodata_output['gridded_shp_diss']['OUTPUT'],
-                'COLUMN_PREFIX': prefix,
-                'OUTPUT': temp_folder + '/zon_hist.shp' } # 'TEMPORARY_OUTPUT'}
-            geodata_output['gridded_shp_lc'] = processing.run("native:zonalhistogram",parin)
+            maxheight = int(np.nanmax(build_arr)) # Maxheight as Int used in the loop for calculating building volume
+            build_arr_chunk_out = temp_folder + '/build_volume.tif'
 
-            # obtain pixelsize of raster in order to be able to calculate fractions later on
-            lc_raster = gdal.Open(filePath_lc)
-            lc_raster_gt = lc_raster.GetGeoTransform()
-            pixelSizeX = lc_raster_gt[1]
+            # Calculate building volume for each height
+            idx = 1
 
-            # vector layer with building heights
-            vlayer_bh = QgsVectorLayer(geodata_output['gridded_shp_bld']['OUTPUT'], 'polygon', 'ogr')
 
-            # Retrieve correct attribute column from vectorlayer
-            field_list= []
-            for fieldName in vlayer_bh.fields():
-                field_list.append(fieldName.name())
+            for z_height in range(10, maxheight, 10): # TODO change to something else with heights 
+            # # for z_height in range(1, maxheight): # this could work but takes bit more time calculate volume each meter (z) 
+            #     min_height = z_height -1
+            #     max_height = z_height
 
-            type_index = field_list.index(type_id)
+                if idx == 1:
+                    min_height = 1
+                else:
+                    min_height = z_height - max_height
 
-            area_dict = {}  # dict used for aggregation on volume for each Grid and Typology
-            # Loop to setup the area dict
-            for feature in vlayer_bh.getFeatures():
-                feat_id = int(feature.attribute(poly_field))
-                area_dict[feat_id] = { i : 0 for i in list(vlayer_bh.uniqueValues(type_index))}
-        
-            # Loop for assigning typology volume for each typology in each grid
-            for feature in vlayer_bh.getFeatures():
-                feat_id = int(feature.attribute(poly_field))
-                typology = feature.attribute(type_id)
-                build_h = feature.attribute(height_prefix)
-                area = feature.geometry().area()
-                try:
-                    volume = area * build_h
-                except:
-                    print('ERROR in volume calc for ID:',  feat_id, 'Typology: ', typology)
-                    volume = area * 1
+                max_height = z_height
+                z_difference = max_height - min_height # get height to calculate volume on
+
+                # All cells that are lower than maxheight is set to nan
+                build_arr_chunk = np.where((build_arr < max_height) , np.nan,build_arr)  
+
+                # all cells that are not nan are given the number for pixelsize of raster
+                build_arr_chunk = np.where((build_arr_chunk >1  ) , pixelSize, build_arr_chunk) 
+
+                # Save to raster to be able to use zonal stats
+                saveraster(gdal.Open(filePath_dsm), build_arr_chunk_out , build_arr_chunk)  
+
+                # Zonal statstics: Count pixels within each grid/typology
+                parin = {
+                    'INPUT': geodata_output['gridded_shp_diss']['OUTPUT'],
+                    'INPUT_RASTER':build_arr_chunk_out,
+                    'RASTER_BAND':1,
+                    'COLUMN_PREFIX':'pixel_',
+                    'STATISTICS':[0], # Count
+                    'OUTPUT':'TEMPORARY_OUTPUT'}
                 
-                area_dict[feat_id][typology] = area_dict[feat_id][typology] + volume
-            
-            frac_dict_bh = {} # create a new dictionary with fractions and remove typologies with fracion 0
-            
-            # Calculate fractions of typology for each grid based on Volume 
-            for i in area_dict:
-                total_vol = sum(area_dict[i].values())
-                frac_dict_bh[i] = {k:(v/total_vol) for k, v in area_dict[i].items() }
-                frac_dict_bh[i] = {k:v for (k,v) in frac_dict_bh[i].items() if v > 0}
+                output_name = 'buildings_zheight' # or perhaps something like this? + str(int(min_height)) + '_' + str(int(max_height)). now, it overwrites
+                geodata_output[output_name] = processing.run("native:zonalstatisticsfb", parin) 
+                
+                # Read zonal_stats vectorlayer and read as a dataframe for easier handling the attribute table
+                z_stats_vlayer = geodata_output[output_name]['OUTPUT']
 
-            # # Calculate fractions of LC_classes hist_number indicate same as SUEWS surfaces, paved, building etc.
-            vlayer_lc = QgsVectorLayer(geodata_output['gridded_shp_lc']['OUTPUT'], 'polygon', 'ogr')
+                cols = [f.name() for f in z_stats_vlayer.fields()] 
+                datagen = ([f[col] for col in cols] for f in z_stats_vlayer.getFeatures())
 
-            for feature in vlayer_lc.getFeatures():
-                feat_id = int(feature.attribute(poly_field))
-                area_dict[feat_id] = { i : { i : 0 for i in field_list} for i in list(vlayer_lc.uniqueValues(type_index))}
+                df = pd.DataFrame.from_records(data=datagen, columns=cols)[['ID', 'inewfield','pixel_count']] # ID = grid_id, inewfield = typology,       
+                df = df.set_index('ID')  # Set ID as index in df to be able to slice in df 
 
-            for feature in vlayer_lc.getFeatures():
-                for gridtype in field_list:
-                    feat_id = int(feature.attribute(poly_field))
-                    typology = feature.attribute(type_id)
-                    try:
-                        area_dict[feat_id][typology][gridtype] = area_dict[feat_id][typology][gridtype] + feature.attribute(gridtype) #area_dict[feat_id][typology] + volume
-                    except:
-                        area_dict[feat_id][typology][gridtype] = 0 # 0 if no frac exist
+                # volume (pixel_count / pixelsize to get meters ) * z_difference
+                df['volume'] = (df['pixel_count'] / pixelSize)  * z_difference
 
-            frac_dict_lc = {} # create a new dictionary with fracions of each land_cover 
-            typology_list = list(area_dict[list(area_dict.keys())[0]].keys())
+                # if statement to create df_merge, the df where the volume is added for each height 
+                if idx == 1:
+                    df_merge = df.copy()
+                    idx = idx +1
 
-            for i in area_dict:
-                frac_dict_lc[i] ={}
-                for j in typology_list:
-                    if sum(area_dict[i][j].values()) > 0: # only select typologies active in the grid
-                        frac_dict_lc[i][j] = {k:(v/pixelSizeX) for k, v in area_dict[i][j].items()}
-                        frac_dict_lc[i][j] = {k:v for (k,v) in area_dict[i][j].items() if v > 0} # remove typologies with fracion 0
+                # if not first height, add volume for each height
+                else:
+                    df_merge['volume'] = df_merge['volume'] + df['volume']
 
-            frac_dict_surf = {}
-            for id in frac_dict_lc:
-                frac_dict_surf[id] = {}
-                for typology in frac_dict_lc[id].keys():
-                    for surf in field_list:
-                        frac_dict_surf[id][surf] = 0
-                        
-                for typology in frac_dict_lc[id].keys():
-                    for surf in field_list:
-                        try:
-                            frac_dict_surf[id][surf] = frac_dict_surf[id][surf] + frac_dict_lc[id][typology][surf]
-                        except:
-                            pass 
+            ############## Calculate fractions based on volume ###############
 
-            for id in frac_dict_lc:              
-                for typology in frac_dict_lc[id].keys():
-                    for surf in field_list:
-                        try:
-                            frac_dict_lc[id][typology][surf] = frac_dict_lc[id][typology][surf] / frac_dict_surf[id][surf]
-                        except:
-                            pass
+            # List grid id to loop on
+            grid_list = list(df_merge.reset_index()['ID'].astype(int).unique())  
 
-            
-            # FOR AGGREGATION
-            # frac_dict_bh have volymetrical fraction for each gridID and typology
-        
+            # Create empty column to fill in df_merge with fractions
+            df_merge['fraction'] = 0
+
+            # Replace String identifier with Code as used in Database
+            df_merge['typology'] = df_merge['inewfield']
+            df_merge['typology'] = df_merge['typology'].replace(str_to_code_dict) 
+
+            # grid_dict holds information on volume for typologies in each grid
+
             #############################################################################################
             # Now all fractions is calculated. Here the aggregation and filling of SUEWS_.txt files begin
             # vlayer == grid layer
+            grid_dict = {}      # Dict that holds information on typologies and fractions
+
             for feature in vlayer.getFeatures(): 
                 id = int(feature.attribute(poly_field))
                 print('Processing ID for aggregation: ' + str(id))
-
-                type_list = list(area_dict[id].keys())
-                type_list_int = []
-
-                for element in type_list:
-                    type_list_int.append(type_id_dict[element])
                 
-                # Create key with ID for grid in both dicts
-                ss_dict[id] = {}
-                dict_out[id] = {}
-        
-                # SUEWS_NonVeg  
-                # Read and fill the dict of NonVeg attributes with codes that are found in typolpogies or regional/country
-                nonVeg_dict[id] = fill_SUEWS_NonVeg(db_dict, parameter_dict, urbType = type_list_int)
+                # Fraction = pixel_count(volume) in each typology and grid / sum of pixel_count(volume) in each grid 
+                df_merge.loc[id,'fraction'] = df_merge.loc[id, 'volume'] /df_merge.loc[id, 'volume'].sum()
 
-                # add ID for grid if something needs to be aggregated (nonVeg things)
-                blend_dict[id] = {}
-                for surface in surface_list:
-                    blend_dict[id][surface] = {}    # Check for codes for each GridID
-                    dict_out[id][surface] = {}
+                # Create new key for each grid_id
+                grid_dict[id] =   {}
+                nonVeg_dict[id] = {}
 
-                    params = list(nonVeg_dict[id][surface_list[0]][type_list_int[0]].keys())
+                # iterate over all typologies in grid_id and populate dictionary
+                for row in df_merge.loc[[id]].iterrows():
+                    typology = row[1]['typology']
+                    fraction = row[1]['fraction']
+                    grid_dict[id][typology] = fraction # populate
 
-                    for param in params:
-                        blend_dict[id][surface][param] = {}
+                typology_list = list(grid_dict[id].keys())#
+                # typology_list = set(list(db_dict['Types'].loc[list(grid_dict[id].keys()), 'Buildings'])) # TODO Change when removed layer of Types
+                
+                # Check if aggregation is needed
+                if len(typology_list) > 1:
+                    nonVeg_dict[id]['Buildings'] = blend_SUEWS_NonVeg(grid_dict, db_dict, id, parameter_dict)
+                else:
+                # f only one typology exists, no need to aggregate/combine/blend
+                    nonVeg_dict[id]['Buildings'] = fill_SUEWS_NonVeg_typologies(db_dict['Types'].loc[typology_list[0],'Buildings'].item(), db_dict, parameter_dict)
 
-                        for typology in type_list_int:
-                            blend_dict[id][surface][param][typology] = nonVeg_dict[id][surface][typology][param]
-
-                    # Check if the codes needs to be averaged or not. 
-                    unique_values = list(set(list(blend_dict[id][surface]['Code'].values())))    
-
-                    print('unique values:' + str(unique_values))
-                    # if only one code exists, no need to aggregate.  
-                    if len(unique_values) == 1:
-                        print('onecode')
-                        ss_dict[id][surf_to_code_dict[surface]] = str(unique_values[0])    # if they all same, just set same code
-                        dict_out[id][surface] = nonVeg_dict[id][surface][typology]         
-                    else:
-                        print('morecodes')
-                        tab, db_dict = blend_nonveg(blend_dict, surface, frac_dict_bh, frac_dict_lc, id, db_dict ,type_id_dict, frac_to_surf_dict, parameter_dict) # This needs to be foxed #TODO
-                        # ss_dict[id][surf_to_code_dict[surface]] = tab[surface]['Code']     # The surface code for this gridID is set here
-                        dict_out[id][surface] = tab[surface]['Code']                                # dict out or ss_dict??
+                nonVeg_dict[id]['Paved']    = fill_SUEWS_NonVeg_typologies(parameter_dict['Paved'], db_dict, parameter_dict)
+                nonVeg_dict[id]['Bare Soil'] = fill_SUEWS_NonVeg_typologies(parameter_dict['Bare Soil'], db_dict, parameter_dict)
             
-            # prepare the parameters collected to for writing SUEWS_NonVeg
-            dict_out[9999] = fill_SUEWS_NonVeg(db_dict, parameter_dict, urbType = True)
-
             # write to SUEWS_NonVeg
-            save_NonVeg_types(dict_out, save_txt_folder)
-            nonVeg_dict = dict_out.copy()  # copy this and rename it nonVeg_dict to avoid different names in coming steps
+            save_NonVeg_types(nonVeg_dict, save_txt_folder)
 
         # If not using Typologies
         else:
             # prepare the parameters collected to for writing SUEWS_NonVeg
-            nonVeg_dict = fill_SUEWS_NonVeg(db_dict, parameter_dict, urbType = False)
+            nonVeg_dict = fill_SUEWS_NonVeg(db_dict, parameter_dict)
             # write to SUEWS_NonVeg
             save_SUEWS_txt(pd.DataFrame.from_dict(nonVeg_dict, orient='index').set_index('Code'), 'SUEWS_NonVeg.txt', save_txt_folder)      
 
         # Write SUEWS.txt files SUEWS_veg, SUEWS_AnthropogenicEmission, SUEWS_Water and SUEWS_Conductance
-        veg_dict = fill_SUEWS_Veg(db_dict, parameter_dict, urbType = False, )
+        veg_dict = fill_SUEWS_Veg(db_dict, parameter_dict)
         save_SUEWS_txt(pd.DataFrame.from_dict(veg_dict, orient='index').set_index('Code'), 'SUEWS_Veg.txt', save_txt_folder)
         save_SUEWS_txt(pd.DataFrame.from_dict(AnEm_dict, orient = 'index').T.set_index('Code'), 'SUEWS_AnthropogenicEmission.txt', save_txt_folder)
         save_SUEWS_txt(pd.DataFrame.from_dict(water_dict, orient = 'index').set_index('Code'), 'SUEWS_Water.txt', save_txt_folder)
@@ -1129,56 +1047,66 @@ class SUEWSPrepareDatabase:
             profiles_list = list(set(profiles_list))
 
         fill_SUEWS_profiles(profiles_list, save_txt_folder, db_dict['Profiles']) 
-        # presave leads to save_SUEWS_txt
-        # presave(prof, 'Profiles', profiles_list, save_txt_folder)
-        # save_SUEWS_txt(df.loc[var_list].rename_axis('Code'), ('SUEWS_' + name + '.txt'), save_folder)
 
-        # presave(db_dict['Soil'], 'Soil', list(parameter_dict['SoilTypeCode']), save_txt_folder)
-
-        ESTM_list = []  # Remove
         OHM_list = []
         BIOCO2_list = []
         
+
         # Iterate through all parameter dicts to ensure that all used ESTM, OHM and Biogen codes are written into the SUEWS.txt files
-        for dict_sel in [nonVeg_dict, veg_dict, snow_dict, water_dict ]:
-        
-            try:
-                for i in dict_sel.keys():
+        for dict_sel, dict_name in zip([nonVeg_dict, veg_dict, snow_dict, water_dict ],['NonVeg', 'Veg', 'Snow', 'Water']):
+            
+            for feat_id in list(dict_sel.keys()):
+                    # try:
+                    #     ESTM_list.append(dict_sel[i]['ESTMCode'])
+                    # except:
+                    #     pass
+                if dict_name == 'Snow' or dict_name == 'Water':
                     try:
-                        ESTM_list.append(dict_sel[i]['ESTMCode'])
-                    except:
-                        pass
-                    try:
-                        OHM_list.append(dict_sel[i]['OHMCode_SummerWet'])
-                        OHM_list.append(dict_sel[i]['OHMCode_SummerDry'])
-                        OHM_list.append(dict_sel[i]['OHMCode_WinterWet'])
-                        OHM_list.append(dict_sel[i]['OHMCode_WinterDry'])
+                        OHM_list.append(dict_sel[feat_id]['OHMCode_SummerWet'])
+                        OHM_list.append(dict_sel[feat_id]['OHMCode_SummerDry'])
+                        OHM_list.append(dict_sel[feat_id]['OHMCode_WinterWet'])
+                        OHM_list.append(dict_sel[feat_id]['OHMCode_WinterDry'])
                     except:
                         OHM_list.append(dict_sel['OHMCode_SummerWet'])
                         OHM_list.append(dict_sel['OHMCode_SummerDry'])
                         OHM_list.append(dict_sel['OHMCode_WinterWet'])
                         OHM_list.append(dict_sel['OHMCode_WinterDry'])
-
                     try:
-                        BIOCO2_list.append(dict_sel[i]['BiogenCO2Code'])
+                        BIOCO2_list.append(dict_sel[feat_id]['BiogenCO2Code'])
                     except:
                         pass
-            except:
-                for feat_id in list(dict_sel.keys()):
-                    for surf in surface_list:
-                            ESTM_list.append(dict_sel[feat_id][surf]['ESTMCode'])
-                            OHM_list.append(dict_sel[feat_id][surf]['OHMCode_SummerWet'])
-                            OHM_list.append(dict_sel[feat_id][surf]['OHMCode_SummerDry'])
-                            OHM_list.append(dict_sel[feat_id][surf]['OHMCode_WinterWet'])
-                            OHM_list.append(dict_sel[feat_id][surf]['OHMCode_WinterWet'])
+                else: 
+                    if dict_name == 'NonVeg':
+                        surface_list = ['Paved', 'Buildings','Bare Soil']
+                        for surf in surface_list:
+                            # ESTM_list.append(dict_sel[feat_id][surf]['ESTMCode'])
+                            try:
+                                OHM_list.append(dict_sel[feat_id][surf]['OHMCode_SummerWet'])
+                                OHM_list.append(dict_sel[feat_id][surf]['OHMCode_SummerDry'])
+                                OHM_list.append(dict_sel[feat_id][surf]['OHMCode_WinterWet'])
+                                OHM_list.append(dict_sel[feat_id][surf]['OHMCode_WinterWet'])
+                            except:
+                                print(feat_id)
+                                print(surf)
+                                print(dict_sel[feat_id])
+                    else:
+                        surface_list = ['Grass', 'Evergreen Tree','Decidous Tree']
+                        for surf in surface_list:
+                        # ESTM_list.append(dict_sel[feat_id][surf]['ESTMCode'])
+                            OHM_list.append(dict_sel[surf]['OHMCode_SummerWet'])
+                            OHM_list.append(dict_sel[surf]['OHMCode_SummerDry'])
+                            OHM_list.append(dict_sel[surf]['OHMCode_WinterWet'])
+                            OHM_list.append(dict_sel[surf]['OHMCode_WinterWet'])
+
+    
         
         # Remove duplicates
-        ESTM_list = list(set(ESTM_list))
+        # ESTM_list = list(set(ESTM_list))
         OHM_list = list(set(OHM_list))
         BIOCO2_list = list(set(BIOCO2_list))
 
         # save SUEWS_ESTMCoefficients.txt, SUEWS_OHMCoefficients.txt and SUEWS_BiogenCO2.txt
-        presave(db_dict['ESTM'], 'ESTMCoefficients', ESTM_list, save_txt_folder)
+        # presave(db_dict['ESTM'], 'ESTMCoefficients', ESTM_list, save_txt_folder)
         presave(db_dict['OHM'], 'OHMCoefficients', OHM_list, save_txt_folder)
         presave(db_dict['Biogen CO2'], 'BiogenCO2', BIOCO2_list, save_txt_folder)
 
@@ -1313,8 +1241,7 @@ class SUEWSPrepareDatabase:
             #     LCF_decidious = feature.attribute(LCF_decidious.getFieldName())
             #     LCF_grass = feature.attribute(LCF_grass.getFieldName())
             #     LCF_baresoil = feature.attribute(LCF_baresoil.getFieldName())
-            #     LCF_water = feature.attribute(LCF_water.getFieldName())
-            
+            #     LCF_water = feature.attribute(LCF_water.getFieldName())    
             # 
             irrFr_EveTr = 0
             irrFr_DecTr = 0
@@ -1589,7 +1516,6 @@ class SUEWSPrepareDatabase:
                 "Code_ESTMClass_Paved2": Code_ESTMClass_Paved2,
                 "Code_ESTMClass_Paved3": Code_ESTMClass_Paved3,  
             }
-
                # Set Surface codes for each Grid in SiteSelect 
             try:
                 ss_dict[feat_id]['Code_Paved'] = nonVeg_dict[feat_id]['Paved']['Code']
@@ -1620,8 +1546,6 @@ class SUEWSPrepareDatabase:
             else:
                 ss_dict[feat_id][code] =  '%.6f' % lonlat[0] #changed to gdal 3
 
-            # for code in SUEWS_param_dict.keys():
-            #     ss_dict[feat_id][code] = str(SUEWS_param_dict[code])
 
         ss_txt_p = plugin_dir +'/Input/SUEWS_SiteSelect.txt' # TODO Fix to set path wihtin UMEP Toolbox
         save_SiteSelect(ss_dict, save_txt_folder, ss_txt_p)
