@@ -236,6 +236,7 @@ class SUEWSPrepareDatabase:
         self.dlg.layerComboManagerPolygridTypo.setFilters(QgsMapLayerProxyModel.PolygonLayer)
         self.dlg.layerComboManagerPolygridTypo.setFixedWidth(175)
         self.dlg.layerComboManagerPolygridTypo.setCurrentIndex(-1)
+        self.dlg.layerComboManagerPolygridTypo.layerChanged.connect(self.dlg.layerComboManagerPolygridTypofield.setLayer)
 
         self.dlg.pop_density.setFilters(QgsFieldProxyModel.Numeric)
         self.dlg.layerComboManagerPolygrid.layerChanged.connect(self.dlg.pop_density.setLayer)
@@ -728,6 +729,8 @@ class SUEWSPrepareDatabase:
             QMessageBox.critical(self.dlg, "Error", "No region has been selected")
             return
         
+        typologyFieldName = self.dlg.layerComboManagerPolygridTypofield.currentText()
+
         # TODO 
         # self.dlg.progressBar.setMaximum(vlayer.featureCount())     
 
@@ -744,7 +747,7 @@ class SUEWSPrepareDatabase:
                          self.IMP_from_file, self.IMPfile_path, self.IMP_z0, self.IMP_zd, self.IMP_fai, self.IMPveg_from_file, self.IMPvegfile_path, 
                          self.IMPveg_fai_eve, self.IMPveg_fai_dec, self.pop_density, self.plugin_dir, map_units, self.output_dir, self.file_code,
                          self.utc, self.checkBox_twovegfiles, self.IMPvegfile_path_dec, self.IMPvegfile_path_eve, self.pop_density_day, self.daypop,
-                         polyTypolayer, dsmlayer, demlayer, lclayer, self.region_str, self.country_str, self.typologies,
+                         polyTypolayer, typologyFieldName, dsmlayer, demlayer, lclayer, self.region_str, self.country_str, self.typologies,
                          self.heightMethod, self.vertheights, self.nlayers, self.skew, self.ss_dir)
 
         # self.startWorker(vlayer, poly_field, self.Metfile_path, self.start_DLS, self.end_DLS, self.LCF_from_file, self.LCFfile_path,
@@ -762,7 +765,7 @@ class SUEWSPrepareDatabase:
                          IMP_from_file, IMPfile_path, IMP_z0, IMP_zd, IMP_fai, IMPveg_from_file, IMPvegfile_path, 
                          IMPveg_fai_eve, IMPveg_fai_dec, pop_density, plugin_dir, map_units, output_dir, file_code,
                          utc, checkBox_twovegfiles, IMPvegfile_path_dec, IMPvegfile_path_eve, pop_density_day, daypop,
-                         polyTypolayer, dsmlayer, demlayer, lclayer, region_str, country_str, checkBoxTypologies,
+                         polyTypolayer, typologyFieldName, dsmlayer, demlayer, lclayer, region_str, country_str, checkBoxTypologies,
                          heightMethod, vertheights, nlayers, skew, ss_dir):
 
         save_txt_folder = output_dir[0]+ '/'
@@ -794,8 +797,9 @@ class SUEWSPrepareDatabase:
         db_dict = read_DB(db_path)
 
         type_id_dict = {}   # Dict used in aggregation for assigning correct Typology
-        for row in db_dict['Types'].index:
-            type_id_dict[db_dict['Types'].loc[row, 'descOrigin']] = row 
+
+        for row in db_dict['NonVeg'].loc[db_dict['NonVeg']['Surface'] == 'Buildings'].index:
+            type_id_dict[db_dict['NonVeg'].loc[row, 'descOrigin']] = row 
         
         # Get ID Values from Region and Country that will be needed for assinging correct parameters later on
         for index in list(db_dict['Country'].index):
@@ -875,19 +879,18 @@ class SUEWSPrepareDatabase:
             # TODO Clip rasters to speed up process
 
             # Grid classified shp-file containing SUEWS typologies
-            intersectPrefix = 'i'
             parin = { 'INPUT' : vlayer,
                 'INPUT_FIELDS' : [], 
                 'OUTPUT' : temp_folder + '/urbantypelayer.shp', # 'TEMPORARY_OUTPUT',#urbantypelayer,
                 'OVERLAY' : polyTypolayer, 
                 'OVERLAY_FIELDS' : [], 
-                'OVERLAY_FIELDS_PREFIX' : intersectPrefix }
+                'OVERLAY_FIELDS_PREFIX' : '' }
             geodata_output['gridded_shp'] = processing.run('native:intersection', parin)
 
             # Dissolve on GridID and Typology. 
             parin = {
                 'INPUT':geodata_output['gridded_shp']['OUTPUT'], 
-                'FIELD':['ID','inewfield'],
+                'FIELD':['ID',typologyFieldName],
                 'SEPARATE_DISJOINT':False,
                 'OUTPUT': temp_folder + '/urbantypelayer_diss.shp'}
             
@@ -901,8 +904,8 @@ class SUEWSPrepareDatabase:
             ################# Start calculating volumetric fractions ###########################
 
             # This dictionary retrieve the Code for selected typologies. The Reclassifier uses String values, but later on we need codes in Int
-            str_to_code_dict = db_dict['Types']['descOrigin'].to_dict() # TODO Change this to below when we have removed typology level buildings
-            # str_to_code_dict = db_dict['NonVeg']['descOrigin'].to_dict() # TODO Use this later on instead
+            # str_to_code_dict = db_dict['Types']['descOrigin'].to_dict() # TODO Change this to below when we have removed typology level buildings
+            str_to_code_dict = db_dict['NonVeg']['descOrigin'].to_dict() # TODO Use this later on instead
             str_to_code_dict = {v: k for k, v in str_to_code_dict.items()}  # This is just the same dictionary but inverted
 
             maxheight = int(np.nanmax(build_arr)) # Maxheight as Int used in the loop for calculating building volume
@@ -952,7 +955,7 @@ class SUEWSPrepareDatabase:
                 cols = [f.name() for f in z_stats_vlayer.fields()] 
                 datagen = ([f[col] for col in cols] for f in z_stats_vlayer.getFeatures())
 
-                df = pd.DataFrame.from_records(data=datagen, columns=cols)[['ID', 'inewfield','pixel_count']] # ID = grid_id, inewfield = typology,       
+                df = pd.DataFrame.from_records(data=datagen, columns=cols)#[['ID', typologyFieldName,'pixel_count']] # ID = grid_id, inewfield = typology,       
                 df = df.set_index('ID')  # Set ID as index in df to be able to slice in df 
 
                 # volume (pixel_count / pixelsize to get meters ) * z_difference
@@ -969,14 +972,11 @@ class SUEWSPrepareDatabase:
 
             ############## Calculate fractions based on volume ###############
 
-            # List grid id to loop on
-            grid_list = list(df_merge.reset_index()['ID'].astype(int).unique())  
-
             # Create empty column to fill in df_merge with fractions
             df_merge['fraction'] = 0
 
             # Replace String identifier with Code as used in Database
-            df_merge['typology'] = df_merge['inewfield']
+            df_merge['typology'] = df_merge[typologyFieldName]
             df_merge['typology'] = df_merge['typology'].replace(str_to_code_dict) 
 
             # grid_dict holds information on volume for typologies in each grid
@@ -1011,33 +1011,34 @@ class SUEWSPrepareDatabase:
                     nonVeg_dict[id]['Buildings'] = blend_SUEWS_NonVeg(grid_dict, db_dict, id, parameter_dict)
                 else:
                 # f only one typology exists, no need to aggregate/combine/blend
-                    nonVeg_dict[id]['Buildings'] = fill_SUEWS_NonVeg_typologies(db_dict['Types'].loc[typology_list[0],'Buildings'].item(), db_dict, parameter_dict)
+                    nonVeg_dict[id]['Buildings'] = fill_SUEWS_NonVeg_typologies(typology_list[0], db_dict, parameter_dict)
 
                 nonVeg_dict[id]['Paved']    = fill_SUEWS_NonVeg_typologies(parameter_dict['Paved'], db_dict, parameter_dict)
                 nonVeg_dict[id]['Bare Soil'] = fill_SUEWS_NonVeg_typologies(parameter_dict['Bare Soil'], db_dict, parameter_dict)
             
             # write to SUEWS_NonVeg
-            save_NonVeg_types(nonVeg_dict, save_txt_folder)
+            save_NonVeg_types(nonVeg_dict, save_txt_folder, db_dict)
 
         # If not using Typologies
         else:
             # prepare the parameters collected to for writing SUEWS_NonVeg
             nonVeg_dict = fill_SUEWS_NonVeg(db_dict, parameter_dict)
             # write to SUEWS_NonVeg
-            save_SUEWS_txt(pd.DataFrame.from_dict(nonVeg_dict, orient='index').set_index('Code'), 'SUEWS_NonVeg.txt', save_txt_folder)      
+            save_SUEWS_txt(pd.DataFrame.from_dict(nonVeg_dict, orient='index').set_index('Code'), 'SUEWS_NonVeg.txt', save_txt_folder, db_dict)      
 
         # Write SUEWS.txt files SUEWS_veg, SUEWS_AnthropogenicEmission, SUEWS_Water and SUEWS_Conductance
         veg_dict = fill_SUEWS_Veg(db_dict, parameter_dict)
-        save_SUEWS_txt(pd.DataFrame.from_dict(veg_dict, orient='index').set_index('Code'), 'SUEWS_Veg.txt', save_txt_folder)
-        save_SUEWS_txt(pd.DataFrame.from_dict(AnEm_dict, orient = 'index').T.set_index('Code'), 'SUEWS_AnthropogenicEmission.txt', save_txt_folder)
-        save_SUEWS_txt(pd.DataFrame.from_dict(water_dict, orient = 'index').set_index('Code'), 'SUEWS_Water.txt', save_txt_folder)
-        save_SUEWS_txt(pd.DataFrame.from_dict(cond_dict, orient = 'index').T.set_index('Code'), 'SUEWS_Conductance.txt', save_txt_folder)
+
+        save_SUEWS_txt(pd.DataFrame.from_dict(veg_dict, orient='index').set_index('Code'), 'SUEWS_Veg.txt', save_txt_folder, db_dict)
+        save_SUEWS_txt(pd.DataFrame.from_dict(AnEm_dict, orient = 'index').T.set_index('Code'), 'SUEWS_AnthropogenicEmission.txt', save_txt_folder, db_dict)
+        save_SUEWS_txt(pd.DataFrame.from_dict(water_dict, orient = 'index').set_index('Code'), 'SUEWS_Water.txt', save_txt_folder, db_dict)
+        save_SUEWS_txt(pd.DataFrame.from_dict(cond_dict, orient = 'index').T.set_index('Code'), 'SUEWS_Conductance.txt', save_txt_folder, db_dict)
     
-        save_SUEWS_txt(db_dict['Irrigation'].loc[[parameter_dict['IrrigationCode']]].rename_axis('Code'), 'SUEWS_Irrigation.txt', save_txt_folder)
-        save_SUEWS_txt(db_dict['Soil'].loc[[parameter_dict['SoilTypeCode']]].rename_axis('Code'), 'SUEWS_Soil.txt', save_txt_folder)
+        save_SUEWS_txt(db_dict['Irrigation'].loc[[parameter_dict['IrrigationCode']]].rename_axis('Code'), 'SUEWS_Irrigation.txt', save_txt_folder, db_dict)
+        save_SUEWS_txt(db_dict['Soil'].loc[[parameter_dict['SoilTypeCode']]].rename_axis('Code'), 'SUEWS_Soil.txt', save_txt_folder, db_dict)
 
         # write SUEWS_Snow
-        save_snow(snow_dict, save_txt_folder)
+        save_snow(snow_dict, save_txt_folder, db_dict)
 
         # Save Profiles
         profiles = ['TrafficRate_WD','TrafficRate_WE', 'EnergyUseProfWD','EnergyUseProfWE','ActivityProfWD','ActivityProfWE','PopProfWD','PopProfWE', 'SnowClearingProfWD', 'SnowClearingProfWE','WaterUseProfManuWD','WaterUseProfManuWE','WaterUseProfAutoWD','WaterUseProfAutoWE']        
@@ -1107,8 +1108,8 @@ class SUEWSPrepareDatabase:
 
         # save SUEWS_ESTMCoefficients.txt, SUEWS_OHMCoefficients.txt and SUEWS_BiogenCO2.txt
         # presave(db_dict['ESTM'], 'ESTMCoefficients', ESTM_list, save_txt_folder)
-        presave(db_dict['OHM'], 'OHMCoefficients', OHM_list, save_txt_folder)
-        presave(db_dict['Biogen CO2'], 'BiogenCO2', BIOCO2_list, save_txt_folder)
+        presave(db_dict['OHM'], 'OHMCoefficients', OHM_list, save_txt_folder, db_dict)
+        presave(db_dict['Biogen CO2'], 'BiogenCO2', BIOCO2_list, save_txt_folder, db_dict)
 
         # ################################################################################################################################
         #                                               Writing SiteSelect and GridLayoutXXX.nml      

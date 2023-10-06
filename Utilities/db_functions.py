@@ -29,7 +29,8 @@ def read_DB(db_path):
     return db
 
 # dict for assigning correct first two digits when creating new codes
-table_id_dict = {
+
+code_id_dict = {
     'Region': 10,
     'Country': 11,
     'Types': 12, 
@@ -45,11 +46,11 @@ table_id_dict = {
     'Leaf Growth Power': 32,
     'MVC': 33,
     'Porosity': 34,
-    'VegetationGrowth': 35,
+    'Vegetation Growth': 35,
     
     'Emissivity': 40,
     'Albedo': 41,   
-    'WaterState': 42,
+    'Water State': 42,
     'Storage': 43,
     'Conductance': 44,
     'Drainage': 45,
@@ -57,7 +58,7 @@ table_id_dict = {
     'OHM': 50,
     'ANOHM': 51,
     'ESTM': 52,
-    'AnEm': 53,
+    'AnthropogenicEmission': 53,
     
     'Profiles': 60,
     'Irrigation': 61,
@@ -69,7 +70,7 @@ table_id_dict = {
 def create_code(table_name):
 
     sleep(0.0000000000001) # Slow down to make code unique
-    table_code = str(table_id_dict[table_name]) 
+    table_code = str(code_id_dict[table_name]) 
     doy = str(datetime.now().timetuple().tm_yday)
     ms = str(datetime.utcnow().strftime('%S%f')) # Year%DOY#Minute#millisecond
     code = int(table_code + doy + ms[3:])
@@ -115,11 +116,10 @@ def blend_SUEWS_NonVeg(grid_dict, db_dict, id, parameter_dict):
     '''
     values_dict = {} 
     fractions = list(grid_dict[id].values())
+    typology_list = list(grid_dict[id].keys())
 
     dominant_typology = max(grid_dict[id])
-    dominant_typology = db_dict['Types'].loc[dominant_typology, 'Buildings']
-    typology_list = list(db_dict['Types'].loc[list(grid_dict[id].keys()), 'Buildings'])
-        
+
     temp_nonveg_dict = {}
     for typology in typology_list:
         temp_nonveg_dict[typology] = fill_SUEWS_NonVeg_typologies(typology, db_dict, parameter_dict)
@@ -494,102 +494,6 @@ def new_table_edit(db_dict, table_dict, values, param, name, frac_dict, surface)
 
     return db_dict
 
-# Not used at the moment. Pehaps in future. Beware of many equation choices that cannot be averaged
-# def blend_veg(in_dict, surface, frac_dict_lc, id, ESTM, OHM, BIOCO2, type_id_dict, frac_to_surf_dict):
-
-#     table_dict = {}
-#     values = in_dict[id][surface]
-#     code_order = list(values.keys())
-#     rev_frac_to_surf_dict = dict((v, k) for k, v in frac_to_surf_dict.items())
-#     surf = rev_frac_to_surf_dict[surface]
-    
-
-#     fractions = {}
-#     for typology in frac_dict_lc[id].keys():
-#         try: 
-#             fractions[typology] = frac_dict_lc[id][typology][surf]
-#         except:
-#             fractions[typology] = 1 / len(list(frac_dict_lc[id].keys())) # How to deal with this?
-
-#     code = create_code('Veg')
-
-#     frac_dict_lc_int = {type_id_dict[k] : fractions[k] for k in fractions}
-#     fractions = list(fractions.values())
-
-#     if len(list(set(list(values['DrainageEq'].values())))) < 1:
-#         DrainageEq = np.average(list(values['DrainageEq'].values()), weights = fractions)
-#         DrainageCoef1 = np.average(list(values['DrainageCoef1'].values()), weights = fractions)
-#         DrainageCoef2 =  np.average(list(values['DrainageCoef2'].values()), weights = fractions)
-
-#     else: 
-#         DrainageEq = np.average(list(values['DrainageEq'].values()), weights = fractions)
-#         DrainageCoef1 = np.average(list(values['DrainageCoef1'].values()), weights = fractions)
-#         DrainageCoef2 =  np.average(list(values['DrainageCoef2'].values()), weights = fractions)
-
-    
-
-#     table_dict[surface] = {
-#             'Code' : code, # Give new Code
-#             'AlbedoMin' :   np.average(list(values['AlbedoMin'].values()), weights = fractions),
-#             'AlbedoMax' :   np.average(list(values['AlbedoMax'].values()), weights = fractions),
-#             'Emissivity' : np.average(list(values['Emissivity'].values()), weights = fractions),
-#             'StorageMin' :  np.average(list(values['StorageMin'].values()), weights = fractions),
-#             'StorageMax' : np.average(list(values['StorageMax'].values()), weights = fractions),
-#             'WetThreshold' : np.average(list(values['WetThreshold'].values()), weights = fractions),
-#             'StateLimit' : np.average(list(values['StateLimit'].values()), weights = fractions),
-#             'DrainageEq' : 0,#DrainageEq,
-#             'DrainageCoef1' : 0,#DrainageCoef1,
-#             'DrainageCoef2' : 0,#DrainageCoef2,
-#             'SoilTypeCode' : 50, #not avearageable 
-#             'SnowLimPatch' : np.average(list(values['SnowLimPatch'].values()), weights = fractions),
-#             'BaseT' :        np.average(list(values['BaseT'].values()), weights = fractions),
-#             'BaseTe' :       np.average(list(values['BaseTe'].values()), weights = fractions),
-#             'GDDFull' :     np.average(list(values['GDDFull'].values()), weights = fractions),
-#             'SDDFull' :      np.average(list(values['SDDFull'].values()), weights = fractions),
-#             'LAIMin' :       np.average(list(values['LAIMin'].values()), weights = fractions),
-#             'LAIMax' :       np.average(list(values['LAIMax'].values()), weights = fractions),
-#             'PorosityMin' :  np.average(list(values['PorosityMin'].values()), weights = fractions),
-#             'PorosityMax' :  np.average(list(values['PorosityMax'].values()), weights = fractions),
-#             'MaxConductance' :  np.average(list(values['MaxConductance'].values()), weights = fractions),
-#             'LAIEq' :        np.average(list(values['LAIEq'].values()), weights = fractions),
-#             'LeafGrowthPower1' :  np.average(list(values['LeafGrowthPower1'].values()), weights = fractions),
-#             'LeafGrowthPower2' :  np.average(list(values['LeafGrowthPower2'].values()), weights = fractions),
-#             'LeafOffPower1' :  np.average(list(values['LeafOffPower1'].values()), weights = fractions),
-#             'LeafOffPower2' :  np.average(list(values['LeafOffPower2'].values()), weights = fractions),     
-#             # 'OHMCode_SummerWet' : not avearageable 
-#             # 'OHMCode_SummerDry' : not avearageable 
-#             # 'OHMCode_WinterWet' : not avearageable 
-#             # 'OHMCode_WinterDry' : not avearageable 
-#             'OHMThresh_SW' : 10,#np.average(list(values['OHMThresh_SW'].values()), weights = fractions), 
-#             'OHMThresh_WD' : 0.9,# np.average(list(values['OHMThresh_WD'].values()), weights = fractions), 
-#             # 'ESTMCode' : not avearageable 
-#             'AnOHM_Cp' : np.average(list(values['AnOHM_Cp'].values()), weights = fractions),
-#             'AnOHM_Kk' : np.average(list(values['AnOHM_Kk'].values()), weights = fractions),
-#             'AnOHM_Ch' : np.average(list(values['AnOHM_Ch'].values()), weights = fractions),
-#             # 'BiogenCO2Code' : not avearageable 
-
-#         }
-
-#     for param in ['OHMCode_SummerWet', 'OHMCode_SummerDry', 'OHMCode_WinterWet' ,'OHMCode_WinterDry', 'ESTMCode', 'BiogenCO2Code']:
-#         unique_values = list(set(list(values[param].values())))
-#             # print(param, unique_values)
-#         if len(unique_values) == 1:
-#             table_dict[surface][param] = unique_values[0]
-            
-#         else:
-#             if param == 'ESTMCode':
-#                 table_edit, ESTM = new_table_edit(ESTM, table_dict, values, param, 'ESTM', frac_dict_lc_int, surface)
-                
-#             elif param == 'BiogenCO2Code':
-#                 table_edit, BIOCO2 = new_table_edit(BIOCO2, table_dict, values, param, 'BIOGEN', frac_dict_lc_int, surface)
-                
-#             else: # This is OHM Coefficients
-#                 table_edit, OHM = new_table_edit(OHM, table_dict, values, param, 'OHM', frac_dict_lc_int, surface)
-                
-
-#         table_dict[surface] = round_dict(table_dict[surface])            
-         
-#     return table_dict, OHM, ESTM, BIOCO2
 
 def fill_SUEWS_profiles(profiles_list ,save_folder, prof):
     '''
@@ -641,7 +545,7 @@ def fill_SUEWS_profiles(profiles_list ,save_folder, prof):
 
     df_m.to_csv(save_folder + 'SUEWS_Profiles.txt', sep = '\t' ,index = False)
 
-def save_SUEWS_txt(df_m, table_name, save_folder):
+def save_SUEWS_txt(df_m, table_name, save_folder, db_dict):
     '''
     This function is used to prepare the data and saving into correct way for the .txt files used in SUEWS
     # TODO Add comment column in the end and specify where the specific code is used
@@ -664,8 +568,31 @@ def save_SUEWS_txt(df_m, table_name, save_folder):
         df_m['Code'] = df_m['Code'].apply(lambda x: x)
     except:
         pass
-    df_m.columns = [df_m.columns, list(range(1, len(df_m.columns)+1))]
 
+     # These two columns are made for adding information on what the code is inside the .txt file
+    df_m['!'] = '!'
+    df_m[''] = ''
+    table_name_short = table_name[6:-4] # table_name_short is used to set correct table in DB. all table names are such as "SUEWS_table.txt, and DB only wants table"
+
+    if table_name == 'SUEWS_OHMCoefficients.txt':
+        table_name_short = 'OHM'
+
+    df_m = df_m.set_index('Code')
+    for idx in list(df_m.index):
+        
+        if table_name == 'SUEWS_Veg.txt' or table_name == 'SUEWS_NonVeg.txt':
+            surface_sel = db_dict[table_name_short].loc[idx,'Surface'] # table_name_short is used to set correct table in DB. all table names are such as "SUEWS_table.txt, and DB only wants table"
+            descOrigin_sel = db_dict[table_name_short].loc[idx,'descOrigin']
+            id_string = surface_sel + ', ' + descOrigin_sel
+        else:
+            descOrigin_sel = db_dict[table_name_short].loc[idx,'descOrigin']
+            id_string =  descOrigin_sel
+
+        df_m.loc[idx,''] = id_string
+
+    df_m = df_m.reset_index()
+    # Add column numbers 1-max columns needed for .txt files
+    df_m.columns = [df_m.columns, list(range(1, len(df_m.columns)+1))]
     # add -9 rows to text files
     df_m = df_m.swaplevel(0,1,1)
     # This can probably be done better. Used pd.append() but this will be deprecated. This works, but not the most clean coding
@@ -676,13 +603,24 @@ def save_SUEWS_txt(df_m, table_name, save_folder):
 
     df_m.to_csv(save_folder + table_name, sep = '\t' ,index = False)
     
-def save_snow(snow_dict, save_folder):
+def save_snow(snow_dict, save_folder, db_dict):
     '''
     This function is used to save to .txt file related to Snow
     '''
     df_m = pd.DataFrame.from_dict(snow_dict, orient = 'index').T
-    df_m.columns = [df_m.columns, list(range(1, len(df_m.columns)+1))]
-    # add -9 rows to text files
+
+    # These two columns are made for adding information on what the code is inside the .txt file
+    df_m['!'] = '!'
+    df_m[''] = np.nan
+
+    idx = df_m['Code'].item()
+
+    descOrigin_sel = db_dict['Snow'].loc[idx,'descOrigin']
+    df_m[''] = descOrigin_sel
+
+    column_list = list(range(1, len(df_m.columns)+1))
+    df_m.columns = [df_m.columns, column_list]
+
     df_m = df_m.swaplevel(0,1,1)
     # This can probably be done better. Used pd.append() but this will be deprecated. This works, but not the most clean coding
     df_m.loc[-1] = np.nan
@@ -692,7 +630,8 @@ def save_snow(snow_dict, save_folder):
 
     df_m.to_csv(save_folder + 'SUEWS_Snow.txt', sep = '\t' ,index = False)
 
-def save_NonVeg_types(nonveg_dict, save_folder):
+def save_NonVeg_types(nonveg_dict, save_folder, db_dict):
+
     '''
     This function is used to save to .txt file related to NonVeg
     '''
@@ -702,9 +641,22 @@ def save_NonVeg_types(nonveg_dict, save_folder):
         for surf in ['Paved', 'Buildings','Bare Soil']:
             df_m = pd.concat([df_m, pd.DataFrame.from_dict(nonveg_dict[id][surf], orient='index').T]).drop_duplicates()
 
+    # These two columns are made for adding information on what the code is inside the .txt file
+    df_m['!'] = '!'
+    df_m[''] = np.nan
+    
+    for idx in list(df_m.set_index('Code').index):
+        try:
+            surface_sel = db_dict['NonVeg'].loc[idx,'Surface'] 
+            descOrigin_sel = db_dict['NonVeg'].loc[idx,'descOrigin']
+            id_string = surface_sel + ', ' + descOrigin_sel
+            df_m.loc[idx,''] = id_string
+        except:
+            df_m.loc[idx,''] = 'Buildings, aggregated from X(fraction) Y(fracion) Z(fraction)'
+                
     df_m.columns = [df_m.columns, list(range(1, len(df_m.columns)+1))]
     # add -9 rows to text files
-
+    
     df_m = df_m.swaplevel(0,1,1)
     # This can probably be done better. Used pd.append() but this will be deprecated. This works, but not the most clean coding
     df_m.loc[-1] = np.nan
@@ -739,13 +691,13 @@ def save_SiteSelect(ss_dict, save_folder, path_to_ss):
 
     df_m.to_csv(save_folder + 'SUEWS_SiteSelect.txt', sep = '\t' ,index = False)
 
-def presave(table, name ,var_list, save_folder):
+def presave(table, name ,var_list, save_folder, db_dict):
     '''
     This function is used to prepare some of the data used to be able to save to .txt
     '''
     df = table.loc[var_list]
     df = df.drop(columns=df.select_dtypes(include='object').columns).rename_axis('Code')
-    save_SUEWS_txt(df, ('SUEWS_' + name + '.txt'), save_folder)
+    save_SUEWS_txt(df, ('SUEWS_' + name + '.txt'), save_folder, db_dict)
 
 
 def read_morph_txt(txt_file):
