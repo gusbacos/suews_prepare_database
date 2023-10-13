@@ -77,6 +77,33 @@ def ss_calc(build, cdsm, walls, numPixels, feedback):
     return ssResult
 
 
+def getVertheights(ssVect, heightMethod, vertHeights, nlayerIn, skew):
+    # print(ssVect[:,0].max())
+    # print(vertHeights)
+    if heightMethod == 1: # static levels (taken from interface). Last value > max height
+        if ssVect[:,0].max() > max(vertHeights):
+            heightIntervals = vertHeights.append(ssVect[:,0].max())
+        nlayerOut = heightIntervals - 1
+    elif heightMethod == 2: # always nlayers layer based on percentiles
+        nlayerOut = nlayerIn
+    elif heightMethod == 3: # vary number of layers based on height variation. Lowest no of nlayers always 3
+        nlayerOut = 3
+        if ssVect[:,0].max() > 40: nlayerOut = 4
+        if ssVect[:,0].max() > 60: nlayerOut = 5
+        if ssVect[:,0].max() > 80: nlayerOut = 6
+        if ssVect[:,0].max() > 120: nlayerOut = 7
+
+    if heightMethod > 1:
+        intervals = np.ceil(ssVect[:,0].max() / nlayerOut) #TODO: Fix if no buildings and/or no veg is present.
+        heightIntervals = []
+        heightIntervals.append(.0)
+        for i in range(1, nlayerOut):
+            heightIntervals.append(float(round((intervals * i) / skew)))
+        heightIntervals.append(float(ssVect[:,0].max()))
+
+    return heightIntervals, nlayerOut 
+
+
 def writeGridLayout(ssVect, heightMethod, vertHeights, nlayer, skew, fileCode, featID, outputFolder):
     '''
     Input:
@@ -93,26 +120,28 @@ def writeGridLayout(ssVect, heightMethod, vertHeights, nlayer, skew, fileCode, f
     #skew = 2 input from gui. linear or shewed shewed = 1 or 2
 
     ssDict = create_GridLayout_dict()
+    # print(ssVect[:,0].max())
+    # print(vertHeights)
+    # if heightMethod == 1: # static levels (taken from interface). Last value > max height
+    #     if ssVect[:,0].max() > max(vertHeights):
+    #         ssDict['height'] = vertHeights.append(ssVect[:,0].max())
+    #     ssDict['nlayer'] = len(ssDict['height']) - 1
+    # elif heightMethod == 2: # always nlayers layer based on percentiles
+    #     ssDict['nlayer'] = nlayer
+    # elif heightMethod == 3: # vary number of layers based on height variation. Lowest no of nlayers always 3
+    #     nlayer = 3
+    #     if ssVect[:,0].max() > 40: nlayer = 4
+    #     if ssVect[:,0].max() > 60: nlayer = 5
+    #     if ssVect[:,0].max() > 80: nlayer = 6
+    #     if ssVect[:,0].max() > 120: nlayer = 7
+    #     ssDict['nlayer'] = nlayer
 
-    if heightMethod == 1: # static levels (taken from interface). Last value > max height
-        ssDict['height'] = vertHeights.append(ssVect[:,0].max())
-        ssDict['nlayer'] = len(ssDict['height']) - 1
-    elif heightMethod == 2: # always nlayers layer based on percentiles
-        ssDict['nlayer'] = nlayer
-    elif heightMethod == 3: # vary number of layers based on height variation. Lowest no of nlayers always 3
-        nlayer = 3
-        if ssVect[:,0].max() > 40: nlayer = 4
-        if ssVect[:,0].max() > 60: nlayer = 5
-        if ssVect[:,0].max() > 80: nlayer = 6
-        if ssVect[:,0].max() > 120: nlayer = 7
-        ssDict['nlayer'] = nlayer
-
-    intervals = np.ceil(ssVect[:,0].max() / nlayer) #TODO: Fix if no buildings and/or no veg is present.
-    ssDict['height'] = []
-    ssDict['height'].append(.0)
-    for i in range(1, nlayer):
-        ssDict['height'].append(float(round((intervals * i) / skew)))
-    ssDict['height'].append(float(ssVect[:,0].max()))
+    # intervals = np.ceil(ssVect[:,0].max() / nlayer) #TODO: Fix if no buildings and/or no veg is present.
+    # ssDict['height'] = []
+    # ssDict['height'].append(.0)
+    # for i in range(1, nlayer):
+    #     ssDict['height'].append(float(round((intervals * i) / skew)))
+    # ssDict['height'].append(float(ssVect[:,0].max()))
 
     ssDict['building_frac'] = []
     ssDict['veg_frac'] = []

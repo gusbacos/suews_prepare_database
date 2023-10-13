@@ -49,7 +49,7 @@ from .Utilities.db_functions import (read_DB, decide_country_or_region, fill_SUE
                                      fill_SUEWS_profiles, blend_SUEWS_NonVeg, save_SUEWS_txt, save_snow, 
                                      save_NonVeg_types, save_SiteSelect, presave, read_morph_txt, surf_df_dict)
 
-from .Utilities.ssParms import writeGridLayout
+from .Utilities.ssParms import writeGridLayout, getVertheights
 from shutil import copyfile, rmtree
 
 # from .prepare_workertypo import Worker
@@ -160,9 +160,11 @@ class SUEWSPrepareDatabase:
         self.IMP_from_file = True
         self.IMPveg_from_file = True
 
-        self.vertheights ='10, 20'
-        self.nlayers = 3
-        self.skew = 2
+        self.spartacus = 0
+        self.vertheights = '10, 20'
+        self.nlayers = None
+        self.skew = None
+        self.heightMethod = 0
 
         self.LCF_from_file = True
         self.IMP_from_file = True
@@ -264,7 +266,7 @@ class SUEWSPrepareDatabase:
         self.dlg.lineEditUTC.textChanged.connect(lambda: self.utc_changed(self.dlg.lineEditUTC.text()))
 
         #SS related GUI things
-        self.dlg.pushButtonImportSS.clicked.connect(lambda: self.set_SSfolder_path())
+        # self.dlg.pushButtonImportSS.clicked.connect(lambda: self.set_SSfolder_path())
         self.dlg.SS_comboBox.currentIndexChanged.connect(lambda: self.height_option_SS(self.dlg.SS_comboBox.currentIndex()))
         self.dlg.SS_LineEdit_constant.textChanged.connect(lambda: self.vertHeights_changed(self.dlg.SS_LineEdit_constant.text()))
         self.dlg.spinBoxLayers.valueChanged.connect(lambda: self.layersSS_changed(self.dlg.spinBoxLayers.value()))
@@ -391,12 +393,12 @@ class SUEWSPrepareDatabase:
             self.dlg.textOutput.setText(self.output_dir[0])
             self.dlg.runButton.setEnabled(1)
 
-    def set_SSfolder_path(self):
-        self.SSDialog.open()
-        result = self.SSDialog.exec_()
-        if result == 1:
-            self.ss_dir = self.SSDialog.selectedFiles()
-            self.dlg.textInputIMPDataSS.setText(self.ss_dir[0])
+    # def set_SSfolder_path(self):
+    #     self.SSDialog.open()
+    #     result = self.SSDialog.exec_()
+    #     if result == 1:
+    #         self.ss_dir = self.SSDialog.selectedFiles()
+    #         self.dlg.textInputIMPDataSS.setText(self.ss_dir[0])
 
     def height_option_SS(self, value):
         self.heightMethod = value
@@ -529,6 +531,8 @@ class SUEWSPrepareDatabase:
         if result == 1:
             self.IMPfile_path = self.fileDialogISO.selectedFiles()
             self.dlg.textInputIMPData.setText(self.IMPfile_path[0])
+            self.ss_dir = os.path.dirname(self.IMPfile_path[0])
+            self.dlg.textInputIMPDataSS.setText(self.ss_dir)
         else:
             self.IMPfile_path = None
             self.dlg.textInputIMPData.setText('')
@@ -730,25 +734,44 @@ class SUEWSPrepareDatabase:
             return
         
         typologyFieldName = self.dlg.layerComboManagerPolygridTypofield.currentText()
-
-        # TODO 
-        # self.dlg.progressBar.setMaximum(vlayer.featureCount())     
-
-        #Here worker loop starts. We make function. Then it is easier to put in worker latery
-
-        # wait here. How shall we do????
-
-        # QMessageBox.critical(None, "OK", "Frrk")
-        # return  
-
-
+        
+        if self.dlg.comboBoxRegion.currentIndex() == -1:
+            QMessageBox.critical(self.dlg, "Error", "No region has been selected")
+            return
+        
+        # Spartacus check
+        if self.dlg.checkBoxTypology.isChecked():
+            self.spartacus = 1
+            if self.heightMethod == 0:
+                QMessageBox.critical(self.dlg, "Error", "No method to set height intervals is specified")
+                return
+            elif self.heightMethod == 1:
+                try:
+                    listtext = self.vertheights.split(',')
+                    floats = [float(x) for x in listtext]
+                except:
+                    QMessageBox.critical(self.dlg, "Error", "One or more inputs in Fixed height [option 1] is non-numeric. "
+                                        "Remember to use comma between numbers")
+                    return
+                start = 0.
+                self.vertheights = []
+                for x in floats:
+                    if x > start:
+                        self.vertheights.append(x)
+                        start = x
+                    else:
+                        QMessageBox.critical(self.dlg, "Error", "One or more inputs in Fixed height [option 1] is not increasing.")
+                        return
+        
+        # TODO     
+        #Here worker loop starts. We make function. Then it is easier to put in worker later
 
         self.generateSiteSelect(vlayer, poly_field, self.Metfile_path, self.start_DLS, self.end_DLS, self.LCF_from_file, self.LCFfile_path,
                          self.IMP_from_file, self.IMPfile_path, self.IMP_z0, self.IMP_zd, self.IMP_fai, self.IMPveg_from_file, self.IMPvegfile_path, 
                          self.IMPveg_fai_eve, self.IMPveg_fai_dec, self.pop_density, self.plugin_dir, map_units, self.output_dir, self.file_code,
                          self.utc, self.checkBox_twovegfiles, self.IMPvegfile_path_dec, self.IMPvegfile_path_eve, self.pop_density_day, self.daypop,
                          polyTypolayer, typologyFieldName, dsmlayer, demlayer, lclayer, self.region_str, self.country_str, self.typologies,
-                         self.heightMethod, self.vertheights, self.nlayers, self.skew, self.ss_dir)
+                         self.heightMethod, self.vertheights, self.nlayers, self.skew, self.ss_dir, self.spartacus)
 
         # self.startWorker(vlayer, poly_field, self.Metfile_path, self.start_DLS, self.end_DLS, self.LCF_from_file, self.LCFfile_path,
         #                  self.LCF_Paved, self.LCF_Buildings, self.LCF_Evergreen, self.LCF_Decidious, self.LCF_Grass, self.LCF_Baresoil,
@@ -759,14 +782,12 @@ class SUEWSPrepareDatabase:
         #                  self.output_dir, self.day_since_rain, self.leaf_cycle, self.soil_moisture, self.file_code,
         #                  self.utc, self.checkBox_twovegfiles, self.IMPvegfile_path_dec, self.IMPvegfile_path_eve, self.pop_density_day, self.daypop)
 
-    #TODO: check so that utc is written correctly
-    #TODO: 
     def generateSiteSelect(self, vlayer, poly_field, Metfile_path, start_DLS, end_DLS, LCF_from_file, LCFfile_path,
                          IMP_from_file, IMPfile_path, IMP_z0, IMP_zd, IMP_fai, IMPveg_from_file, IMPvegfile_path, 
                          IMPveg_fai_eve, IMPveg_fai_dec, pop_density, plugin_dir, map_units, output_dir, file_code,
                          utc, checkBox_twovegfiles, IMPvegfile_path_dec, IMPvegfile_path_eve, pop_density_day, daypop,
                          polyTypolayer, typologyFieldName, dsmlayer, demlayer, lclayer, region_str, country_str, checkBoxTypologies,
-                         heightMethod, vertheights, nlayers, skew, ss_dir):
+                         heightMethod, vertheights, nlayerIn, skew, ss_dir, spartacus):
 
         save_txt_folder = output_dir[0]+ '/'
         temp_folder = plugin_dir + '/agg'
@@ -779,7 +800,7 @@ class SUEWSPrepareDatabase:
         dict_out = {}           # Unknown TODO Describe
         country_conv_dict = {}  # Dict for getting selected Country parameters
         reg_conv_dict = {}      # Dict for getting selected Regional parameters
-        parameter_dict = {}        # Unkown TODO Describe
+        parameter_dict = {}     # Unknown TODO Describe
 
         # Dict for setting correct codes from surfaces
         surf_to_code_dict = {
@@ -836,7 +857,7 @@ class SUEWSPrepareDatabase:
         if IMPveg_from_file:
             IMPveg_dict = read_morph_txt(IMPvegfile_path[0])
         
-        # IF Using Typologies then aggregation is needed. Otherwise no aggregation will be done
+        # If using Typologies then aggregation is needed. Otherwise no aggregation will be done
         if checkBoxTypologies == 1:
         # DEM & DSM to array
 
@@ -911,9 +932,14 @@ class SUEWSPrepareDatabase:
             maxheight = int(np.nanmax(build_arr)) # Maxheight as Int used in the loop for calculating building volume
             build_arr_chunk_out = temp_folder + '/build_volume.tif'
 
-            # Calculate building volume for each height
+            ## Calculate building volume (wall area) for each height ## TODO: DENNA MÅSTE FLYTTAS IN I LOOP DÅ HÖJDINTERVAL KAN VARA OLIKA FÖR VARJE GRID
+            if spartacus == 1:
+                print('yes') #TODO here
+
             idx = 1
 
+            # Determinte height intervals and nuber of layers
+            heightIntervals, nlayer = getVertheights(ssVect, heightMethod, vertheights, nlayerIn, skew)
 
             for z_height in range(10, maxheight, 10): # TODO change to something else with heights 
             # # for z_height in range(1, maxheight): # this could work but takes bit more time calculate volume each meter (z) 
@@ -1013,7 +1039,7 @@ class SUEWSPrepareDatabase:
                 # f only one typology exists, no need to aggregate/combine/blend
                     nonVeg_dict[id]['Buildings'] = fill_SUEWS_NonVeg_typologies(typology_list[0], db_dict, parameter_dict)
 
-                nonVeg_dict[id]['Paved']    = fill_SUEWS_NonVeg_typologies(parameter_dict['Paved'], db_dict, parameter_dict)
+                nonVeg_dict[id]['Paved'] = fill_SUEWS_NonVeg_typologies(parameter_dict['Paved'], db_dict, parameter_dict)
                 nonVeg_dict[id]['Bare Soil'] = fill_SUEWS_NonVeg_typologies(parameter_dict['Bare Soil'], db_dict, parameter_dict)
             
             # write to SUEWS_NonVeg
@@ -1099,8 +1125,6 @@ class SUEWSPrepareDatabase:
                             OHM_list.append(dict_sel[surf]['OHMCode_WinterWet'])
                             OHM_list.append(dict_sel[surf]['OHMCode_WinterWet'])
 
-    
-        
         # Remove duplicates
         # ESTM_list = list(set(ESTM_list))
         OHM_list = list(set(OHM_list))
@@ -1143,10 +1167,13 @@ class SUEWSPrepareDatabase:
             
             ss_dict[feat_id] = {}  # Set new key for grid in ss_dicts
 
-            # Write GridLayoutXXX.nml
-            # print(ss_dir[0] + '/' + file_code + '_IMPGrid_SS_' + str(feat_id) + '.txt')
-            ssVect = np.loadtxt(ss_dir[0] + '/' + file_code + '_IMPGrid_SS_' + str(feat_id) + '.txt', skiprows = 1) #vertical info from IMP calc
-            writeGridLayout(ssVect, heightMethod, vertheights, nlayers, skew, file_code, str(feat_id), save_txt_folder)
+            ## Write GridLayoutXXX.nml ##
+            # find prefix for filename
+            pre = os.path.basename(IMPfile_path[0])[:os.path.basename(IMPfile_path[0]).find('_')]
+            # print(ss_dir + '/' + file_code + '_IMPGrid_SS_' + str(feat_id) + '.txt')
+            ssVect = np.loadtxt(ss_dir + '/' + pre + '_IMPGrid_SS_' + str(feat_id) + '.txt', skiprows = 1) #vertical info from IMP calc
+            
+            writeGridLayout(ssVect, heightMethod, vertheights, nlayer, skew, pre, str(feat_id), save_txt_folder)
         
 
             if Metfile_path is None:
