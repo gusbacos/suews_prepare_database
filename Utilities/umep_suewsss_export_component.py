@@ -18,15 +18,15 @@ def create_GridLayout_dict():
     ssDict['nlayer'] = 3 # number of vertical layers
 
     # geom
-    ssDict['height'] = [0., 11., 15., 22.] #TODO  height of top of each layer (start with 0 i.e. one more than nlayers)
-    ssDict['building_frac'] = [0.43, 0.38, .2] #TODO  fraction of building coverage of each layer; the first one is plan area index of buildings
-    ssDict['veg_frac'] = [0.01, 0.02, .01] #TODO  fraction of vegetation coverage of each layer
-    ssDict['building_scale'] =[50., 50., 50] #TODO building scale of each layer [m]
-    ssDict['veg_scale'] = [10., 10., 10] #TODO  vegetation scale of each layer [m]
+    ssDict['height'] = [0., 11., 15., 22.] # height of top of each layer (start with 0 i.e. one more than nlayers)
+    ssDict['building_frac'] = [0.43, 0.38, .2] # fraction of building coverage of each layer; the first one is plan area index of buildings
+    ssDict['veg_frac'] = [0.01, 0.02, .01] # fraction of vegetation coverage of each layer
+    ssDict['building_scale'] =[50., 50., 50] # building scale of each layer [m]
+    ssDict['veg_scale'] = [10., 10., 10] # vegetation scale of each layer [m]
 
     # roof
     ssDict['sfr_roof'] = [.3, .3, .4] #TODO how? fraction of roofs of each layer (sum should be 1)
-    ssDict['tin_roof'] = [5, 5, 6] #TODO? how?  initial temperatures of roofs [degC]
+    ssDict['tin_roof'] = [5, 5, 6] # initial temperatures of roofs [degC]
     ssDict['alb_roof'] = [.5, .5, .2]  #TODO albedo of roofs
     ssDict['emis_roof'] = [.95, .95, .95] #TODO emissivity of roofs
     ssDict['state_roof'] = [.0, .0, .0]  # initial surface water depth state of roofs [mm]
@@ -53,8 +53,8 @@ def create_GridLayout_dict():
     # wall # similarly to roof parameters but for walls
     ssDict['sfr_wall'] = [.3, .3, .4] #TODO # (sum should be 1)
     ssDict['tin_wall'] = [5, 5, 5]
-    ssDict['alb_wall'] = [.5, .5, .5]#TODO
-    ssDict['emis_wall'] = [.95, .95, .95]#TODO
+    ssDict['alb_wall'] = [.5, .5, .5] #TODO
+    ssDict['emis_wall'] = [.95, .95, .95] #TODO
     ssDict['state_wall'] = [.0, .0, .0]
     ssDict['statelimit_wall'] = [5, 5, 5]
     ssDict['wetthresh_wall'] = [5, 5, 5]

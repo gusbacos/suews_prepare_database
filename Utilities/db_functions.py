@@ -24,6 +24,42 @@ def read_DB(db_path):
             db[col]['descOrigin'] = db[col]['Country'].astype(str) + ', ' + db[col]['City'].astype(str)  
         elif col == 'Region':
             pass
+        elif col == 'Spartacus Surface':
+            # Calculate U-values for roof and wall new columns u_value_wall and u_value_roof
+            for row in db['Spartacus Surface'].iterrows():
+                id = row[0]
+                SS_surf_sel = db['Spartacus Surface'].loc[id]
+                resistance_bulk_w = 0
+                resistance_bulk_r = 0
+
+                for i in range(1,4):
+                    surf_w = SS_surf_sel['w'+str(i)+'Material'].item()
+                    thickness_w = SS_surf_sel['w'+str(i)+'Thickness'].item()
+                    
+                    surf_r = SS_surf_sel['r'+str(i)+'Material'].item()
+                    thickness_r = SS_surf_sel['r'+str(i)+'Thickness'].item()
+
+                    try:
+                        Tc_w = db['Spartacus Material'].loc[surf_w, 'Thermal Conductivity']
+                        resistance_w = thickness_w / Tc_w
+                        resistance_bulk_w = resistance_bulk_w + resistance_w
+                    except:
+                        pass
+
+                    try:
+                        Tc_r = db['Spartacus Material'].loc[surf_r, 'Thermal Conductivity']
+                        resistance_r = thickness_r / Tc_r
+                        resistance_bulk_r = resistance_bulk_r + resistance_r
+
+                    except:
+                        pass
+                
+                u_value_w = 1/ resistance_bulk_w
+                u_value_r = 1/ resistance_bulk_r
+
+                db['Spartacus Surface'].loc[id,'u_value_wall'] = u_value_w
+                db['Spartacus Surface'].loc[id,'u_value_roof'] = u_value_r
+
         else:
             db[col]['descOrigin'] = db[col]['Description'].astype(str) + ', ' + db[col]['Origin'].astype(str)
     return db

@@ -77,13 +77,24 @@ def ss_calc(build, cdsm, walls, numPixels, feedback):
     return ssResult
 
 
-def getVertheights(ssVect, heightMethod, vertHeights, nlayerIn, skew):
-    # print(ssVect[:,0].max())
-    # print(vertHeights)
+def getVertheights(ssVect, heightMethod, vertHeightsIn, nlayerIn, skew):
+    '''
+    Input:
+    ssVect: array from xx_IMPGrid_SS_x.txt
+    heightMethod: Method used to set vertical layers
+    vertheights: heights of intermediate layers (bottom is 0 and top is maxzH) [option 1]
+    nlayersIn: no of vertical layers [option 1 and 2]
+    skew: 1 is equal interval between heights and 2 is exponential [option 2 and 3]
+    '''
+    print('Maxheight=' + str(ssVect[:,0].max()))
+    # print('max vertHeightsIn=' + str(max(vertHeightsIn)))
+
     if heightMethod == 1: # static levels (taken from interface). Last value > max height
-        if ssVect[:,0].max() > max(vertHeights):
-            heightIntervals = vertHeights.append(ssVect[:,0].max())
-        nlayerOut = heightIntervals - 1
+        if ssVect[:,0].max() > max(vertHeightsIn):
+            vertHeightsIn.append(ssVect[:,0].max())
+        heightIntervals = vertHeightsIn
+        nlayerOut = len(heightIntervals) - 1
+        # vertHeightsIn.clear()
     elif heightMethod == 2: # always nlayers layer based on percentiles
         nlayerOut = nlayerIn
     elif heightMethod == 3: # vary number of layers based on height variation. Lowest no of nlayers always 3
@@ -104,7 +115,7 @@ def getVertheights(ssVect, heightMethod, vertHeights, nlayerIn, skew):
     return heightIntervals, nlayerOut 
 
 
-def writeGridLayout(ssVect, heightMethod, vertHeights, nlayer, skew, fileCode, featID, outputFolder):
+def writeGridLayout(ssVect, fileCode, featID, outputFolder, gridlayoutIn):
     '''
     Input:
     ssVect: array from xx_IMPGrid_SS_x.txt
@@ -142,12 +153,13 @@ def writeGridLayout(ssVect, heightMethod, vertHeights, nlayer, skew, fileCode, f
     # for i in range(1, nlayer):
     #     ssDict['height'].append(float(round((intervals * i) / skew)))
     # ssDict['height'].append(float(ssVect[:,0].max()))
-
+    
+    ssDict['nlayer'] = gridlayoutIn[featID]['nlayer']
+    ssDict['height'] = gridlayoutIn[featID]['height']
     ssDict['building_frac'] = []
     ssDict['veg_frac'] = []
     ssDict['building_scale'] = []
     ssDict['veg_scale'] = []
-
 
     index = int(0)
     for i in range(1,len(ssDict['height'])): #TODO this loop need to be confirmed by Reading
@@ -166,6 +178,6 @@ def writeGridLayout(ssVect, heightMethod, vertHeights, nlayer, skew, fileCode, f
 
     #TODO here we need to add other parameters based on typology
 
-    write_GridLayout_file(ssDict, outputFolder + '/', 'GridLayout' +  fileCode + featID)
+    write_GridLayout_file(ssDict, outputFolder + '/', 'GridLayout' +  fileCode + str(featID))
 
 

@@ -37,6 +37,7 @@ from .tabs.main_tab import MainTab
 import webbrowser
 
 #These are not needed here later
+import copy
 import numpy as np
 import pandas as pd
 import os
@@ -44,6 +45,7 @@ from osgeo import gdal, osr
 from .Utilities import f90nml
 from .Utilities import RoughnessCalcFunction as rg
 from .Utilities.misc import saveraster
+from .Utilities import wallalgorithms as wa
 from .Utilities.db_functions import (read_DB, decide_country_or_region, fill_SUEWS_NonVeg, fill_SUEWS_NonVeg_typologies,  fill_SUEWS_Water, 
                                      fill_SUEWS_Veg, fill_SUEWS_Snow, fill_SUEWS_AnthropogenicEmission, 
                                      fill_SUEWS_profiles, blend_SUEWS_NonVeg, save_SUEWS_txt, save_snow, 
@@ -162,8 +164,8 @@ class SUEWSPrepareDatabase:
 
         self.spartacus = 0
         self.vertheights = '10, 20'
-        self.nlayers = None
-        self.skew = None
+        self.nlayers = 3
+        self.skew = 2
         self.heightMethod = 0
 
         self.LCF_from_file = True
@@ -180,6 +182,8 @@ class SUEWSPrepareDatabase:
         self.comboBoxGrass = True
         self.comboBoxEvrTree = True
         self.comboBoxDecTree = True
+        self.lclayer = None
+        
         
         # Read Database
         db_path = self.plugin_dir + '/Input/database.xlsx'  # TODO When in UMEP Toolbox, set this path to db in database manager
@@ -228,12 +232,12 @@ class SUEWSPrepareDatabase:
         self.dlg.layerComboManagerDEM.setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.dlg.layerComboManagerDEM.setFixedWidth(175)
         self.dlg.layerComboManagerDEM.setCurrentIndex(-1)
-        self.dlg.layerComboManagerCDSM.setFilters(QgsMapLayerProxyModel.RasterLayer)
-        self.dlg.layerComboManagerCDSM.setFixedWidth(175)
-        self.dlg.layerComboManagerCDSM.setCurrentIndex(-1)
-        self.dlg.layerComboManagerLC.setFilters(QgsMapLayerProxyModel.RasterLayer)
-        self.dlg.layerComboManagerLC.setFixedWidth(175)
-        self.dlg.layerComboManagerLC.setCurrentIndex(-1)
+        # self.dlg.layerComboManagerCDSM.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        # self.dlg.layerComboManagerCDSM.setFixedWidth(175)
+        # self.dlg.layerComboManagerCDSM.setCurrentIndex(-1)
+        # self.dlg.layerComboManagerLC.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        # self.dlg.layerComboManagerLC.setFixedWidth(175)
+        # self.dlg.layerComboManagerLC.setCurrentIndex(-1)
 
         self.dlg.layerComboManagerPolygridTypo.setFilters(QgsMapLayerProxyModel.PolygonLayer)
         self.dlg.layerComboManagerPolygridTypo.setFixedWidth(175)
@@ -536,8 +540,6 @@ class SUEWSPrepareDatabase:
         else:
             self.IMPfile_path = None
             self.dlg.textInputIMPData.setText('')
-        # self.IMPfile_path = self.fileDialogISO.getOpenFileName()
-        # self.dlg.textInputIMPData.setText(self.IMPfile_path[0])
 
 
     def set_IMPvegfile_path(self):
@@ -549,8 +551,6 @@ class SUEWSPrepareDatabase:
         else:
             self.IMPvegfile_path = None
             self.dlg.textInputIMPVegData.setText('')
-        # self.IMPvegfile_path = self.fileDialogISO.getOpenFileName()
-        # self.dlg.textInputIMPVegData.setText(self.IMPvegfile_path[0])
 
 
     def set_IMPvegfile_path_dec(self):
@@ -562,8 +562,6 @@ class SUEWSPrepareDatabase:
         else:
             self.IMPvegfile_path_dec = None
             self.dlg.textInputIMPDecData.setText('')
-        # self.IMPvegfile_path_dec = self.fileDialogISO.getOpenFileName()
-        # self.dlg.textInputIMPDecData.setText(self.IMPvegfile_path_dec)
 
 
     def set_IMPvegfile_path_eve(self):
@@ -575,8 +573,6 @@ class SUEWSPrepareDatabase:
         else:
             self.IMPvegfile_path_eve = None
             self.dlg.textInputIMPEveData.setText('')
-        # self.IMPvegfile_path_dec = self.fileDialogISO.getOpenFileName()
-        # self.dlg.textInputIMPEveData.setText(self.IMPvegfile_path_eve[0])
 
 
     def set_metfile_path(self):
@@ -712,16 +708,16 @@ class SUEWSPrepareDatabase:
             QMessageBox.critical(self.dlg, "Error", "No valid DEM selected")
             return
         
-        cdsmlayer = self.dlg.layerComboManagerCDSM.currentLayer()
-        if cdsmlayer is None:
-            QMessageBox.critical(self.dlg, "Error", "No valid vegetation DSM (CDSM) selected")
-            return
+        # cdsmlayer = self.dlg.layerComboManagerCDSM.currentLayer()
+        # if cdsmlayer is None:
+        #     QMessageBox.critical(self.dlg, "Error", "No valid vegetation DSM (CDSM) selected")
+        #     return
 
-        # # Land cover layer for aggegation
-        lclayer = self.dlg.layerComboManagerLC.currentLayer()
-        if lclayer is None:
-            QMessageBox.critical(self.dlg, "Error", "No valid land cover grid is selected")
-            return   
+        # # # Land cover layer for aggegation
+        # lclayer = self.dlg.layerComboManagerLC.currentLayer()
+        # if lclayer is None:
+        #     QMessageBox.critical(self.dlg, "Error", "No valid land cover grid is selected")
+        #     return   
 
         polyTypolayer = self.dlg.layerComboManagerPolygridTypo.currentLayer()
         if self.typologies == 1 and polyTypolayer is None:
@@ -748,12 +744,13 @@ class SUEWSPrepareDatabase:
             elif self.heightMethod == 1:
                 try:
                     listtext = self.vertheights.split(',')
+                    listtext.insert(0, '0.0')
                     floats = [float(x) for x in listtext]
                 except:
                     QMessageBox.critical(self.dlg, "Error", "One or more inputs in Fixed height [option 1] is non-numeric. "
                                         "Remember to use comma between numbers")
                     return
-                start = 0.
+                start = -1.0
                 self.vertheights = []
                 for x in floats:
                     if x > start:
@@ -770,7 +767,7 @@ class SUEWSPrepareDatabase:
                          self.IMP_from_file, self.IMPfile_path, self.IMP_z0, self.IMP_zd, self.IMP_fai, self.IMPveg_from_file, self.IMPvegfile_path, 
                          self.IMPveg_fai_eve, self.IMPveg_fai_dec, self.pop_density, self.plugin_dir, map_units, self.output_dir, self.file_code,
                          self.utc, self.checkBox_twovegfiles, self.IMPvegfile_path_dec, self.IMPvegfile_path_eve, self.pop_density_day, self.daypop,
-                         polyTypolayer, typologyFieldName, dsmlayer, demlayer, lclayer, self.region_str, self.country_str, self.typologies,
+                         polyTypolayer, typologyFieldName, dsmlayer, demlayer, self.region_str, self.country_str, self.typologies,
                          self.heightMethod, self.vertheights, self.nlayers, self.skew, self.ss_dir, self.spartacus)
 
         # self.startWorker(vlayer, poly_field, self.Metfile_path, self.start_DLS, self.end_DLS, self.LCF_from_file, self.LCFfile_path,
@@ -786,11 +783,14 @@ class SUEWSPrepareDatabase:
                          IMP_from_file, IMPfile_path, IMP_z0, IMP_zd, IMP_fai, IMPveg_from_file, IMPvegfile_path, 
                          IMPveg_fai_eve, IMPveg_fai_dec, pop_density, plugin_dir, map_units, output_dir, file_code,
                          utc, checkBox_twovegfiles, IMPvegfile_path_dec, IMPvegfile_path_eve, pop_density_day, daypop,
-                         polyTypolayer, typologyFieldName, dsmlayer, demlayer, lclayer, region_str, country_str, checkBoxTypologies,
+                         polyTypolayer, typologyFieldName, dsmlayer, demlayer, region_str, country_str, checkBoxTypologies,
                          heightMethod, vertheights, nlayerIn, skew, ss_dir, spartacus):
 
         save_txt_folder = output_dir[0]+ '/'
         temp_folder = plugin_dir + '/agg'
+        # walls_raster_out = temp_folder + '/walls.tif' #TODO uncomment
+        walls_raster_out = 'c:/temp' + '/walls.tif' #To speed thing up when testing
+
         build_raster_out = temp_folder + '/buildings.tif'
 
         ss_dict = {}            # SiteSelect Dict. This is the final dict where all parameters for each grid are found. 
@@ -801,7 +801,7 @@ class SUEWSPrepareDatabase:
         country_conv_dict = {}  # Dict for getting selected Country parameters
         reg_conv_dict = {}      # Dict for getting selected Regional parameters
         parameter_dict = {}     # Unknown TODO Describe
-
+        print('skew=' + str(skew))
         # Dict for setting correct codes from surfaces
         surf_to_code_dict = {
             'Paved' : 'Code_Paved',
@@ -874,16 +874,13 @@ class SUEWSPrepareDatabase:
     
             pixelSize = dsm.GetGeoTransform()[1]    
 
-            # If need to use CDSM
+            # If need to use CDSM and LC
             # provider = dsmlayer.dataProvider()
             # filePath_cdsm = str(provider.dataSourceUri())
             # dataSet = gdal.Open(filePath_cdsm)
-            # cdsm_arr = dataSet.ReadAsArray().astype(float)
-            
-            provider = lclayer.dataProvider()
-            filePath_lc = str(provider.dataSourceUri())
-        
-            # If need to have Lc as Array
+            # cdsm_arr = dataSet.ReadAsArray().astype(float) # cdsm not needed to be array at the moment. 
+            # provider = lclayer.dataProvider()
+            # filePath_lc = str(provider.dataSourceUri())
             # dataSet = gdal.Open(filePath_lc)
             # lc_arr = dataSet.ReadAsArray().astype(float) # lc not needed to be array at the moment. 
 
@@ -917,9 +914,9 @@ class SUEWSPrepareDatabase:
             
             geodata_output['gridded_shp_diss'] =processing.run("native:dissolve", parin)
 
-            # isolate buildings in dsm to be able to calculate mean height
+            #isolate buildings in dsm to be able to calculate mean height
             build_arr = dsm_arr-dem_arr
-            build_arr[np.where(build_arr < 1.0)] = np.nan
+            build_arr[np.where(build_arr < 0.5)] = np.nan
             saveraster(gdal.Open(filePath_dsm), build_raster_out, build_arr)
 
             ################# Start calculating volumetric fractions ###########################
@@ -929,81 +926,91 @@ class SUEWSPrepareDatabase:
             str_to_code_dict = db_dict['NonVeg']['descOrigin'].to_dict() # TODO Use this later on instead
             str_to_code_dict = {v: k for k, v in str_to_code_dict.items()}  # This is just the same dictionary but inverted
 
-            maxheight = int(np.nanmax(build_arr)) # Maxheight as Int used in the loop for calculating building volume
-            build_arr_chunk_out = temp_folder + '/build_volume.tif'
-
-            ## Calculate building volume (wall area) for each height ## TODO: DENNA MÅSTE FLYTTAS IN I LOOP DÅ HÖJDINTERVAL KAN VARA OLIKA FÖR VARJE GRID
             if spartacus == 1:
-                print('yes') #TODO here
+                #Create wall raster
+                #TODO uncomment # walls = wa.findwalls(build_arr, 0.5, None, 1) # feedback, total) # 0.5 meter difference in kernel filter identify a wall
+                #TODO uncomment # saveraster(gdal.Open(filePath_dsm), walls_raster_out, walls)
+                # find prefix for filename in IMP-file
+                pre = os.path.basename(IMPfile_path[0])[:os.path.basename(IMPfile_path[0]).find('_')]
 
-            idx = 1
+            # Zonal statstics: sum pixels within each grid/typology walls
+            parin = {
+                'INPUT': geodata_output['gridded_shp_diss']['OUTPUT'],
+                'INPUT_RASTER':walls_raster_out,
+                'RASTER_BAND':1,
+                'COLUMN_PREFIX':'pixel_',
+                'STATISTICS':[1], # Sum
+                'OUTPUT':'TEMPORARY_OUTPUT'}
+            
+            # output_name = 'wall_frac' # or perhaps something like this? + str(int(min_height)) + '_' + str(int(max_height)). now, it overwrites
+            geodata_output['wall_frac'] = processing.run("native:zonalstatisticsfb", parin) 
 
-            # Determinte height intervals and nuber of layers
-            heightIntervals, nlayer = getVertheights(ssVect, heightMethod, vertheights, nlayerIn, skew)
+            # Zonal statstics: Count pixels within each grid/typology
+            parin = {
+                'INPUT': geodata_output['gridded_shp_diss']['OUTPUT'],
+                'INPUT_RASTER':build_raster_out,
+                'RASTER_BAND':1,
+                'COLUMN_PREFIX':'pixel_',
+                'STATISTICS':[0], # Count
+                'OUTPUT':'TEMPORARY_OUTPUT'}
+            
+            # output_name = 'build_count' # or perhaps something like this? + str(int(min_height)) + '_' + str(int(max_height)). now, it overwrites
+            geodata_output['build_count'] = processing.run("native:zonalstatisticsfb", parin) 
 
-            for z_height in range(10, maxheight, 10): # TODO change to something else with heights 
-            # # for z_height in range(1, maxheight): # this could work but takes bit more time calculate volume each meter (z) 
-            #     min_height = z_height -1
+            # maxheight = int(np.nanmax(build_arr)) # Maxheight as Int used in the loop for calculating building volume
+            # build_arr_chunk_out = temp_folder + '/build_volume.tif'
+
+            # idx = 1
+            # for z_height in range(10, maxheight, 10): # TODO change to something else with heights 
+            # # # for z_height in range(1, maxheight): # this could work but takes bit more time calculate volume each meter (z) 
+            # #     min_height = z_height -1
+            # #     max_height = z_height
+
+            #     if idx == 1:
+            #         min_height = 1
+            #     else:
+            #         min_height = z_height - max_height
+
             #     max_height = z_height
+            #     z_difference = max_height - min_height # get height to calculate volume on
 
-                if idx == 1:
-                    min_height = 1
-                else:
-                    min_height = z_height - max_height
+            #     # All cells that are lower than maxheight is set to nan
+            #     build_arr_chunk = np.where((build_arr < max_height) , np.nan,build_arr)  
 
-                max_height = z_height
-                z_difference = max_height - min_height # get height to calculate volume on
+            #     # all cells that are not nan are given the number for pixelsize of raster
+            #     build_arr_chunk = np.where((build_arr_chunk >1  ) , pixelSize, build_arr_chunk) 
 
-                # All cells that are lower than maxheight is set to nan
-                build_arr_chunk = np.where((build_arr < max_height) , np.nan,build_arr)  
+            #     # Save to raster to be able to use zonal stats
+            #     saveraster(gdal.Open(filePath_dsm), build_arr_chunk_out , build_arr_chunk)  
 
-                # all cells that are not nan are given the number for pixelsize of raster
-                build_arr_chunk = np.where((build_arr_chunk >1  ) , pixelSize, build_arr_chunk) 
+            
+            # Read zonal_stats vectorlayer and read as a dataframe for easier handling the attribute table
+            z_stats_vlayer_walls = geodata_output['wall_frac']['OUTPUT']
+            z_stats_vlayer_roofs = geodata_output['build_count']['OUTPUT']
 
-                # Save to raster to be able to use zonal stats
-                saveraster(gdal.Open(filePath_dsm), build_arr_chunk_out , build_arr_chunk)  
+            cols = [f.name() for f in z_stats_vlayer_walls.fields()] 
+            datagen = ([f[col] for col in cols] for f in z_stats_vlayer_walls.getFeatures())
 
-                # Zonal statstics: Count pixels within each grid/typology
-                parin = {
-                    'INPUT': geodata_output['gridded_shp_diss']['OUTPUT'],
-                    'INPUT_RASTER':build_arr_chunk_out,
-                    'RASTER_BAND':1,
-                    'COLUMN_PREFIX':'pixel_',
-                    'STATISTICS':[0], # Count
-                    'OUTPUT':'TEMPORARY_OUTPUT'}
-                
-                output_name = 'buildings_zheight' # or perhaps something like this? + str(int(min_height)) + '_' + str(int(max_height)). now, it overwrites
-                geodata_output[output_name] = processing.run("native:zonalstatisticsfb", parin) 
-                
-                # Read zonal_stats vectorlayer and read as a dataframe for easier handling the attribute table
-                z_stats_vlayer = geodata_output[output_name]['OUTPUT']
+            dfWall = pd.DataFrame.from_records(data=datagen, columns=cols)#[['ID', typologyFieldName,'pixel_count']] # ID = grid_id, inewfield = typology,       
+            dfWall = dfWall.set_index('ID')  # Set ID as index in df to be able to slice in df 
 
-                cols = [f.name() for f in z_stats_vlayer.fields()] 
-                datagen = ([f[col] for col in cols] for f in z_stats_vlayer.getFeatures())
+            cols = [f.name() for f in z_stats_vlayer_roofs.fields()] 
+            datagen = ([f[col] for col in cols] for f in z_stats_vlayer_roofs.getFeatures())
 
-                df = pd.DataFrame.from_records(data=datagen, columns=cols)#[['ID', typologyFieldName,'pixel_count']] # ID = grid_id, inewfield = typology,       
-                df = df.set_index('ID')  # Set ID as index in df to be able to slice in df 
+            dfRoof = pd.DataFrame.from_records(data=datagen, columns=cols)#[['ID', typologyFieldName,'pixel_count']] # ID = grid_id, inewfield = typology,       
+            dfRoof = dfRoof.set_index('ID')  # Set ID as index in df to be able to slice in df 
 
-                # volume (pixel_count / pixelsize to get meters ) * z_difference
-                df['volume'] = (df['pixel_count'] / pixelSize)  * z_difference
-
-                # if statement to create df_merge, the df where the volume is added for each height 
-                if idx == 1:
-                    df_merge = df.copy()
-                    idx = idx +1
-
-                # if not first height, add volume for each height
-                else:
-                    df_merge['volume'] = df_merge['volume'] + df['volume']
+            # Total Surface area fraction of buildings 
+            dfWall['SArea'] = (dfWall['pixel_sum'] +  dfRoof['pixel_count'] * pixelSize)
 
             ############## Calculate fractions based on volume ###############
 
-            # Create empty column to fill in df_merge with fractions
-            df_merge['fraction'] = 0
+            #Create empty column to fill in df_merge with fractions
+            dfWall['fraction'] = 0
 
             # Replace String identifier with Code as used in Database
-            df_merge['typology'] = df_merge[typologyFieldName]
-            df_merge['typology'] = df_merge['typology'].replace(str_to_code_dict) 
+            dfWall['typology'] = dfWall[typologyFieldName]
+            dfWall['typology'] = dfWall['typology'].replace(str_to_code_dict) 
 
             # grid_dict holds information on volume for typologies in each grid
 
@@ -1011,25 +1018,62 @@ class SUEWSPrepareDatabase:
             # Now all fractions is calculated. Here the aggregation and filling of SUEWS_.txt files begin
             # vlayer == grid layer
             grid_dict = {}      # Dict that holds information on typologies and fractions
+            gridlayoutIn = {}   # Dict that holds information on input to GridLaytout.nml
 
             for feature in vlayer.getFeatures(): 
                 id = int(feature.attribute(poly_field))
                 print('Processing ID for aggregation: ' + str(id))
                 
-                # Fraction = pixel_count(volume) in each typology and grid / sum of pixel_count(volume) in each grid 
-                df_merge.loc[id,'fraction'] = df_merge.loc[id, 'volume'] /df_merge.loc[id, 'volume'].sum()
-
                 # Create new key for each grid_id
                 grid_dict[id] =   {}
                 nonVeg_dict[id] = {}
+                gridlayoutIn[id] = {}
+                
+                # Fraction = pixel_count(volume) in each typology and grid / sum of pixel_count(volume) in each grid 
+                dfWall.loc[id,'fraction'] = dfWall.loc[id, 'SArea'] /dfWall.loc[id, 'SArea'].sum()
+                # print(dfWall.loc[id,'fraction'])
 
                 # iterate over all typologies in grid_id and populate dictionary
-                for row in df_merge.loc[[id]].iterrows():
+                for row in dfWall.loc[[id]].iterrows():
                     typology = row[1]['typology']
                     fraction = row[1]['fraction']
                     grid_dict[id][typology] = fraction # populate
 
                 typology_list = list(grid_dict[id].keys())#
+                # print(grid_dict[id])
+                # print('vertheights=' + str(vertheights))
+                # print('nlayerIn=' + str(nlayerIn))
+                ## Write a new GridLayOutXXX.nml ##
+                if spartacus == 1:
+                    #vertical info from IMP calc
+                    ssVect = np.loadtxt(ss_dir + '/' + pre + '_IMPGrid_SS_' + str(id) + '.txt', skiprows = 1) 
+                    # Determinte height intervals and number of layers in current grid
+                    heightIntervals, nlayer = getVertheights(ssVect, heightMethod, copy.deepcopy(vertheights), nlayerIn, skew)
+                    gridlayoutIn[id]['nlayer'] = nlayer
+                    gridlayoutIn[id]['height'] = heightIntervals.copy()
+                    # print('heightIntervals=' + str(heightIntervals))
+                    # print('nlayerOut=' + str(nlayer))
+                    #heightIntervals.clear()
+                    #print(grid_dict)
+                    
+                    for typo in list(grid_dict[id]):
+                        # print(grid_dict[id][typo])
+
+                        uvalueWall = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typo, 'Spartacus Surface'], 'u_value_wall']
+                        uvaluesRoof = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typo, 'Spartacus Surface'], 'u_value_wall']
+                        # print(spartacus_surface)
+
+                        # grid_dict[id] = 
+                    
+                    ## Write GridLayoutXXX.nml ##
+                    print(gridlayoutIn)
+                    writeGridLayout(ssVect, file_code, id, save_txt_folder, gridlayoutIn)
+                
+                
+
+
+
+                
                 # typology_list = set(list(db_dict['Types'].loc[list(grid_dict[id].keys()), 'Buildings'])) # TODO Change when removed layer of Types
                 
                 # Check if aggregation is needed
@@ -1051,6 +1095,8 @@ class SUEWSPrepareDatabase:
             nonVeg_dict = fill_SUEWS_NonVeg(db_dict, parameter_dict)
             # write to SUEWS_NonVeg
             save_SUEWS_txt(pd.DataFrame.from_dict(nonVeg_dict, orient='index').set_index('Code'), 'SUEWS_NonVeg.txt', save_txt_folder, db_dict)      
+
+            #TODO if spartacus is yes but useTopologies is no
 
         # Write SUEWS.txt files SUEWS_veg, SUEWS_AnthropogenicEmission, SUEWS_Water and SUEWS_Conductance
         veg_dict = fill_SUEWS_Veg(db_dict, parameter_dict)
@@ -1165,16 +1211,7 @@ class SUEWSPrepareDatabase:
             year = None     # Not sure what this is, but it works
             year2 = None    # Not surre what this is, but it works
             
-            ss_dict[feat_id] = {}  # Set new key for grid in ss_dicts
-
-            ## Write GridLayoutXXX.nml ##
-            # find prefix for filename
-            pre = os.path.basename(IMPfile_path[0])[:os.path.basename(IMPfile_path[0]).find('_')]
-            # print(ss_dir + '/' + file_code + '_IMPGrid_SS_' + str(feat_id) + '.txt')
-            ssVect = np.loadtxt(ss_dir + '/' + pre + '_IMPGrid_SS_' + str(feat_id) + '.txt', skiprows = 1) #vertical info from IMP calc
-            
-            writeGridLayout(ssVect, heightMethod, vertheights, nlayer, skew, pre, str(feat_id), save_txt_folder)
-        
+            ss_dict[feat_id] = {}  # Set new key for grid in ss_dicts        
 
             if Metfile_path is None:
                 QMessageBox.critical(None, "Error", "Meteorological data file has not been provided,"
