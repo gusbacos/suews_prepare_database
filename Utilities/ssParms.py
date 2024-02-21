@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 '''
-Calcualte input for spartacus and write info to Gridlayout namelist
+Calcualte input for spartacus to write info to Gridlayout namelist
 
 Fredrik Lindberg 2023-07-06
 '''
 import numpy as np
 from ..Utilities import wallalgorithms as wa
-from ..Utilities.umep_suewsss_export_component import write_GridLayout_file, create_GridLayout_dict
-
+#from ..Utilities.umep_suewsss_export_component import write_GridLayout_file, create_GridLayout_dict
+import pandas as pd
 # import matplotlib as plt
 
 def ss_calc(build, cdsm, walls, numPixels, feedback):
 
-    #noOfPixels = int(dsm.shape[0] * dsm.shape[1])
     walllimit = 0.3 # 30 centimeters height variation identifies a vegetation edge pixel
     total = 100. / (int(build.shape[0] * build.shape[1]))
 
@@ -21,16 +20,10 @@ def ss_calc(build, cdsm, walls, numPixels, feedback):
  
     buildvec = build[np.where(build > 0)]
     if buildvec.size > 0:
-        #zH_all = buildvec.mean()
         zHmax_all = buildvec.max()
-        #zH_sd_all = buildvec.std()
-        #pai_ground = (buildvec.size * 1.0) / numPixels
         iterHeights = int(np.ceil(zHmax_all))
     else:
-        #zH_all = 0
         zHmax_all = 0
-        #zH_sd_all = 0
-        #pai_all = 0
         iterHeights = int(0)
 
     z = np.zeros((iterHeights, 1))
@@ -49,12 +42,6 @@ def ss_calc(build, cdsm, walls, numPixels, feedback):
             bScale[i] = 0
         else:
             bScale[i] = (4*paiZ_b[i]) / waiZ_b
-        # feedback.setProgressText('z = ' + str(z[i]))
-        # feedback.setProgressText('numPixels = ' + str(numPixels))
-        # feedback.setProgressText('paipixels = ' + str(np.where(buildZ > 0)[0].shape[0]))
-        # feedback.setProgressText('wallpixels = ' + str(np.where(wallsZ > 0)[0].shape[0]))
-        # feedback.setProgressText('waiZ_b = ' + str(waiZ_b))
-        # feedback.setProgressText('bScale[i] = ' + str(bScale[i]))
 
         if cdsm.max() > 0:
             vegZ = cdsm - i
@@ -86,15 +73,12 @@ def getVertheights(ssVect, heightMethod, vertHeightsIn, nlayerIn, skew):
     nlayersIn: no of vertical layers [option 1 and 2]
     skew: 1 is equal interval between heights and 2 is exponential [option 2 and 3]
     '''
-    print('Maxheight=' + str(ssVect[:,0].max()))
-    # print('max vertHeightsIn=' + str(max(vertHeightsIn)))
 
     if heightMethod == 1: # static levels (taken from interface). Last value > max height
         if ssVect[:,0].max() > max(vertHeightsIn):
             vertHeightsIn.append(ssVect[:,0].max())
         heightIntervals = vertHeightsIn
         nlayerOut = len(heightIntervals) - 1
-        # vertHeightsIn.clear()
     elif heightMethod == 2: # always nlayers layer based on percentiles
         nlayerOut = nlayerIn
     elif heightMethod == 3: # vary number of layers based on height variation. Lowest no of nlayers always 3
@@ -115,69 +99,153 @@ def getVertheights(ssVect, heightMethod, vertHeightsIn, nlayerIn, skew):
     return heightIntervals, nlayerOut 
 
 
-def writeGridLayout(ssVect, fileCode, featID, outputFolder, gridlayoutIn):
+def ss_calc_gridlayout(heightIntervals, build_array, wall_array, typoList, typo_array, grid_dict, gridlayoutOut, id, nlayer, db_dict):
     '''
-    Input:
-    ssVect: array from xx_IMPGrid_SS_x.txt
-    heightMethod: Method used to set vertical layers
-    vertheights: heights of intermediate layers (bottom is 0 and top is maxzH) [option 1]
-    nlayers: no of vertical layers [option 2]
-    skew: 1 is equal interval between heights and 2 is exponential [option 2 and 3]
+    This function calculates all values in GridLayout based on typology and morhpology
     '''
+    dictTypofrac = {} # empty dict to calc fractions for current grid and typology for each meter
+    allRoof = [] #for sfr_roof
+    allWall = [] #for sfr_wall
+    dfT = pd.DataFrame(columns=['height','alb_roof','alb_wall','emis_roof','emis_wall','u_roof','u_wall'], index=range(int(max(heightIntervals)))) #df for temp storage
 
-    #heightMethod = 2 # input from gui
-    #vertHeights = [0, 15, 40]
-    #nlayer = 3 # input from gui
-    #skew = 2 input from gui. linear or shewed shewed = 1 or 2
+    for hh in range(0, int(max(heightIntervals) + 1)):
+        dictTypofrac[hh] = {}
+        buildhh = build_array - hh
+        buildhh[buildhh < 0] = 0
+        buildhhBol = buildhh > 0
+        allRoof.append(len(buildhhBol[np.where(buildhhBol != 0)]))
+        wallhh = wall_array - hh
+        wallhh[wallhh < 0] = 0 
+        allWall.append(wallhh.sum())
+        totBuildPixelsInTypo = 0
+        totWallAreaTypo = 0
+        for tt in typoList:
+            if tt != 0:
+                dictTypofrac[hh][int(tt)] = {}
+                tR = buildhhBol[np.where(typo_array == tt)]
+                dictTypofrac[hh][tt]['roofSum'] = tR.sum()
+                totBuildPixelsInTypo += tR.sum()
+                tW = wallhh[np.where(typo_array == tt)]
+                dictTypofrac[hh][tt]['wallSum'] = tW.sum()
+                totWallAreaTypo += tW.sum()
+        albRoof = 0
+        albWall = 0
+        URoof = 0
+        UWall = 0
+        ERoof = 0
+        EWall = 0
+        for tt in typoList:
+            if tt != 0:
+                dictTypofrac[hh][tt]['roofFrac'] = dictTypofrac[hh][tt]['roofSum'] / totBuildPixelsInTypo
+                dictTypofrac[hh][tt]['wallFrac'] = dictTypofrac[hh][tt]['wallSum'] / totWallAreaTypo
+                albRoof = albRoof + dictTypofrac[hh][tt]['roofFrac'] * grid_dict[id][tt]['albedo_roof']
+                albWall = albWall + dictTypofrac[hh][tt]['wallFrac'] * grid_dict[id][tt]['albedo_wall']
+                URoof = URoof + dictTypofrac[hh][tt]['roofFrac'] * grid_dict[id][tt]['uvalue_roof']
+                UWall = UWall + dictTypofrac[hh][tt]['wallFrac'] * grid_dict[id][tt]['uvalue_wall']
+                ERoof = ERoof + dictTypofrac[hh][tt]['roofFrac'] * grid_dict[id][tt]['emissivity_roof']
+                EWall = EWall + dictTypofrac[hh][tt]['wallFrac'] * grid_dict[id][tt]['emissivity_wall']
+        dfT['height'][hh] = hh
+        dfT['alb_roof'][hh] = albRoof
+        dfT['alb_wall'][hh] = albWall
+        dfT['u_roof'][hh] = URoof
+        dfT['u_wall'][hh] = UWall
+        dfT['emis_roof'][hh] = ERoof
+        dfT['emis_wall'][hh] = EWall
+        
+    sfr_roof = []
+    sfr_wall = []
+    for fr in range(1,len(allRoof)):
+        sfr_roof.append((allRoof[fr - 1] - allRoof[fr]) / allRoof[0])
+        sfr_wall.append((allWall[fr - 1] - allWall[fr]) / allWall[0])
 
-    ssDict = create_GridLayout_dict()
-    # print(ssVect[:,0].max())
-    # print(vertHeights)
-    # if heightMethod == 1: # static levels (taken from interface). Last value > max height
-    #     if ssVect[:,0].max() > max(vertHeights):
-    #         ssDict['height'] = vertHeights.append(ssVect[:,0].max())
-    #     ssDict['nlayer'] = len(ssDict['height']) - 1
-    # elif heightMethod == 2: # always nlayers layer based on percentiles
-    #     ssDict['nlayer'] = nlayer
-    # elif heightMethod == 3: # vary number of layers based on height variation. Lowest no of nlayers always 3
-    #     nlayer = 3
-    #     if ssVect[:,0].max() > 40: nlayer = 4
-    #     if ssVect[:,0].max() > 60: nlayer = 5
-    #     if ssVect[:,0].max() > 80: nlayer = 6
-    #     if ssVect[:,0].max() > 120: nlayer = 7
-    #     ssDict['nlayer'] = nlayer
+    # aggergation based on vertical layers
+    gridlayoutOut[id]['sfr_roof'] = []
+    gridlayoutOut[id]['sfr_wall'] = []
+    gridlayoutOut[id]['alb_roof'] = []
+    gridlayoutOut[id]['alb_wall'] = []
+    gridlayoutOut[id]['emis_roof'] = []
+    gridlayoutOut[id]['emis_wall'] = []
+    gridlayoutOut[id]['u_roof'] = []
+    gridlayoutOut[id]['u_wall'] = []
+    start = int(0)
+    for p in heightIntervals:
+        if p > 0:
+            gridlayoutOut[id]['sfr_roof'].append(np.sum(sfr_roof[start:int(p)]))
+            gridlayoutOut[id]['sfr_wall'].append(np.sum(sfr_wall[start:int(p)]))
+            gridlayoutOut[id]['alb_roof'].append(dfT['alb_roof'][start:int(p)].mean())
+            gridlayoutOut[id]['alb_wall'].append(dfT['alb_wall'][start:int(p)].mean())
+            gridlayoutOut[id]['emis_roof'].append(dfT['emis_roof'][start:int(p)].mean())
+            gridlayoutOut[id]['emis_wall'].append(dfT['emis_wall'][start:int(p)].mean())
+            gridlayoutOut[id]['u_roof'].append(dfT['u_roof'][start:int(p)].mean())
+            gridlayoutOut[id]['u_wall'].append(dfT['u_wall'][start:int(p)].mean())
+            start = int(p)
 
-    # intervals = np.ceil(ssVect[:,0].max() / nlayer) #TODO: Fix if no buildings and/or no veg is present.
-    # ssDict['height'] = []
-    # ssDict['height'].append(.0)
-    # for i in range(1, nlayer):
-    #     ssDict['height'].append(float(round((intervals * i) / skew)))
-    # ssDict['height'].append(float(ssVect[:,0].max()))
-    
-    ssDict['nlayer'] = gridlayoutIn[featID]['nlayer']
-    ssDict['height'] = gridlayoutIn[featID]['height']
-    ssDict['building_frac'] = []
-    ssDict['veg_frac'] = []
-    ssDict['building_scale'] = []
-    ssDict['veg_scale'] = []
+    # Find dominating typology in vertical layer and grid
+    findDomTypo = {}
+    domTypoWall = []
+    domTypoRoof = []
+    start = 0
+    layer = 1
+    #id = 1
+    for p in heightIntervals:
+        if p > 0:
+            findDomTypo[layer] = {}
+            for n in dictTypofrac[start].keys():
+                findDomTypo[layer][n] = {}
+                findDomTypo[layer][n]['wallFrac'] = 0
+                findDomTypo[layer][n]['roofFrac'] = 0
+            for hh in range(int(start), int(p + 1)):
+                for q in dictTypofrac[0].keys():
+                    findDomTypo[layer][q]['wallFrac'] = findDomTypo[layer][q]['wallFrac'] + dictTypofrac[hh][q]['wallFrac'] 
+                    findDomTypo[layer][q]['roofFrac'] = findDomTypo[layer][q]['roofFrac'] + dictTypofrac[hh][q]['roofFrac']
 
-    index = int(0)
-    for i in range(1,len(ssDict['height'])): #TODO this loop need to be confirmed by Reading
-        index += 1
-        startH = int(ssDict['height'][index-1])
-        endH = int(ssDict['height'][index])
-        if index == 1:
-            ssDict['building_frac'].append(ssVect[0,1]) # first is plan area index of buildings
-            ssDict['veg_frac'].append(ssVect[0,3]) # first is plan area index of trees
-        else:
-            ssDict['building_frac'].append(np.round(np.mean(ssVect[startH:endH, 1]),3)) # intergrated pai_build mean in ith vertical layer
-            ssDict['veg_frac'].append(np.round(np.mean(ssVect[startH:endH, 3]),3)) # intergrated pai_veg mean in ith vertical layer
+            #Find dominating typology
+            domTypoWall.append(max(findDomTypo[layer], key=lambda v: findDomTypo[layer][v]['wallFrac']))
+            domTypoRoof.append(max(findDomTypo[layer], key=lambda v: findDomTypo[layer][v]['roofFrac']))
 
-        ssDict['building_scale'].append(np.round(np.mean(ssVect[startH:endH, 2]),3)) # intergrated bscale mean in ith vertical layer
-        ssDict['veg_scale'].append(np.round(np.mean(ssVect[startH:endH, 4]),3)) # intergrated vscale mean in ith vertical layer
+            layer = layer + 1
+        start = p 
 
-    #TODO here we need to add other parameters based on typology
+    # create list for gridlayoutOut
+    for r in range(1, nlayer + 1): #iterate over number of vertical layers
+        gridlayoutOut[id]['dz_roof(' + str(r) + ',:)'] = []
+        gridlayoutOut[id]['k_roof(' + str(r) + ',:)'] = []
+        gridlayoutOut[id]['cp_roof(' + str(r) + ',:)'] = []
+        gridlayoutOut[id]['dz_wall(' + str(r) + ',:)'] = []
+        gridlayoutOut[id]['k_wall(' + str(r) + ',:)'] = []
+        gridlayoutOut[id]['cp_wall(' + str(r) + ',:)'] = []
+        for s in range(1, 6): # iterate over number of horisontal layers in wall/roof
+            if s <= 3: # fill first three from database
+                materialRoof = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[domTypoRoof[r-1], 'Spartacus Surface'], 'r' + str(s) + 'Material']
+                materialWall = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[domTypoWall[r-1], 'Spartacus Surface'], 'r' + str(s) + 'Material']
+                gridlayoutOut[id]['dz_roof(' + str(r) + ',:)'].append(db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[domTypoRoof[r-1], 'Spartacus Surface'], 'r' + str(s) + 'Thickness'])
+                gridlayoutOut[id]['k_roof(' + str(r) + ',:)'].append(db_dict['Spartacus Material'].loc[materialRoof]['Thermal Conductivity'])
+                gridlayoutOut[id]['cp_roof(' + str(r) + ',:)'].append(db_dict['Spartacus Material'].loc[materialRoof]['Specific Heat'] * 1000)
+                gridlayoutOut[id]['dz_wall(' + str(r) + ',:)'].append(db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[domTypoWall[r-1], 'Spartacus Surface'], 'r' + str(s) + 'Thickness'])
+                gridlayoutOut[id]['k_wall(' + str(r) + ',:)'].append(db_dict['Spartacus Material'].loc[materialWall]['Thermal Conductivity'])
+                gridlayoutOut[id]['cp_wall(' + str(r) + ',:)'].append(db_dict['Spartacus Material'].loc[materialWall]['Specific Heat'] * 1000)
+            else: # fill last two with thin wall paper (ignorable)
+                gridlayoutOut[id]['dz_roof(' + str(r) + ',:)'].append(0.001)
+                gridlayoutOut[id]['dz_wall(' + str(r) + ',:)'].append(0.001)
+                gridlayoutOut[id]['k_roof(' + str(r) + ',:)'].append(1.2)
+                gridlayoutOut[id]['k_wall(' + str(r) + ',:)'].append(1.2)
+                gridlayoutOut[id]['cp_roof(' + str(r) + ',:)'].append(2000000.0)
+                gridlayoutOut[id]['cp_wall(' + str(r) + ',:)'].append(2000000.0)
 
-    write_GridLayout_file(ssDict, outputFolder + '/', 'GridLayout' +  fileCode + str(featID))
+        #update middle layer with new thickness based on updated u-value (backward calculation)
+        k_roof1 = gridlayoutOut[id]['k_roof(' + str(r) + ',:)'][0]
+        k_roof2 = gridlayoutOut[id]['k_roof(' + str(r) + ',:)'][1]
+        k_roof3 = gridlayoutOut[id]['k_roof(' + str(r) + ',:)'][2]
+        dz_roof1 = gridlayoutOut[id]['dz_roof(' + str(r) + ',:)'][0]
+        #dz_roof2 = gridlayoutOut[id]['dz_roof(' + str(r) + ',:)'][1]
+        dz_roof3 = gridlayoutOut[id]['dz_roof(' + str(r) + ',:)'][2]
+        k_wall1 = gridlayoutOut[id]['k_wall(' + str(r) + ',:)'][0]
+        k_wall2 = gridlayoutOut[id]['k_wall(' + str(r) + ',:)'][1]
+        k_wall3 = gridlayoutOut[id]['k_wall(' + str(r) + ',:)'][2]
+        dz_wall1 = gridlayoutOut[id]['dz_wall(' + str(r) + ',:)'][0]
+        #dz_wall2 = gridlayoutOut[id]['dz_wall(' + str(r) + ',:)'][1]
+        dz_wall3 = gridlayoutOut[id]['dz_wall(' + str(r) + ',:)'][2]
+        gridlayoutOut[id]['dz_roof(' + str(r) + ',:)'][1] = k_roof2 / gridlayoutOut[id]['u_roof'][r-1] - k_roof2 * ((dz_roof1/k_roof1)+dz_roof3/k_roof3)
+        gridlayoutOut[id]['dz_wall(' + str(r) + ',:)'][1] = k_wall2 / gridlayoutOut[id]['u_wall'][r-1] - k_wall2 * ((dz_wall1/k_wall1)+dz_wall3/k_wall3)
 
-
+    return gridlayoutOut

@@ -50,7 +50,6 @@ def read_DB(db_path):
                         Tc_r = db['Spartacus Material'].loc[surf_r, 'Thermal Conductivity']
                         resistance_r = thickness_r / Tc_r
                         resistance_bulk_r = resistance_bulk_r + resistance_r
-
                     except:
                         pass
                 
@@ -59,6 +58,12 @@ def read_DB(db_path):
 
                 db['Spartacus Surface'].loc[id,'u_value_wall'] = u_value_w
                 db['Spartacus Surface'].loc[id,'u_value_roof'] = u_value_r
+
+                db['Spartacus Surface'].loc[id,'albedo_roof'] = db['Spartacus Material'].loc[SS_surf_sel['r1Material'], 'Albedo']
+                db['Spartacus Surface'].loc[id,'albedo_wall'] = db['Spartacus Material'].loc[SS_surf_sel['w1Material'], 'Albedo']
+
+                db['Spartacus Surface'].loc[id,'emissivity_roof'] = db['Spartacus Material'].loc[SS_surf_sel['r1Material'], 'Emissivity']
+                db['Spartacus Surface'].loc[id,'emissivity_wall'] = db['Spartacus Material'].loc[SS_surf_sel['w1Material'], 'Emissivity']                
 
         else:
             db[col]['descOrigin'] = db[col]['Description'].astype(str) + ', ' + db[col]['Origin'].astype(str)
@@ -147,18 +152,19 @@ def blend_SUEWS_NonVeg(grid_dict, db_dict, id, parameter_dict):
     OHM codes are not averageable. Right now (04/10-23), the dominant is used. This could be solved using a new function
     to aggregate and create new OHM codes. But not done yet.
 
-    TODO Spartacus codes. When set do this
-
     '''
     values_dict = {} 
-    fractions = list(grid_dict[id].values())
-    typology_list = list(grid_dict[id].keys())
+    #fractions = list(grid_dict[id].values())
+    fractions = []
 
-    dominant_typology = max(grid_dict[id])
+    typology_list = list(grid_dict[id].keys())
 
     temp_nonveg_dict = {}
     for typology in typology_list:
         temp_nonveg_dict[typology] = fill_SUEWS_NonVeg_typologies(typology, db_dict, parameter_dict)
+        fractions.append(grid_dict[id][typology]['SAreaFrac'])
+
+    dominant_typology = typology_list[fractions.index(max(fractions))]
 
     param_list = ['AlbedoMin', 'AlbedoMax', 'Emissivity', 'StorageMin', 'StorageMax', 'WetThreshold', 'StateLimit','DrainageEq', 
                     'DrainageCoef1', 'DrainageCoef2', 'SnowLimPatch', 'SnowLimRemove', 'OHMCode_SummerWet', 'OHMCode_SummerDry' ,'OHMCode_WinterWet', 'OHMCode_WinterDry',
@@ -195,7 +201,7 @@ def blend_SUEWS_NonVeg(grid_dict, db_dict, id, parameter_dict):
         'SoilTypeCode' : parameter_dict['SoilTypeCode'],
         'SnowLimPatch' : np.average((values_dict['SnowLimPatch']), weights = fractions),
         'SnowLimRemove' : np.average((values_dict['SnowLimRemove']), weights = fractions),
-        # 'OHMCode_SummerWet' : not avearageable 
+        # 'OHMCode_SummerWet' : not avearageable cos its a code
         # 'OHMCode_SummerDry' : not avearageable 
         # 'OHMCode_WinterWet' : not avearageable 
         # 'OHMCode_WinterDry' : not avearageable 

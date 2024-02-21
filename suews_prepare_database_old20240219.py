@@ -647,16 +647,20 @@ class SUEWSPrepareDatabase(object):
             QMessageBox.critical(None, "Error", "No valid Urban typology polygon layer is selected")
             return   
         
+        # Region check
+        if self.dlg.comboBoxRegion.currentIndex() == -1:
+            QMessageBox.critical(self.dlg, "Error", "No region has been selected")
+            return
+        
         # typologyFieldName = self.dlg.layerComboManagerPolygridTypofield.currentText()
         typologyFieldName = 'TypolID'
 
-        if self.typologies == 0 and self.dlg.ComboManagerDefaultTypo.currentIndex() == -1:
+        if self.dlg.ComboManagerDefaultTypo.currentIndex() == -1:
             QMessageBox.critical(self.dlg, "Error", "No default building typology has been selected")
             return
         else:
             self.defTypo = self.dlg.ComboManagerDefaultTypo.currentText()
-
-        # Region check
+        
         if self.dlg.comboBoxRegion.currentIndex() == -1:
             QMessageBox.critical(self.dlg, "Error", "No region has been selected")
             return
@@ -818,9 +822,11 @@ class SUEWSPrepareDatabase(object):
         #   copy gridlayout    
 
         
+
+
         geodata_output = {} # Dict for storing the output of the QGIS geodata processes
 
-        # New approach 20240219. Create typologylayer if no typoloayer exist
+        # New approach. Create typologylayer if no typoloayer exist
         if checkBoxTypologies == 0:
             parin = {'INPUT':vlayer,
                 'FIELD':[],
@@ -842,224 +848,261 @@ class SUEWSPrepareDatabase(object):
 
 
         # If using Typologies then aggregation is needed. Otherwise no aggregation will be done TODO: ta bort if??
-        #if checkBoxTypologies == 1:
-        # DEM & DSM to arrays
-        gdal.AllRegister()
-        provider = demlayer.dataProvider()
-        filePath_dem = str(provider.dataSourceUri())
-        dem = gdal.Open(filePath_dem)
-        dem_arr = dem.ReadAsArray().astype(float)
+        if checkBoxTypologies == 1:
+            # DEM & DSM to arrays
+            gdal.AllRegister()
+            provider = demlayer.dataProvider()
+            filePath_dem = str(provider.dataSourceUri())
+            dem = gdal.Open(filePath_dem)
+            dem_arr = dem.ReadAsArray().astype(float)
 
-        provider = dsmlayer.dataProvider()
-        filePath_dsm = str(provider.dataSourceUri())
-        dsm = gdal.Open(filePath_dsm)
-        dsm_arr = dsm.ReadAsArray().astype(float)
+            provider = dsmlayer.dataProvider()
+            filePath_dsm = str(provider.dataSourceUri())
+            dsm = gdal.Open(filePath_dsm)
+            dsm_arr = dsm.ReadAsArray().astype(float)
 
-        #isolate buildings in dsm to be able to calculate mean height
-        build_arr = dsm_arr-dem_arr
-        build_arr[np.where(build_arr < 0.5)] = np.nan
-        saveraster(gdal.Open(filePath_dsm), build_raster_out, build_arr)
-        dsm_arr = None
-        dem_arr = None
-        pixelSize = dsm.GetGeoTransform()[1]    
+            #isolate buildings in dsm to be able to calculate mean height
+            build_arr = dsm_arr-dem_arr
+            build_arr[np.where(build_arr < 0.5)] = np.nan
+            saveraster(gdal.Open(filePath_dsm), build_raster_out, build_arr)
+            dsm_arr = None
+            dem_arr = None
+            pixelSize = dsm.GetGeoTransform()[1]    
 
-        # Grid classified shp-file containing SUEWS typologies
-        parin = { 'INPUT' : vlayer,
-            'INPUT_FIELDS' : [], 
-            'OUTPUT' : temp_folder + '/urbantypelayer.shp', # 'TEMPORARY_OUTPUT',#urbantypelayer,
-            'OVERLAY' : polyTypolayer, 
-            'OVERLAY_FIELDS' : [], 
-            'OVERLAY_FIELDS_PREFIX' : '' }
-        geodata_output['gridded_shp'] = processing.run('native:intersection', parin)
+            # Grid classified shp-file containing SUEWS typologies
+            parin = { 'INPUT' : vlayer,
+                'INPUT_FIELDS' : [], 
+                'OUTPUT' : temp_folder + '/urbantypelayer.shp', # 'TEMPORARY_OUTPUT',#urbantypelayer,
+                'OVERLAY' : polyTypolayer, 
+                'OVERLAY_FIELDS' : [], 
+                'OVERLAY_FIELDS_PREFIX' : '' }
+            geodata_output['gridded_shp'] = processing.run('native:intersection', parin)
 
-        # Dissolve on GridID and Typology. 
-        parin = {
-            'INPUT':geodata_output['gridded_shp']['OUTPUT'], 
-            'FIELD':['ID',typologyFieldName],
-            'SEPARATE_DISJOINT':False,
-            'OUTPUT': temp_folder + '/urbantypelayer_diss.shp'}
-        geodata_output['gridded_shp_diss'] =processing.run("native:dissolve", parin)
-
-
-        ################# Start calculating volumetric fractions ###########################
-        # This dictionary retrieve the Code for selected typologies. The Reclassifier uses String values, but later on we need codes in Int
-        # str_to_code_dict = db_dict['Types']['descOrigin'].to_dict() # TODO Change this to below when we have removed typology level buildings
-        # code_to_str_dict = db_dict['NonVeg']['descOrigin'].to_dict() # TODO Use this later on instead
-        # str_to_code_dict = {v: k for k, v in code_to_str_dict.items()}  # This is just the same dictionary but inverted
-
-        if spartacus == 1:
-            #Create wall raster
-            #TODO uncomment # walls = wa.findwalls(build_arr, 0.5, None, 1) # feedback, total) # 0.5 meter difference in kernel filter identify a wall
-            #TODO uncomment # saveraster(gdal.Open(filePath_dsm), walls_raster_out, walls)
-            # find prefix for filename in IMP-file
-            pre = os.path.basename(IMPfile_path[0])[:os.path.basename(IMPfile_path[0]).find('_')]
-
-            # new approach using rasterize instead of xonal stat to avoid shapefile overwrite issue in QGIS
-            ras_crs = osr.SpatialReference()
-            dsm_ref = dsmlayer.crs().toWkt()
-            ras_crs.ImportFromWkt(dsm_ref)
-            rasEPSG = ras_crs.GetAttrValue("PROJCS|AUTHORITY", 1)
-            geoTransform = dsm.GetGeoTransform()
-            minx = geoTransform[0]
-            maxy = geoTransform[3]
-            maxx = minx + geoTransform[1] * dsm.RasterXSize
-            miny = maxy + geoTransform[5] * dsm.RasterYSize
-            projwin = str(minx) + ',' + str(maxx) + ',' + str(miny) +',' + str(maxy) + ' [EPSG:' + str(rasEPSG) + ']'
+            # Dissolve on GridID and Typology. 
             parin = {
-                'INPUT':polyTypolayer.source(),
-                'FIELD':'TypolID',
-                'BURN':0,
-                'USE_Z':False,
-                'UNITS':1, # Georeferenced units
-                'WIDTH':pixelSize, 
-                'HEIGHT':pixelSize,
-                'EXTENT':projwin, 
-                'NODATA':0,'OPTIONS':'','DATA_TYPE':4,'INIT':None,'INVERT':False,'EXTRA':'',  # datatyp 5 is wrong?
-                'OUTPUT': typo_raster_out
-                }
-            processing.run("gdal:rasterize", parin)
-
-        ## Calculate total fractions for nonSS runs ##
-        # Zonal statstics: mean height of buildings grid/typology
-        parin = {
-            'INPUT': geodata_output['gridded_shp_diss']['OUTPUT'],
-            'INPUT_RASTER':build_raster_out,
-            'RASTER_BAND':1,
-            'COLUMN_PREFIX':'z_',
-            'STATISTICS':[2], # mean
-            'OUTPUT':'TEMPORARY_OUTPUT'}
-
-        # output_name = 'build_count' # or perhaps something like this? + str(int(min_height)) + '_' + str(int(max_height)). now, it overwrites
-        geodata_output['mean_build_height'] = processing.run("native:zonalstatisticsfb", parin) 
-
-        # Zonal statstics: Count pixels within each grid/typology
-        parin = {
-            'INPUT': geodata_output['mean_build_height']['OUTPUT'],
-            'INPUT_RASTER':build_raster_out,
-            'RASTER_BAND':1,
-            'COLUMN_PREFIX':'pixel_',
-            'STATISTICS':[0], # Count
-            'OUTPUT': 'TEMPORARY_OUTPUT'}
-
-        geodata_output['mean_build_height_pixel_count'] = processing.run("native:zonalstatisticsfb", parin) 
-
-        cols = [f.name() for f in geodata_output['mean_build_height_pixel_count']['OUTPUT'].fields()] 
-        datagen = ([f[col] for col in cols] for f in geodata_output['mean_build_height_pixel_count']['OUTPUT'].getFeatures())
-
-        df_build_frac = pd.DataFrame.from_records(data=datagen, columns=cols)    
-        df_build_frac = df_build_frac.set_index('ID')  # Set ID as index in df to be able to slice in df 
-
-        df_build_frac['pixel_count'] = df_build_frac['pixel_count'] * pixelSize         
-        df_build_frac['volume'] = df_build_frac['pixel_count'] * df_build_frac['z_mean'] 
-
-        df_build_frac = df_build_frac.fillna(0)
+                'INPUT':geodata_output['gridded_shp']['OUTPUT'], 
+                'FIELD':['ID',typologyFieldName],
+                'SEPARATE_DISJOINT':False,
+                'OUTPUT': temp_folder + '/urbantypelayer_diss.shp'}
+            geodata_output['gridded_shp_diss'] =processing.run("native:dissolve", parin)
 
 
-        grid_dict = {}       # Dict that holds information on general typologies, uvalues, albedos and emmissivites and fractions
-        gridlayoutOut = {}   # Dict that holds information on fractions of, albedos, emmissivitiees and uvalues for GridLaytout.nml
-        dir_poly = plugin_dir + '/tempdata/poly_temp.shp' # move later
+            ################# Start calculating volumetric fractions ###########################
+            # This dictionary retrieve the Code for selected typologies. The Reclassifier uses String values, but later on we need codes in Int
+            # str_to_code_dict = db_dict['Types']['descOrigin'].to_dict() # TODO Change this to below when we have removed typology level buildings
+            # code_to_str_dict = db_dict['NonVeg']['descOrigin'].to_dict() # TODO Use this later on instead
+            # str_to_code_dict = {v: k for k, v in code_to_str_dict.items()}  # This is just the same dictionary but inverted
 
-        # loop through each grid (Typologies)
-        for f in vlayer.getFeatures(): 
-            id = int(f.attribute(poly_field))
-            print('Processing ID for aggregation: ' + str(id))
-            
-            # Create new key for each grid_id
-            grid_dict[id] = {}
-            nonVeg_dict[id] = {}
-            gridlayoutOut[id] = {} 
-            df_build_frac.loc[id, 'tot_fraction'] = df_build_frac.loc[id, 'volume'] / df_build_frac.loc[id,'volume'].sum()
-
-            # get uvalues etc. from database and fractions from previous fraction calculations
-            for row in df_build_frac.loc[[id]].iterrows():
-                typology = row[1][typologyFieldName] 
-                fraction = row[1]['tot_fraction']
-                grid_dict[id][typology] = {}
-                grid_dict[id][typology]['SAreaFrac'] = fraction # populate fractions in grid_dict
-                grid_dict[id][typology]['uvalue_wall'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'u_value_wall']
-                grid_dict[id][typology]['uvalue_roof'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'u_value_roof']
-                grid_dict[id][typology]['albedo_roof'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'albedo_roof']
-                grid_dict[id][typology]['albedo_wall'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'albedo_wall']
-                grid_dict[id][typology]['emissivity_roof'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'emissivity_roof']
-                grid_dict[id][typology]['emissivity_wall'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'emissivity_wall'] 
-
-            ## Spartacus ##
             if spartacus == 1:
-                #vertical info from IMP calc
-                ssVect = np.loadtxt(ss_dir + '/' + pre + '_IMPGrid_SS_' + str(id) + '.txt', skiprows = 1) 
-                # Determinte height intervals and number of vertical layers in current grid
-                heightIntervals, nlayer = getVertheights(ssVect, heightMethod, copy.deepcopy(vertheights), nlayerIn, skew)
-                gridlayoutOut[id]['nlayer'] = nlayer
-                gridlayoutOut[id]['height'] = heightIntervals.copy()
+                #Create wall raster
+                #TODO uncomment # walls = wa.findwalls(build_arr, 0.5, None, 1) # feedback, total) # 0.5 meter difference in kernel filter identify a wall
+                #TODO uncomment # saveraster(gdal.Open(filePath_dsm), walls_raster_out, walls)
+                # find prefix for filename in IMP-file
+                pre = os.path.basename(IMPfile_path[0])[:os.path.basename(IMPfile_path[0]).find('_')]
 
-                #Access grid geometry
-                prov = vlayer.dataProvider()
-                fields = prov.fields()
-                attributes = f.attributes()
-                geometry = f.geometry()
-                feature = QgsFeature()
-                feature.setAttributes(attributes)
-                feature.setGeometry(geometry)
-                writer = QgsVectorFileWriter(dir_poly, "CP1250", fields, prov.wkbType(), prov.crs(), "ESRI shapefile")
-                writer.addFeature(feature)
-                del writer
+                # new approach using rasterize instead of xonal stat to avoid shapefile overwrite issue in QGIS
+                ras_crs = osr.SpatialReference()
+                dsm_ref = dsmlayer.crs().toWkt()
+                ras_crs.ImportFromWkt(dsm_ref)
+                rasEPSG = ras_crs.GetAttrValue("PROJCS|AUTHORITY", 1)
+                geoTransform = dsm.GetGeoTransform()
+                minx = geoTransform[0]
+                maxy = geoTransform[3]
+                maxx = minx + geoTransform[1] * dsm.RasterXSize
+                miny = maxy + geoTransform[5] * dsm.RasterYSize
+                projwin = str(minx) + ',' + str(maxx) + ',' + str(miny) +',' + str(maxy) + ' [EPSG:' + str(rasEPSG) + ']'
+                parin = {
+                    'INPUT':polyTypolayer.source(),
+                    'FIELD':'TypolID',
+                    'BURN':0,
+                    'USE_Z':False,
+                    'UNITS':1, # Georeferenced units
+                    'WIDTH':pixelSize, 
+                    'HEIGHT':pixelSize,
+                    'EXTENT':projwin, 
+                    'NODATA':0,'OPTIONS':'','DATA_TYPE':4,'INIT':None,'INVERT':False,'EXTRA':'',  # datatyp 5 is wrong?
+                    'OUTPUT': typo_raster_out
+                    }
+                processing.run("gdal:rasterize", parin)
 
-                #Clip building, wall and typology raster 
-                bigraster = gdal.Open(build_raster_out)
-                clip_spec = gdal.WarpOptions(format="GTiff", cutlineDSName=dir_poly, cropToCutline=True)
-                gdal.Warp(temp_folder + '/clipbuild.tif', bigraster, options=clip_spec)
-                dataset = gdal.Open(temp_folder + '/clipbuild.tif')
-                build_array = dataset.ReadAsArray().astype(float)
-                bigraster = None
+            ## Calculate total fractions for nonSS runs ##
+            # Zonal statstics: mean height of buildings grid/typology
+            parin = {
+                'INPUT': geodata_output['gridded_shp_diss']['OUTPUT'],
+                'INPUT_RASTER':build_raster_out,
+                'RASTER_BAND':1,
+                'COLUMN_PREFIX':'z_',
+                'STATISTICS':[2], # mean
+                'OUTPUT':'TEMPORARY_OUTPUT'}
 
-                bigraster = gdal.Open(walls_raster_out)
-                clip_spec = gdal.WarpOptions(format="GTiff", cutlineDSName=dir_poly, cropToCutline=True)
-                gdal.Warp(temp_folder + '/clipwall.tif', bigraster, options=clip_spec)
-                dataset = gdal.Open(temp_folder + '/clipwall.tif')
-                wall_array = dataset.ReadAsArray().astype(float)
-                bigraster = None
+            # output_name = 'build_count' # or perhaps something like this? + str(int(min_height)) + '_' + str(int(max_height)). now, it overwrites
+            geodata_output['mean_build_height'] = processing.run("native:zonalstatisticsfb", parin) 
 
-                bigraster = gdal.Open(typo_raster_out)
-                clip_spec = gdal.WarpOptions(format="GTiff", cutlineDSName=dir_poly, cropToCutline=True)
-                gdal.Warp(temp_folder + '/cliptypo.tif', bigraster, options=clip_spec)
-                dataset = gdal.Open(temp_folder + '/cliptypo.tif')
-                typo_array = dataset.ReadAsArray().astype(float)
-                bigraster = None
-                dataset = None
+            # Zonal statstics: Count pixels within each grid/typology
+            parin = {
+                'INPUT': geodata_output['mean_build_height']['OUTPUT'],
+                'INPUT_RASTER':build_raster_out,
+                'RASTER_BAND':1,
+                'COLUMN_PREFIX':'pixel_',
+                'STATISTICS':[0], # Count
+                'OUTPUT': 'TEMPORARY_OUTPUT'}
 
-                # Calulate fractions and set wall and roof layers based on dominating typology 
-                typoList = np.unique(typo_array) #identify tyopologies in grid
-                gridlayoutOut = ss_calc_gridlayout(heightIntervals, build_array, wall_array, typoList, typo_array, grid_dict, gridlayoutOut, id, nlayer, db_dict)
+            geodata_output['mean_build_height_pixel_count'] = processing.run("native:zonalstatisticsfb", parin) 
 
-                # Write GridLayoutXXX.nml ##
-                writeGridLayout(ssVect, file_code, id, save_txt_folder, gridlayoutOut)
+            cols = [f.name() for f in geodata_output['mean_build_height_pixel_count']['OUTPUT'].fields()] 
+            datagen = ([f[col] for col in cols] for f in geodata_output['mean_build_height_pixel_count']['OUTPUT'].getFeatures())
 
-            else: #no spartacus. Just create and save GridLayout-file so that SUEWS-model can run
-                ssDict = create_GridLayout_dict()
-                write_GridLayout_file(ssDict, plugin_dir + '/Input/', 'GridLayout' +  file_code + str(id))
+            df_build_frac = pd.DataFrame.from_records(data=datagen, columns=cols)    
+            df_build_frac = df_build_frac.set_index('ID')  # Set ID as index in df to be able to slice in df 
 
-            #TODO unsure of position and content of this part
-            typology_list2 = list(grid_dict[id].keys())
-            #typology_list2 = set(list(db_dict['Types'].loc[list(grid_dict[id].keys()), 'Buildings'])) # TODO Change when removed layer of Types
+            df_build_frac['pixel_count'] = df_build_frac['pixel_count'] * pixelSize         
+            df_build_frac['volume'] = df_build_frac['pixel_count'] * df_build_frac['z_mean'] 
 
-            # Check if aggregation is needed
-            if len(typology_list2) > 1:
-                nonVeg_dict[id]['Buildings'] = blend_SUEWS_NonVeg(grid_dict, db_dict, id, parameter_dict)
-            else:
-            # if only one typology exists, no need to aggregate/combine/blend
-                nonVeg_dict[id]['Buildings'] = fill_SUEWS_NonVeg_typologies(typology_list2[0], db_dict, parameter_dict)
+            df_build_frac = df_build_frac.fillna(0)
 
-            nonVeg_dict[id]['Paved'] = fill_SUEWS_NonVeg_typologies(parameter_dict['Paved'], db_dict, parameter_dict)
-            nonVeg_dict[id]['Bare Soil'] = fill_SUEWS_NonVeg_typologies(parameter_dict['Bare Soil'], db_dict, parameter_dict)
-        
-        # write to SUEWS_NonVeg
-        save_NonVeg_types(nonVeg_dict, save_txt_folder, db_dict)
-        
-                # prepare the parameters collected to for writing SUEWS_NonVeg
-                # nonVeg_dict = fill_SUEWS_NonVeg(db_dict, parameter_dict)
+
+            grid_dict = {}       # Dict that holds information on general typologies, uvalues, albedos and emmissivites and fractions
+            gridlayoutOut = {}   # Dict that holds information on fractions of, albedos, emmissivitiees and uvalues for GridLaytout.nml
+            dir_poly = plugin_dir + '/tempdata/poly_temp.shp' # move later
+
+            # loop through each grid (Typologies)
+            for f in vlayer.getFeatures(): 
+                id = int(f.attribute(poly_field))
+                print('Processing ID for Spartacus/Typology aggregation: ' + str(id))
                 
-                # write to SUEWS_NonVeg
-                # save_SUEWS_txt(pd.DataFrame.from_dict(nonVeg_dict, orient='index').set_index('Code'), 'SUEWS_NonVeg.txt', save_txt_folder, db_dict)  
+                # Create new key for each grid_id
+                grid_dict[id] = {}
+                df_build_frac.loc[id, 'tot_fraction'] = df_build_frac.loc[id, 'volume'] / df_build_frac.loc[id,'volume'].sum()
+
+                # get uvalues etc. from database and fractions from previous fraction calculations
+                for row in df_build_frac.loc[[id]].iterrows():
+                    typology = row[1][typologyFieldName] 
+                    fraction = row[1]['tot_fraction']
+                    grid_dict[id][typology] = {}
+                    grid_dict[id][typology]['SAreaFrac'] = fraction # populate fractions in grid_dict
+                    grid_dict[id][typology]['uvalue_wall'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'u_value_wall']
+                    grid_dict[id][typology]['uvalue_roof'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'u_value_roof']
+                    grid_dict[id][typology]['albedo_roof'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'albedo_roof']
+                    grid_dict[id][typology]['albedo_wall'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'albedo_wall']
+                    grid_dict[id][typology]['emissivity_roof'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'emissivity_roof']
+                    grid_dict[id][typology]['emissivity_wall'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'emissivity_wall'] 
+
+                # info_vlayer_typo = QgsVectorLayer(geodata_output['gridded_shp_diss']['OUTPUT'], "typopolygon", "ogr") 
+                # # Create dataframe with typoligyIDs and GridID
+                # cols = [f.name() for f in info_vlayer_typo.fields()] 
+                # datagen = ([f[col] for col in cols] for f in info_vlayer_typo.getFeatures())
+                # tmp = pd.DataFrame.from_records(data=datagen, columns=cols) 
+                # dfTypo = tmp[[poly_field,'TypolID']]
+                # info_vlayer_typo = None
+
+                # Create new key for each grid_id
+                # grid_dict[id] = {}
+                nonVeg_dict[id] = {}
+                gridlayoutOut[id] = {}    
+
+                # typology_list = list(grid_dict[id].keys())
+
+                ## Spartacus with topologies ##
+                if spartacus == 1:
+                    #vertical info from IMP calc
+                    ssVect = np.loadtxt(ss_dir + '/' + pre + '_IMPGrid_SS_' + str(id) + '.txt', skiprows = 1) 
+                    # Determinte height intervals and number of vertical layers in current grid
+                    heightIntervals, nlayer = getVertheights(ssVect, heightMethod, copy.deepcopy(vertheights), nlayerIn, skew)
+                    gridlayoutOut[id]['nlayer'] = nlayer
+                    gridlayoutOut[id]['height'] = heightIntervals.copy()
+
+                    # spartacus_list = list(db_dict['NonVeg'].loc[typology_list, 'Spartacus Surface'])
+
+                    #Access grid geometry
+                    prov = vlayer.dataProvider()
+                    fields = prov.fields()
+                    attributes = f.attributes()
+                    geometry = f.geometry()
+                    feature = QgsFeature()
+                    feature.setAttributes(attributes)
+                    feature.setGeometry(geometry)
+                    writer = QgsVectorFileWriter(dir_poly, "CP1250", fields, prov.wkbType(), prov.crs(), "ESRI shapefile")
+                    writer.addFeature(feature)
+                    del writer
+
+                    #Clip building, wall and typology raster 
+                    bigraster = gdal.Open(build_raster_out)
+                    clip_spec = gdal.WarpOptions(format="GTiff", cutlineDSName=dir_poly, cropToCutline=True)
+                    gdal.Warp(temp_folder + '/clipbuild.tif', bigraster, options=clip_spec)
+                    dataset = gdal.Open(temp_folder + '/clipbuild.tif')
+                    build_array = dataset.ReadAsArray().astype(float)
+                    bigraster = None
+
+                    bigraster = gdal.Open(walls_raster_out)
+                    clip_spec = gdal.WarpOptions(format="GTiff", cutlineDSName=dir_poly, cropToCutline=True)
+                    gdal.Warp(temp_folder + '/clipwall.tif', bigraster, options=clip_spec)
+                    dataset = gdal.Open(temp_folder + '/clipwall.tif')
+                    wall_array = dataset.ReadAsArray().astype(float)
+                    bigraster = None
+
+                    bigraster = gdal.Open(typo_raster_out)
+                    clip_spec = gdal.WarpOptions(format="GTiff", cutlineDSName=dir_poly, cropToCutline=True)
+                    gdal.Warp(temp_folder + '/cliptypo.tif', bigraster, options=clip_spec)
+                    dataset = gdal.Open(temp_folder + '/cliptypo.tif')
+                    typo_array = dataset.ReadAsArray().astype(float)
+                    bigraster = None
+                    dataset = None
+
+                    # Calulate fractions and set wall and roof layers based on dominating typology 
+                    typoList = np.unique(typo_array) #identify tyopologies in grid
+                    gridlayoutOut = ss_calc_gridlayout(heightIntervals, build_array, wall_array, typoList, typo_array, grid_dict, gridlayoutOut, id, nlayer, db_dict)
+
+                    # Write GridLayoutXXX.nml ##
+                    writeGridLayout(ssVect, file_code, id, save_txt_folder, gridlayoutOut)
+
+                else: #no spartacus. Just create and save GridLayout-file so that SUEWS-model can run
+                    ssDict = create_GridLayout_dict()
+                    write_GridLayout_file(ssDict, plugin_dir + '/Input/', 'GridLayout' +  file_code + str(id))
+
+                #TODO unsure of position and content of this part
+                typology_list2 = list(grid_dict[id].keys())
+                #typology_list2 = set(list(db_dict['Types'].loc[list(grid_dict[id].keys()), 'Buildings'])) # TODO Change when removed layer of Types
+
+                # Check if aggregation is needed
+                if len(typology_list2) > 1:
+                    nonVeg_dict[id]['Buildings'] = blend_SUEWS_NonVeg(grid_dict, db_dict, id, parameter_dict)
+                else:
+                # if only one typology exists, no need to aggregate/combine/blend
+                    nonVeg_dict[id]['Buildings'] = fill_SUEWS_NonVeg_typologies(typology_list2[0], db_dict, parameter_dict)
+
+                nonVeg_dict[id]['Paved'] = fill_SUEWS_NonVeg_typologies(parameter_dict['Paved'], db_dict, parameter_dict)
+                nonVeg_dict[id]['Bare Soil'] = fill_SUEWS_NonVeg_typologies(parameter_dict['Bare Soil'], db_dict, parameter_dict)
+            
+            # write to SUEWS_NonVeg
+            save_NonVeg_types(nonVeg_dict, save_txt_folder, db_dict)
+
+
+        # # If not using Typologies
+        # else:
+        #     if spartacus == 1:
+        #         for f in vlayer.getFeatures(): 
+        #             id = int(f.attribute(poly_field))
+        #             print('Processing ID for Spartacus aggregation without typologies. Three layers are used: ' + str(id))
+                    
+        #             #vertical info from IMP calc
+        #             ssVect = np.loadtxt(ss_dir + '/' + pre + '_IMPGrid_SS_' + str(id) + '.txt', skiprows = 1) 
+        #             # Determinte height intervals and number of vertical layers in current grid. Forced with 3 vertical layers
+        #             heightIntervals, nlayer = getVertheights(ssVect, heightMethod, copy.deepcopy(vertheights), 3, skew)
+        #             gridlayoutOut[id]['nlayer'] = nlayer
+        #             gridlayoutOut[id]['height'] = heightIntervals.copy()
+        #             #TODO if spartacus is yes but useTopologies is no Make GridLayoutXXX.nml without typologies
+        #             #TODO check sfr_roof and wall
+        #             return
+        #     else: #no spartacus. Just create and save GridLayout-file so that SUEWS-model can run
+        #         ssDict = create_GridLayout_dict()
+        #         write_GridLayout_file(ssDict, plugin_dir + '/Input/', 'GridLayout' +  file_code + str(id))
+            
+            # prepare the parameters collected to for writing SUEWS_NonVeg
+            nonVeg_dict = fill_SUEWS_NonVeg(db_dict, parameter_dict)
+            
+            # write to SUEWS_NonVeg
+            save_SUEWS_txt(pd.DataFrame.from_dict(nonVeg_dict, orient='index').set_index('Code'), 'SUEWS_NonVeg.txt', save_txt_folder, db_dict)  
+
 
         # Write SUEWS.txt files SUEWS_veg, SUEWS_AnthropogenicEmission, SUEWS_Water and SUEWS_Conductance
         veg_dict = fill_SUEWS_Veg(db_dict, parameter_dict)

@@ -9,6 +9,8 @@ fname = filename
 '''
 
 import os
+import numpy as np
+
 
 def create_GridLayout_dict():
 
@@ -25,10 +27,10 @@ def create_GridLayout_dict():
     ssDict['veg_scale'] = [10., 10., 10] # vegetation scale of each layer [m]
 
     # roof
-    ssDict['sfr_roof'] = [.3, .3, .4] #TODO how? fraction of roofs of each layer (sum should be 1)
+    ssDict['sfr_roof'] = [.3, .3, .4] # (sum should be 1)
     ssDict['tin_roof'] = [5, 5, 6] # initial temperatures of roofs [degC]
-    ssDict['alb_roof'] = [.5, .5, .2]  #TODO albedo of roofs
-    ssDict['emis_roof'] = [.95, .95, .95] #TODO emissivity of roofs
+    ssDict['alb_roof'] = [.5, .5, .2]  #T albedo of roofs
+    ssDict['emis_roof'] = [.95, .95, .95] # emissivity of roofs
     ssDict['state_roof'] = [.0, .0, .0]  # initial surface water depth state of roofs [mm]
     ssDict['statelimit_roof'] = [5, 5, 5] # surface water depth state limit of roofs [mm]
     ssDict['wetthresh_roof'] = [5, 5, 5] # surface water depth threshold of roofs (used in latent heat flux calculation) [mm]
@@ -38,23 +40,23 @@ def create_GridLayout_dict():
 
     # The following parameters are used to calculate the heat flux from the roof
     # first roof facet
-    ssDict['dz_roof1'] = [.2, .1, .1, .01, .01] #TODO thickness of each layer (strictly five lyaers in total) [m]
-    ssDict['k_roof1'] = [1.2, 1.2, 1.2, 1.2, 1.2] #TODO thermal conductivity of each layer [W/m/K]
-    ssDict['cp_roof1'] = [2e6, 2e6, 2e6, 2e6, 2e6] #TODO specific heat capacity of each layer [J/kg/K]
+    ssDict['dz_roof(1,:)'] = [.2, .1, .1, .01, .01] #TODO thickness of each layer (strictly five lyaers in total) [m]
+    ssDict['k_roof(1,:)'] = [1.2, 1.2, 1.2, 1.2, 1.2] #TODO thermal conductivity of each layer [W/m/K]
+    ssDict['cp_roof(1,:)'] = [2e6, 2e6, 2e6, 2e6, 2e6] #TODO specific heat capacity of each layer [J/kg/K]
 
-    ssDict['dz_roof2'] = [.2, .1, .1, .01, .01] #TODO
-    ssDict['k_roof2'] = [2.2, 1.2, 1.2, 1.2, 1.2] #TODO
-    ssDict['cp_roof2'] = [2e6, 2e6, 2e6, 2e6, 2e6] #TODO
+    ssDict['dz_roof(2,:)'] = [.2, .1, .1, .01, .01] #TODO
+    ssDict['k_roof(2,:)'] = [2.2, 1.2, 1.2, 1.2, 1.2] #TODO
+    ssDict['cp_roof(2,:)'] = [2e6, 2e6, 2e6, 2e6, 2e6] #TODO
 
-    ssDict['dz_roof3'] = [.2, .1, .1, .01, .01] #TODO
-    ssDict['k_roof3'] = [2.2, 1.2, 1.2, 1.2, 1.2] #TODO
-    ssDict['cp_roof3'] = [2e6, 2e6, 2e6, 2e6, 2e6] #TODO
+    ssDict['dz_roof(3,:)'] = [.2, .1, .1, .01, .01] #TODO
+    ssDict['k_roof(3,:)'] = [2.2, 1.2, 1.2, 1.2, 1.2] #TODO
+    ssDict['cp_roof(3,:)'] = [2e6, 2e6, 2e6, 2e6, 2e6] #TODO
 
     # wall # similarly to roof parameters but for walls
-    ssDict['sfr_wall'] = [.3, .3, .4] #TODO # (sum should be 1)
+    ssDict['sfr_wall'] = [.3, .3, .4] # (sum should be 1)
     ssDict['tin_wall'] = [5, 5, 5]
-    ssDict['alb_wall'] = [.5, .5, .5] #TODO
-    ssDict['emis_wall'] = [.95, .95, .95] #TODO
+    ssDict['alb_wall'] = [.5, .5, .5]
+    ssDict['emis_wall'] = [.95, .95, .95]
     ssDict['state_wall'] = [.0, .0, .0]
     ssDict['statelimit_wall'] = [5, 5, 5]
     ssDict['wetthresh_wall'] = [5, 5, 5]
@@ -62,17 +64,17 @@ def create_GridLayout_dict():
     ssDict['soilstorecap_wall'] = [120, 120, 120]
     ssDict['wall_specular_frac'] = [0.,0.,0.]
 
-    ssDict['dz_wall1'] = [.2,  .1,  .1,  .01, .01]#TODO
-    ssDict['k_wall1'] = [1.2, 1.2, 1.2, 1.2, 1.2]#TODO
-    ssDict['cp_wall1'] = [3e6, 2e6, 2e6, 2e6, 2e6]#TODO
+    ssDict['dz_wall(1,:)'] = [.2,  .1,  .1,  .01, .01]#TODO
+    ssDict['k_wall(1,:)'] = [1.2, 1.2, 1.2, 1.2, 1.2]#TODO
+    ssDict['cp_wall(1,:)'] = [3e6, 2e6, 2e6, 2e6, 2e6]#TODO
 
-    ssDict['dz_wall2'] = [.2,  .1,  .1,  .01, .01]#TODO
-    ssDict['k_wall2'] = [2.2, 1.2, 1.2, 1.2, 1.2]#TODO
-    ssDict['cp_wall2'] = [2e6, 3e6, 2e6, 2e6, 2e6]#TODO
+    ssDict['dz_wall(2,:)'] = [.2,  .1,  .1,  .01, .01]#TODO
+    ssDict['k_wall(2,:)'] = [2.2, 1.2, 1.2, 1.2, 1.2]#TODO
+    ssDict['cp_wall(2,:)'] = [2e6, 3e6, 2e6, 2e6, 2e6]#TODO
 
-    ssDict['dz_wall3'] = [.2,  .1,  .1,  .01, .01]#TODO
-    ssDict['k_wall3'] = [2.2, 1.2, 1.2, 1.2, 1.2]#TODO
-    ssDict['cp_wall3'] = [2e6, 3e6, 2e6, 2e6, 2e6]#TODO
+    ssDict['dz_wall(3,:)'] = [.2,  .1,  .1,  .01, .01]#TODO
+    ssDict['k_wall(3,:)'] = [2.2, 1.2, 1.2, 1.2, 1.2]#TODO
+    ssDict['cp_wall(3,:)'] = [2e6, 3e6, 2e6, 2e6, 2e6]#TODO
 
     # surf # for generic SUEWS surfaces, used in storage heat flux calculations
     ssDict['tin_surf'] = [2, 2, 2, 2, 2, 2, 2] # intitial temperature
@@ -108,6 +110,65 @@ def create_GridLayout_dict():
     return ssDict
 
 
+def writeGridLayout(ssVect, fileCode, featID, outputFolder, gridlayoutIn):
+    '''
+    Input:
+    ssVect: array from xx_IMPGrid_SS_x.txt
+    fileCode: from GUI
+    featID: id of grid from vector polygon grid in GUI
+    outputFolder: from GUI
+    gridlayoutIn: dict with values to populate new values in ssDict
+    '''
+
+    ssDict = create_GridLayout_dict()
+    
+    ssDict['nlayer'] = gridlayoutIn[featID]['nlayer']
+    ssDict['height'] = gridlayoutIn[featID]['height']
+    ssDict['building_frac'] = []
+    ssDict['veg_frac'] = []
+    ssDict['building_scale'] = []
+    ssDict['veg_scale'] = []
+
+    index = int(0)
+    for i in range(1,len(ssDict['height'])): #TODO this loop need to be confirmed by Reading
+        index += 1
+        startH = int(ssDict['height'][index-1])
+        endH = int(ssDict['height'][index])
+        if index == 1:
+            ssDict['building_frac'].append(ssVect[0,1]) # first is plan area index of buildings
+            ssDict['veg_frac'].append(ssVect[0,3]) # first is plan area index of trees
+        else:
+            ssDict['building_frac'].append(np.round(np.mean(ssVect[startH:endH, 1]),3)) # intergrated pai_build mean in ith vertical layer
+            ssDict['veg_frac'].append(np.round(np.mean(ssVect[startH:endH, 3]),3)) # intergrated pai_veg mean in ith vertical layer
+
+        ssDict['building_scale'].append(np.round(np.mean(ssVect[startH:endH, 2]),3)) # intergrated bscale mean in ith vertical layer
+        ssDict['veg_scale'].append(np.round(np.mean(ssVect[startH:endH, 4]),3)) # intergrated vscale mean in ith vertical layer
+
+    #roof
+    ssDict['sfr_roof'] = gridlayoutIn[featID]['sfr_roof']
+    ssDict['alb_roof'] = gridlayoutIn[featID]['alb_roof']
+    ssDict['emis_roof'] = gridlayoutIn[featID]['emis_roof']
+
+    for r in range(1, gridlayoutIn[featID]['nlayer'] + 1):
+        ssDict['dz_roof(' + str(r) + ',:)'] = gridlayoutIn[featID]['dz_roof(' + str(r) + ',:)']
+        ssDict['k_roof(' + str(r) + ',:)'] = gridlayoutIn[featID]['k_roof(' + str(r) + ',:)']
+        ssDict['cp_roof(' + str(r) + ',:)'] = gridlayoutIn[featID]['cp_roof(' + str(r) + ',:)']
+
+    #wall
+    ssDict['sfr_wall'] = gridlayoutIn[featID]['sfr_wall']
+    ssDict['alb_wall'] = gridlayoutIn[featID]['alb_wall']
+    ssDict['emis_wall'] = gridlayoutIn[featID]['emis_wall']
+
+    for r in range(1, gridlayoutIn[featID]['nlayer'] + 1):
+        ssDict['dz_wall(' + str(r) + ',:)'] = gridlayoutIn[featID]['dz_wall(' + str(r) + ',:)']
+        ssDict['k_wall(' + str(r) + ',:)'] = gridlayoutIn[featID]['k_wall(' + str(r) + ',:)']
+        ssDict['cp_wall(' + str(r) + ',:)'] = gridlayoutIn[featID]['cp_wall(' + str(r) + ',:)']
+
+    #TODO here we need to adjust post if vertical layers are not 3
+
+    write_GridLayout_file(ssDict, outputFolder + '/', 'GridLayout' +  fileCode + str(featID))
+
+
 def write_GridLayout_file(ss_object, refdir, fname):
     ss_file_path = os.path.join(refdir,fname+".nml")
     f = open(ss_file_path, "w")
@@ -136,14 +197,15 @@ def write_GridLayout_file(ss_object, refdir, fname):
     f.write("wetthresh_roof = {}\n".format(str(ss_object['wetthresh_roof'])[1:-1]))  
     f.write("soilstore_roof = {}\n".format(str(ss_object['soilstore_roof'])[1:-1]))     
     f.write("soilstorecap_roof = {}\n".format(str(ss_object['soilstorecap_roof'])[1:-1])) 
-    f.write("roof_albedo_dir_mult_fact(1,:) = {}\n".format(str(ss_object['roof_albedo_dir_mult_fact'])[1:-1]))    
+    f.write("\n")
+    f.write("roof_albedo_dir_mult_fact(1,:) = {}\n".format(str(ss_object['roof_albedo_dir_mult_fact'])[1:-1]))   
+    f.write("\n") 
     
-    
-    # TODO make a nested loop based on nlayers
     for j in range(1,ss_object['nlayer'] + 1):
-        f.write("dz_roof(" + str(j) + ",:) = {}\n".format(str(ss_object['dz_roof' + str(j)])[1:-1])) 
-        f.write("k_roof(" + str(j) + ",:) = {}\n".format(str(ss_object['k_roof' + str(j)])[1:-1])) 
-        f.write("cp_roof(" + str(j) + ",:) = {}\n".format(str(ss_object['cp_roof' + str(j)])[1:-1])) 
+        f.write("dz_roof(" + str(j) + ",:) = {}\n".format(str(ss_object['dz_roof(' + str(j) + ',:)'])[1:-1])) 
+        f.write("k_roof(" + str(j) + ",:) = {}\n".format(str(ss_object['k_roof(' + str(j) + ',:)'])[1:-1])) 
+        f.write("cp_roof(" + str(j) + ",:) = {}\n".format(str(ss_object['cp_roof(' + str(j) + ',:)'])[1:-1])) 
+        f.write("\n")
 
     f.write("/\n")
     f.write("\n")
@@ -158,44 +220,46 @@ def write_GridLayout_file(ss_object, refdir, fname):
     f.write("wetthresh_wall = {}\n".format(str(ss_object['wetthresh_wall'])[1:-1])) 
     f.write("soilstore_wall = {}\n".format(str(ss_object['soilstore_wall'])[1:-1]))    
     f.write("soilstorecap_wall = {}\n".format(str(ss_object['soilstorecap_wall'])[1:-1])) 
+    f.write("\n")
     f.write("wall_specular_frac(1,:) = {}\n".format(str(ss_object['wall_specular_frac'])[1:-1]))    
-    
-    # TODO make a nested loop based on nlayers
+    f.write("\n")
+
     for j in range(1,ss_object['nlayer'] + 1):
-        f.write("dz_wall(" + str(j) + ",:) = {}\n".format(str(ss_object['dz_wall' + str(j)])[1:-1])) 
-        f.write("k_wall(" + str(j) + ",:) = {}\n".format(str(ss_object['k_wall' + str(j)])[1:-1])) 
-        f.write("cp_wall(" + str(j) + ",:) = {}\n".format(str(ss_object['cp_wall' + str(j)])[1:-1])) 
+        f.write("dz_wall(" + str(j) + ",:) = {}\n".format(str(ss_object['dz_wall(' + str(j) + ',:)'])[1:-1])) 
+        f.write("k_wall(" + str(j) + ",:) = {}\n".format(str(ss_object['k_wall(' + str(j) + ',:)'])[1:-1])) 
+        f.write("cp_wall(" + str(j) + ",:) = {}\n".format(str(ss_object['cp_wall(' + str(j) + ',:)'])[1:-1])) 
+        f.write("\n")
 
     f.write("/\n")
     f.write("\n")
 
     f.write("&surf\n") 
     f.write("tin_surf = {}\n".format(str(ss_object['tin_surf'])[1:-1]))
-
+    f.write("\n")
     f.write("dz_surf(1,:) = {}\n".format(str(ss_object['dz_surf_paved'])[1:-1]))
     f.write("k_surf(1,:) = {}\n".format(str(ss_object['k_surf_paved'])[1:-1]))
     f.write("cp_surf((1,:) = {}\n".format(str(ss_object['cp_surf_paved'])[1:-1]))
-
+    f.write("\n")
     f.write("dz_surf(2,:) = {}\n".format(str(ss_object['dz_surf_buildings'])[1:-1]))
     f.write("k_surf(2,:) = {}\n".format(str(ss_object['k_surf_buildings'])[1:-1]))
     f.write("cp_surf((2,:) = {}\n".format(str(ss_object['cp_surf_buildings'])[1:-1]))
-
+    f.write("\n")
     f.write("dz_surf(3,:) = {}\n".format(str(ss_object['dz_surf_evergreen'])[1:-1]))
     f.write("k_surf(3,:) = {}\n".format(str(ss_object['k_surf_evergreen'])[1:-1]))
     f.write("cp_surf((3,:) = {}\n".format(str(ss_object['cp_surf_evergreen'])[1:-1]))
-
+    f.write("\n")
     f.write("dz_surf(4,:) = {}\n".format(str(ss_object['dz_surf_decid'])[1:-1]))
     f.write("k_surf(4,:) = {}\n".format(str(ss_object['k_surf_decid'])[1:-1]))
     f.write("cp_surf((4,:) = {}\n".format(str(ss_object['cp_surf_decid'])[1:-1]))
-
+    f.write("\n")
     f.write("dz_surf(5,:) = {}\n".format(str(ss_object['dz_surf_grass'])[1:-1]))
     f.write("k_surf(5,:) = {}\n".format(str(ss_object['k_surf_grass'])[1:-1]))
     f.write("cp_surf((5,:) = {}\n".format(str(ss_object['cp_surf_grass'])[1:-1]))
-
+    f.write("\n")
     f.write("dz_surf(6,:) = {}\n".format(str(ss_object['dz_surf_baresoil'])[1:-1]))
     f.write("k_surf(6,:) = {}\n".format(str(ss_object['k_surf_baresoil'])[1:-1]))
     f.write("cp_surf((6,:) = {}\n".format(str(ss_object['cp_surf_baresoil'])[1:-1]))
-
+    f.write("\n")
     f.write("dz_surf(7,:) = {}\n".format(str(ss_object['dz_surf_water'])[1:-1]))
     f.write("k_surf(7,:) = {}\n".format(str(ss_object['k_surf_water'])[1:-1]))
     f.write("cp_surf((7,:) = {}\n".format(str(ss_object['cp_surf_water'])[1:-1]))
@@ -205,88 +269,4 @@ def write_GridLayout_file(ss_object, refdir, fname):
     f.close()
 
     return ss_file_path
-
-# def read_GridLayout_file(refdir, fname):
-#     ss_file_path = os.path.join(refdir, fname + ".uwg")
-#     # f = open(uwg_file_path, "r")
-
-#     ssDict = {}
-#     skiptype = 0
-#     skipcount = 0
-#     trafficlist = []
-#     bldlist = []
-#     l1 = []
-#     l2 = []
-#     l3 = []
-
-#     with open(ss_file_path) as file:
-#         # next(file)
-#         for line in file:
-#             if line[0:7] == 'SchTraf':
-#                 skiptype = 1
-#             if line[0:4] == 'bld,':
-#                 skiptype = 2
-#             if skiptype == 0:
-#                 if line[0] == '#' or line == '\n': # empty line or comment
-#                     test = 4 
-#                 else: # regular input
-#                     a = line.find(',')
-#                     if line[0:a] == 'zone':
-#                         ssDict[line[0:a]] = line[a +1: len(line) - 2]
-#                     elif line[-3:] == ',,\n':
-#                         ssDict[line[0:a]] = None
-#                     else:
-#                         ssDict[line[0:a]] = float(line[a +1: len(line) - 2])
-#             elif skiptype == 1: # Traffic
-#                 if skipcount >= 1:
-#                     letter_list = line.split(",")
-#                     floats_list = []
-#                     for item in letter_list:
-#                         if item == '\n':
-#                             test = 4
-#                         else:
-#                             floats_list.append(float(item))
-#                     trafficlist.append(floats_list)
-#                 skipcount += 1
-#                 if skipcount == 4:
-#                     skipcount = 0
-#                     skiptype = 0
-#                     ssDict['SchTraffic'] = trafficlist
-#             elif skiptype == 2: #Buildings
-#                 if skipcount >= 1:
-#                     letter_list = line.split(",")
-#                     l1.append(letter_list[0])
-#                     l2.append(letter_list[1])
-#                     l3.append(float(letter_list[2]))
-                    
-#                     # if skipcount < 3:
-#                     #     for item in letter_list:
-#                     #         if item == '\n':
-#                     #             test = 4
-#                     #         else:
-#                     #             floats_list.append(item)
-#                     #     bldlist.append(floats_list)
-#                     # else:
-#                     #     for item in letter_list:
-#                     #         if item == '\n':
-#                     #             test = 4
-#                     #         else:
-#                     #             floats_list.append(float(item))
-#                     #     bldlist.append(floats_list)
-#                 skipcount += 1
-#                 if skipcount == 17:
-#                     skipcount = 0
-#                     skiptype = 0
-#                     bldlist.append(l1)
-#                     bldlist.append(l2)
-#                     bldlist.append(l3)
-#                     ssDict['bld'] = bldlist
-                    
-#     return ssDict
-
-
-
-
-
-
 
