@@ -241,14 +241,40 @@ class SUEWSPrepareDatabase(object):
         grass_list =    db_dict['Veg']['descOrigin'].loc[db_dict['Veg']['Surface'] == 'Grass']
         dec_tree_list = db_dict['Veg']['descOrigin'].loc[db_dict['Veg']['Surface'] == 'Decidous Tree']
         evr_tree_list = db_dict['Veg']['descOrigin'].loc[db_dict['Veg']['Surface'] == 'Evergreen Tree']
+        anthro_list = db_dict['AnthropogenicEmission']['descOrigin'] #steg1
+        traffic_listWD = db_dict['Profiles']['descOrigin'].loc[db_dict['Profiles']['Profile Type'] == 'Traffic'].loc[db_dict['Profiles']['Day'] == 'Weekday']
+        traffic_listWE = db_dict['Profiles']['descOrigin'].loc[db_dict['Profiles']['Profile Type'] == 'Traffic'].loc[db_dict['Profiles']['Day'] == 'Weekend']
+        human_listWD = db_dict['Profiles']['descOrigin'].loc[db_dict['Profiles']['Profile Type'] == 'Human Activity'].loc[db_dict['Profiles']['Day'] == 'Weekday']
+        human_listWE = db_dict['Profiles']['descOrigin'].loc[db_dict['Profiles']['Profile Type'] == 'Human Activity'].loc[db_dict['Profiles']['Day'] == 'Weekend']
+        snow_listWD = db_dict['Profiles']['descOrigin'].loc[db_dict['Profiles']['Profile Type'] == 'Snow removal'].loc[db_dict['Profiles']['Day'] == 'Weekday']
+        snow_listWE = db_dict['Profiles']['descOrigin'].loc[db_dict['Profiles']['Profile Type'] == 'Snow removal'].loc[db_dict['Profiles']['Day'] == 'Weekend']
 
         self.dlg.comboBoxPaved.addItems(sorted(paved_list))
         self.dlg.comboBoxBuilding.addItems(sorted(building_list))
         self.dlg.comboBoxGrass.addItems(sorted(grass_list))
         self.dlg.comboBoxEvrTree.addItems(sorted(evr_tree_list))
         self.dlg.comboBoxDecTree.addItems(sorted(dec_tree_list))
+        self.dlg.comboBoxAnthro.addItems(sorted(anthro_list)) #steg2
+        self.dlg.comboBoxTrafficWD.addItems(sorted(traffic_listWD))
+        self.dlg.comboBoxTrafficWE.addItems(sorted(traffic_listWE))
+        self.dlg.comboBoxHumanWD.addItems(sorted(human_listWD))
+        self.dlg.comboBoxHumanWE.addItems(sorted(human_listWE))
+        self.dlg.comboBoxSnowWD.addItems(sorted(snow_listWD))
+        self.dlg.comboBoxSnowWE.addItems(sorted(snow_listWE))
 
-        for cbox in [self.dlg.comboBoxPaved, self.dlg.comboBoxBuilding, self.dlg.comboBoxEvrTree, self.dlg.comboBoxDecTree, self.dlg.comboBoxGrass]:
+
+        for cbox in [self.dlg.comboBoxPaved, 
+                     self.dlg.comboBoxBuilding, 
+                     self.dlg.comboBoxEvrTree, 
+                     self.dlg.comboBoxDecTree, 
+                     self.dlg.comboBoxGrass,
+                     self.dlg.comboBoxAnthro,
+                     self.dlg.comboBoxTrafficWD,
+                     self.dlg.comboBoxTrafficWE,
+                     self.dlg.comboBoxSnowWD,
+                     self.dlg.comboBoxSnowWE,
+                     self.dlg.comboBoxHumanWD,
+                     self.dlg.comboBoxHumanWE]: #steg3
             cbox.setCurrentIndex(-1)
 
         reg_list = sorted(set(list(db_dict['Region']['Region'])))
@@ -369,18 +395,25 @@ class SUEWSPrepareDatabase(object):
 
     def region_changed(self, db_dict):
 
+        country_sel = self.dlg.comboBoxCountry.currentText()
         region_sel = self.dlg.comboBoxRegion.currentText()
         country_list = list(db_dict['Country']['descOrigin'].loc[db_dict['Country']['Region'] == region_sel])
         self.dlg.comboBoxCountry.clear()
         self.dlg.comboBoxCountry.addItems(country_list)
+        if country_sel in country_list:
+            self.dlg.comboBoxCountry.setCurrentIndex(country_list.index(country_sel))
+            print('herehere')
+        else:
+            self.dlg.comboBoxCountry.setCurrentIndex(-1)
+            print('here')
 
-    def print_reg(self):
-        region_sel = self.dlg.comboBoxRegion.currentText()
-        return region_sel
+    # def print_reg(self):
+    #     region_sel = self.dlg.comboBoxRegion.currentText()
+    #     return region_sel
     
-    def print_country(self):
-        country_sel = self.dlg.comboBoxCountry.currentText()
-        return country_sel
+    # def print_country(self):
+    #     country_sel = self.dlg.comboBoxCountry.currentText()
+    #     return country_sel
     
     def country_changed(self, db_dict):
         country_sel = self.dlg.comboBoxCountry.currentText()
@@ -388,10 +421,11 @@ class SUEWSPrepareDatabase(object):
 
         self.country_str = country_sel
         self.region_str = reg_sel
-        
+        print(self.country_str)
+        print('here1')
         # Update region according to country if country is chosen before region
         try:
-            if  db_dict['Country'].loc[db_dict['Country']['descOrigin'] == country_sel]['Region'].item() == reg_sel:
+            if db_dict['Country'].loc[db_dict['Country']['descOrigin'] == country_sel]['Region'].item() == reg_sel:
                 pass
             else:
                 reg_list = [self.dlg.comboBoxRegion.itemText(i) for i in range(self.dlg.comboBoxRegion.count())]
@@ -403,31 +437,36 @@ class SUEWSPrepareDatabase(object):
         # Function to test if a parameter is found in Country. If not, the same parameter for Region is then selected.   
         def decide_country_region(col, country_sel, reg_sel, comboBox):
             country_df = db_dict['Country'][db_dict['Country']['descOrigin'] == country_sel]
-            try:
-                if str(country_df[col].item()) == 'nan':
-                    try:
-                        reg_df = db_dict['Region'][db_dict['Region']['Region'] == reg_sel]
-                        var = reg_df[col].item()
-                        var_text = db_dict[surf_df_dict[col]].loc[var, 'descOrigin']
-                        cbox_list = [comboBox.itemText(i) for i in range(comboBox.count())]
-                        indexer = cbox_list.index(var_text)
-                    except:
-                        indexer = 0
-                else:
-                    var = country_df[col].item()
+            print(country_sel)
+            print('here2')
+            #try: #TODO get rid of this try statement somehow...
+            if str(country_df[col].item()) == 'nan':
+                try:
+                    reg_df = db_dict['Region'][db_dict['Region']['Region'] == reg_sel]
+                    var = reg_df[col].item()
                     var_text = db_dict[surf_df_dict[col]].loc[var, 'descOrigin']
                     cbox_list = [comboBox.itemText(i) for i in range(comboBox.count())]
                     indexer = cbox_list.index(var_text)
-        
-                comboBox.setCurrentIndex(indexer)
-            except:
-                pass
+                except:
+                    indexer = 0
+            else:
+                var = country_df[col].item()
+                var_text = db_dict[surf_df_dict[col]].loc[var, 'descOrigin']
+                cbox_list = [comboBox.itemText(i) for i in range(comboBox.count())]
+                indexer = cbox_list.index(var_text)
+    
+            comboBox.setCurrentIndex(indexer)
+            #except:
+            #    pass
 
         decide_country_region('Paved',country_sel, reg_sel, self.dlg.comboBoxPaved)
         decide_country_region('Buildings', country_sel, reg_sel, self.dlg.comboBoxBuilding)
         decide_country_region('Evergreen Tree',country_sel, reg_sel, self.dlg.comboBoxEvrTree)
         decide_country_region('Decidous Tree',country_sel, reg_sel, self.dlg.comboBoxDecTree)
         decide_country_region('Grass',country_sel, reg_sel, self.dlg.comboBoxGrass)
+        decide_country_region('AnthropogenicCode',country_sel, reg_sel, self.dlg.comboBoxAnthro)
+        decide_country_region('TrafficRate_WD',country_sel, reg_sel, self.dlg.comboBoxTrafficWD) #finns bara i country?
+        #TODO fill more comboboxes to be continued
 
 
     def use_typologies(self):
@@ -591,14 +630,6 @@ class SUEWSPrepareDatabase(object):
                 QMessageBox.critical(self.dlg,"Warning", "A transition period between Winter and Summer has been "
                                      "choosen. Preferably start the model run during Winter or Summer.")
 
-        if self.LCF_from_file:
-            if self.LCFfile_path is None:
-                QMessageBox.critical(None, "Error", "Land cover fractions file has not been provided")
-                return
-            if not os.path.isfile(self.LCFfile_path[0]):
-                QMessageBox.critical(None, "Error", "Could not find the file containing land cover fractions")
-                return
-
         # Morphometric and land cover files
         if self.IMP_from_file:
             if self.IMPfile_path is None:
@@ -615,7 +646,15 @@ class SUEWSPrepareDatabase(object):
             if not os.path.isfile(self.IMPvegfile_path[0]):
                 QMessageBox.critical(None, "Error", "Could not find the file containing vegetation morphology")
                 return
-
+            
+        if self.LCF_from_file:
+            if self.LCFfile_path is None:
+                QMessageBox.critical(None, "Error", "Land cover fractions file has not been provided")
+                return
+            if not os.path.isfile(self.LCFfile_path[0]):
+                QMessageBox.critical(None, "Error", "Could not find the file containing land cover fractions")
+                return
+            
         if self.file_code == '':
             QMessageBox.critical(None, "Error", "Specify a file code prefix")
             return
@@ -723,7 +762,7 @@ class SUEWSPrepareDatabase(object):
         try:
             rmtree(temp_folder)
         except OSError as e:
-            print ("Error: %s - %s." % (e.filename, e.strerror))
+            print ("Warning: %s - %s." % (e.filename, e.strerror))
 
         os.mkdir(temp_folder)
 
@@ -1011,6 +1050,7 @@ class SUEWSPrepareDatabase(object):
                 dataset = gdal.Open(temp_folder + '/clipbuild.tif')
                 build_array = dataset.ReadAsArray().astype(float)
                 bigraster = None
+                dataset = None
 
                 bigraster = gdal.Open(walls_raster_out)
                 clip_spec = gdal.WarpOptions(format="GTiff", cutlineDSName=dir_poly, cropToCutline=True)
@@ -1018,6 +1058,7 @@ class SUEWSPrepareDatabase(object):
                 dataset = gdal.Open(temp_folder + '/clipwall.tif')
                 wall_array = dataset.ReadAsArray().astype(float)
                 bigraster = None
+                dataset = None
 
                 bigraster = gdal.Open(typo_raster_out)
                 clip_spec = gdal.WarpOptions(format="GTiff", cutlineDSName=dir_poly, cropToCutline=True)
@@ -1049,7 +1090,7 @@ class SUEWSPrepareDatabase(object):
             # if only one typology exists, no need to aggregate/combine/blend
                 nonVeg_dict[id]['Buildings'] = fill_SUEWS_NonVeg_typologies(typology_list2[0], db_dict, parameter_dict)
 
-            nonVeg_dict[id]['Paved'] = fill_SUEWS_NonVeg_typologies(parameter_dict['Paved'], db_dict, parameter_dict)
+            nonVeg_dict[id]['Paved'] = fill_SUEWS_NonVeg_typologies(parameter_dict['Paved'], db_dict, parameter_dict) #TODO As this is in counrty/Region it should be outside the loop
             nonVeg_dict[id]['Bare Soil'] = fill_SUEWS_NonVeg_typologies(parameter_dict['Bare Soil'], db_dict, parameter_dict)
         
         # write to SUEWS_NonVeg
@@ -1170,7 +1211,7 @@ class SUEWSPrepareDatabase(object):
             
             feat_id = int(feature.attribute(poly_field))
     
-            print('Processing ID: ' + str(feat_id))
+            print('Processing ID: ' + str(feat_id) + ' for grid specific parameters')
             year = None     # Not sure what this is, but it works
             year2 = None    # Not surre what this is, but it works
             

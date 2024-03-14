@@ -124,7 +124,9 @@ surf_df_dict = {
     'Decidous Tree' : 'Veg',
     'Grass' : 'Veg',
     'Bare Soil' : 'NonVeg',
-    'Water' : 'Water',           
+    'Water' : 'Water',
+    'IrrigationCode' : 'Irrigation',       #test to fix fill in of irrigation 
+    'AnthropogenicCode' : 'AnthropogenicEmission'   
 }
 
 def round_dict(in_dict):
