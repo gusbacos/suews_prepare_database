@@ -216,12 +216,16 @@ def ss_calc_gridlayout(heightIntervals, build_array, wall_array, typoList, typo_
         gridlayoutOut[id]['cp_wall(' + str(r) + ',:)'] = []
         for s in range(1, 6): # iterate over number of horisontal layers in wall/roof
             if s <= 3: # fill first three from database
-                materialRoof = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[domTypoRoof[r-1], 'Spartacus Surface'], 'r' + str(s) + 'Material']
-                materialWall = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[domTypoWall[r-1], 'Spartacus Surface'], 'r' + str(s) + 'Material']
-                gridlayoutOut[id]['dz_roof(' + str(r) + ',:)'].append(db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[domTypoRoof[r-1], 'Spartacus Surface'], 'r' + str(s) + 'Thickness'])
+                # materialRoof = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[domTypoRoof[r-1], 'Spartacus Surface'], 'r' + str(s) + 'Material']
+                # materialWall = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[domTypoWall[r-1], 'Spartacus Surface'], 'r' + str(s) + 'Material']
+                materialRoof = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[domTypoRoof[r-1]]['Buildings']]['Spartacus Surface'], 'r' + str(s) + 'Material']
+                materialWall = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[domTypoWall[r-1]]['Buildings']]['Spartacus Surface'], 'w' + str(s) + 'Material']
+                # gridlayoutOut[id]['dz_roof(' + str(r) + ',:)'].append(db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[domTypoRoof[r-1], 'Spartacus Surface'], 'r' + str(s) + 'Thickness'])
+                gridlayoutOut[id]['dz_roof(' + str(r) + ',:)'].append(db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[domTypoRoof[r-1]]['Buildings']]['Spartacus Surface'], 'r' + str(s) + 'Thickness'])
                 gridlayoutOut[id]['k_roof(' + str(r) + ',:)'].append(db_dict['Spartacus Material'].loc[materialRoof]['Thermal Conductivity'])
                 gridlayoutOut[id]['cp_roof(' + str(r) + ',:)'].append(db_dict['Spartacus Material'].loc[materialRoof]['Specific Heat'] * 1000)
-                gridlayoutOut[id]['dz_wall(' + str(r) + ',:)'].append(db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[domTypoWall[r-1], 'Spartacus Surface'], 'r' + str(s) + 'Thickness'])
+                # gridlayoutOut[id]['dz_wall(' + str(r) + ',:)'].append(db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[domTypoWall[r-1], 'Spartacus Surface'], 'w' + str(s) + 'Thickness'])
+                gridlayoutOut[id]['dz_wall(' + str(r) + ',:)'].append(db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[domTypoWall[r-1]]['Buildings']]['Spartacus Surface'], 'w' + str(s) + 'Thickness'])
                 gridlayoutOut[id]['k_wall(' + str(r) + ',:)'].append(db_dict['Spartacus Material'].loc[materialWall]['Thermal Conductivity'])
                 gridlayoutOut[id]['cp_wall(' + str(r) + ',:)'].append(db_dict['Spartacus Material'].loc[materialWall]['Specific Heat'] * 1000)
             else: # fill last two with thin wall paper (ignorable)

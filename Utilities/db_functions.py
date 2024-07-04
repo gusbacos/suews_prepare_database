@@ -1,9 +1,8 @@
-from time import sleep
 import pandas as pd
 import numpy as np
+from time import sleep
 from datetime import datetime
-#from osgeo.gdalconst import *
-import os
+
 
 def read_DB(db_path):
     '''
@@ -19,54 +18,63 @@ def read_DB(db_path):
         if col == 'Types':
             db[col]['descOrigin'] = db[col]['Type'].astype(str) + ', ' + db[col]['Origin'].astype(str)
         elif col == 'References': 
-            db[col]['authorYear'] = db[col]['Author'].astype(str) + ', ' + db[col]['Publication Year'].astype(str)
+            db[col]['authorYear'] = db[col]['Author'].astype(str) + ', ' + db[col]['Year'].astype(str)
         elif col == 'Country':
             db[col]['descOrigin'] = db[col]['Country'].astype(str) + ', ' + db[col]['City'].astype(str)  
         elif col == 'Region':
             pass
+        elif col == 'Spartacus Material':
+            db[col]['descOrigin'] = db[col]['Description'].astype(str) + '; ' + db[col]['Color'].astype(str) + '; ' + db[col]['Origin'].astype(str)    
+        # Calculate U-values for roof and wall new columns u_value_wall and u_value_roof
         elif col == 'Spartacus Surface':
-            # Calculate U-values for roof and wall new columns u_value_wall and u_value_roof
+            db[col]['descOrigin'] = db[col]['Description'].astype(str) + ', ' + db[col]['Origin'].astype(str)
             for row in db['Spartacus Surface'].iterrows():
                 id = row[0]
                 SS_surf_sel = db['Spartacus Surface'].loc[id]
-                resistance_bulk_w = 0
-                resistance_bulk_r = 0
+                if SS_surf_sel['Surface'] == 'Buildings':
+                    resistance_bulk_w = 0
+                    resistance_bulk_r = 0
 
-                for i in range(1,4):
-                    surf_w = SS_surf_sel['w'+str(i)+'Material'].item()
-                    thickness_w = SS_surf_sel['w'+str(i)+'Thickness'].item()
+                    for i in range(1,4):
+                        surf_w = SS_surf_sel['w'+str(i)+'Material'].item()
+                        thickness_w = SS_surf_sel['w'+str(i)+'Thickness'].item()
+                        
+                        surf_r = SS_surf_sel['r'+str(i)+'Material'].item()
+                        thickness_r = SS_surf_sel['r'+str(i)+'Thickness'].item()
+
+                        try:
+                            Tc_w = db['Spartacus Material'].loc[surf_w, 'Thermal Conductivity']
+                            resistance_w = thickness_w / Tc_w
+                            resistance_bulk_w = resistance_bulk_w + resistance_w
+                        except:
+                            pass
+
+                        try:
+                            Tc_r = db['Spartacus Material'].loc[surf_r, 'Thermal Conductivity']
+                            resistance_r = thickness_r / Tc_r
+                            resistance_bulk_r = resistance_bulk_r + resistance_r
+
+                        except:
+                            print(id, i)
                     
-                    surf_r = SS_surf_sel['r'+str(i)+'Material'].item()
-                    thickness_r = SS_surf_sel['r'+str(i)+'Thickness'].item()
+                    u_value_w = 1/ resistance_bulk_w
+                    u_value_r = 1/ resistance_bulk_r
 
-                    try:
-                        Tc_w = db['Spartacus Material'].loc[surf_w, 'Thermal Conductivity']
-                        resistance_w = thickness_w / Tc_w
-                        resistance_bulk_w = resistance_bulk_w + resistance_w
-                    except:
-                        pass
+                    
+                    db['Spartacus Surface'].loc[id,'u_value_wall'] = u_value_w
+                    db['Spartacus Surface'].loc[id,'u_value_roof'] = u_value_r
 
-                    try:
-                        Tc_r = db['Spartacus Material'].loc[surf_r, 'Thermal Conductivity']
-                        resistance_r = thickness_r / Tc_r
-                        resistance_bulk_r = resistance_bulk_r + resistance_r
-                    except:
-                        pass
-                
-                u_value_w = 1/ resistance_bulk_w
-                u_value_r = 1/ resistance_bulk_r
+                    db['Spartacus Surface'].loc[id,'albedo_roof'] = db['Spartacus Material'].loc[SS_surf_sel['r1Material'], 'Albedo']
+                    db['Spartacus Surface'].loc[id,'albedo_wall'] = db['Spartacus Material'].loc[SS_surf_sel['w1Material'], 'Albedo']
 
-                db['Spartacus Surface'].loc[id,'u_value_wall'] = u_value_w
-                db['Spartacus Surface'].loc[id,'u_value_roof'] = u_value_r
-
-                db['Spartacus Surface'].loc[id,'albedo_roof'] = db['Spartacus Material'].loc[SS_surf_sel['r1Material'], 'Albedo']
-                db['Spartacus Surface'].loc[id,'albedo_wall'] = db['Spartacus Material'].loc[SS_surf_sel['w1Material'], 'Albedo']
-
-                db['Spartacus Surface'].loc[id,'emissivity_roof'] = db['Spartacus Material'].loc[SS_surf_sel['r1Material'], 'Emissivity']
-                db['Spartacus Surface'].loc[id,'emissivity_wall'] = db['Spartacus Material'].loc[SS_surf_sel['w1Material'], 'Emissivity']                
+                    db['Spartacus Surface'].loc[id,'emissivity_roof'] = db['Spartacus Material'].loc[SS_surf_sel['r1Material'], 'Emissivity']
+                    db['Spartacus Surface'].loc[id,'emissivity_wall'] = db['Spartacus Material'].loc[SS_surf_sel['w1Material'], 'Emissivity']
 
         else:
             db[col]['descOrigin'] = db[col]['Description'].astype(str) + ', ' + db[col]['Origin'].astype(str)
+
+    db_sh.close() # trying this to close excelfile
+
     return db
 
 # dict for assigning correct first two digits when creating new codes
@@ -121,12 +129,20 @@ surf_df_dict = {
     'Paved' : 'NonVeg',
     'Buildings' : 'NonVeg',
     'Evergreen Tree' : 'Veg',
-    'Decidous Tree' : 'Veg',
+    'Deciduous Tree' : 'Veg',
     'Grass' : 'Veg',
     'Bare Soil' : 'NonVeg',
     'Water' : 'Water',
     'IrrigationCode' : 'Irrigation',       #test to fix fill in of irrigation 
-    'AnthropogenicCode' : 'AnthropogenicEmission'   
+    'AnthropogenicCode' : 'AnthropogenicEmission',
+    'TrafficRate_WD' : 'Profiles',   
+    'TrafficRate_WE' : 'Profiles',
+    'ActivityProfWD' : 'Profiles',
+    'ActivityProfWE' : 'Profiles',
+    'WaterUseProfManuWD' : 'Profiles',
+    'WaterUseProfManuWE' : 'Profiles',
+    'SnowClearingProfWD' : 'Profiles',
+    'SnowClearingProfWE' : 'Profiles'
 }
 
 def round_dict(in_dict):
@@ -141,7 +157,7 @@ def decide_country_or_region(col, country_sel, reg):
         var = country_sel[col].item()    
     return var
 
-def blend_SUEWS_NonVeg(grid_dict, db_dict, id, parameter_dict):
+def blend_SUEWS_NonVeg(grid_dict, db_dict, id, parameter_dict, type):
     '''
     Function for aggregating Building typologies when more than one typology exists in the same grid
     The function needs typology_IDs and fractions to conduct weighted averages using np.average()
@@ -163,7 +179,7 @@ def blend_SUEWS_NonVeg(grid_dict, db_dict, id, parameter_dict):
 
     temp_nonveg_dict = {}
     for typology in typology_list:
-        temp_nonveg_dict[typology] = fill_SUEWS_NonVeg_typologies(typology, db_dict, parameter_dict)
+        temp_nonveg_dict[typology] = fill_SUEWS_NonVeg_typologies(typology, db_dict, parameter_dict, type)
         fractions.append(grid_dict[id][typology]['SAreaFrac'])
 
     dominant_typology = typology_list[fractions.index(max(fractions))]
@@ -223,39 +239,67 @@ def blend_SUEWS_NonVeg(grid_dict, db_dict, id, parameter_dict):
             
     return new_edit
 
-def fill_SUEWS_NonVeg_typologies(code, db_dict, parameter_dict):
+def fill_SUEWS_NonVeg_typologies(code, db_dict, parameter_dict, type):
     '''
     Function for retrieving correct parameters from DB according to typology. 
     This works for Paved, Buildings and Bare Soil
     code is the typology code. 
     When adding new parameters, just create new lines and slice DB using similar as of now
     '''
-    table_dict = {
-        'Code' : code,
-        'AlbedoMin' :   db_dict['Albedo'].loc[db_dict['NonVeg'].loc[code, 'Albedo'], 'Alb_min'],
-        'AlbedoMax' :   db_dict['Albedo'].loc[db_dict['NonVeg'].loc[code, 'Albedo'], 'Alb_max'],
-        'Emissivity' : db_dict['Emissivity'].loc[db_dict['NonVeg'].loc[code, 'Emissivity'], 'Emissivity'],
-        'StorageMin' :  db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[code, 'Water Storage'], 'StorageMin'],
-        'StorageMax' : db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[code, 'Water Storage'], 'StorageMax'],
-        'WetThreshold' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'WetThreshold'],
-        'StateLimit' : -9999, # Not used for Non Veg
-        'DrainageEq' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'DrainageEq'],
-        'DrainageCoef1' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'DrainageCoef1'],
-        'DrainageCoef2' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'DrainageCoef2'],
-        'SoilTypeCode' : parameter_dict['SoilTypeCode'], #table.loc[locator, 'SoilTypeCode'],  36),
-        'SnowLimPatch' : 190, # TODO Set regional
-        'SnowLimRemove': 90,    # TODO Set regional
-        'OHMCode_SummerWet' : db_dict['NonVeg'].loc[code, 'OHMSummerWet'],
-        'OHMCode_SummerDry' : db_dict['NonVeg'].loc[code, 'OHMSummerDry'],
-        'OHMCode_WinterWet' : db_dict['NonVeg'].loc[code, 'OHMWinterWet'],
-        'OHMCode_WinterDry' : db_dict['NonVeg'].loc[code, 'OHMWinterDry'],
-        'OHMThresh_SW' : 10, # TODO Set regional
-        'OHMThresh_WD' : 0.9, # TODO Set regional
-        'ESTMCode' : db_dict['NonVeg'].loc[code, 'ESTM'],
-        'AnOHM_Cp' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[code, 'ANOHM'],  'AnOHM_Cp'],
-        'AnOHM_Kk' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[code, 'ANOHM'],  'AnOHM_Kk'],
-        'AnOHM_Ch' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[code, 'ANOHM'],  'AnOHM_Ch'],
-        }
+    if type: #get from Types
+        table_dict = {
+            'Code' : code,
+            'AlbedoMin' :   db_dict['Albedo'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['Albedo'], 'Alb_min'], #db_dict['Albedo'].loc[db_dict['NonVeg'].loc[code, 'Albedo'], 'Alb_min'],
+            'AlbedoMax' :   db_dict['Albedo'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['Albedo'], 'Alb_max'], #db_dict['Albedo'].loc[db_dict['NonVeg'].loc[code, 'Albedo'], 'Alb_max'],
+            'Emissivity' : db_dict['Emissivity'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['Emissivity'], 'Emissivity'], #db_dict['Emissivity'].loc[db_dict['NonVeg'].loc[code, 'Emissivity'], 'Emissivity'],
+            'StorageMin' :  db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['Water Storage'], 'StorageMin'], #db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[code, 'Water Storage'], 'StorageMin'],
+            'StorageMax' : db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['Water Storage'], 'StorageMax'], #db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[code, 'Water Storage'], 'StorageMax'],
+            'WetThreshold' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['Drainage'], 'WetThreshold'], #db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'WetThreshold'],
+            'StateLimit' : -9999, # Not used for Non Veg
+            'DrainageEq' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['Drainage'], 'DrainageEq'], #db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'DrainageEq'],
+            'DrainageCoef1' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['Drainage'], 'DrainageCoef1'], #db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'DrainageCoef1'],
+            'DrainageCoef2' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['Drainage'], 'DrainageCoef2'], #db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'DrainageCoef2'],
+            'SoilTypeCode' : parameter_dict['SoilTypeCode'], #table.loc[locator, 'SoilTypeCode'],  36),
+            'SnowLimPatch' : 190, # TODO Set regional
+            'SnowLimRemove': 90,    # TODO Set regional
+            'OHMCode_SummerWet' :  db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['OHMSummerWet'], #db_dict['NonVeg'].loc[code, 'OHMSummerWet'],
+            'OHMCode_SummerDry' : db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['OHMSummerDry'], #db_dict['NonVeg'].loc[code, 'OHMSummerDry'],
+            'OHMCode_WinterWet' : db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['OHMWinterWet'], #db_dict['NonVeg'].loc[code, 'OHMWinterWet'],
+            'OHMCode_WinterDry' : db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['OHMWinterDry'], #db_dict['NonVeg'].loc[code, 'OHMWinterDry'],
+            'OHMThresh_SW' : 10, # TODO Set regional
+            'OHMThresh_WD' : 0.9, # TODO Set regional
+            'ESTMCode' : db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['ESTM'], #db_dict['NonVeg'].loc[code, 'ESTM'],
+            'AnOHM_Cp' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['ANOHM'], 'AnOHM_Cp'], #db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[code, 'ANOHM'],  'AnOHM_Cp'],
+            'AnOHM_Kk' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['ANOHM'], 'AnOHM_Kk'], #db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[code, 'ANOHM'],  'AnOHM_Kk'],
+            'AnOHM_Ch' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['ANOHM'], 'AnOHM_Ch'], #db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[code, 'ANOHM'],  'AnOHM_Ch'],
+            }
+    else: #get from Country or Region
+        table_dict = {
+            'Code' : code,
+            'AlbedoMin' :   db_dict['Albedo'].loc[db_dict['NonVeg'].loc[code, 'Albedo'], 'Alb_min'],
+            'AlbedoMax' :   db_dict['Albedo'].loc[db_dict['NonVeg'].loc[code, 'Albedo'], 'Alb_max'],
+            'Emissivity' : db_dict['Emissivity'].loc[db_dict['NonVeg'].loc[code, 'Emissivity'], 'Emissivity'],
+            'StorageMin' :  db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[code, 'Water Storage'], 'StorageMin'],
+            'StorageMax' : db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[code, 'Water Storage'], 'StorageMax'],
+            'WetThreshold' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'WetThreshold'],
+            'StateLimit' : -9999, # Not used for Non Veg
+            'DrainageEq' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'DrainageEq'],
+            'DrainageCoef1' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'DrainageCoef1'],
+            'DrainageCoef2' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'DrainageCoef2'],
+            'SoilTypeCode' : parameter_dict['SoilTypeCode'], #table.loc[locator, 'SoilTypeCode'],  36),
+            'SnowLimPatch' : 190, # TODO Set regional
+            'SnowLimRemove': 90,    # TODO Set regional
+            'OHMCode_SummerWet' :  db_dict['NonVeg'].loc[code, 'OHMSummerWet'],
+            'OHMCode_SummerDry' : db_dict['NonVeg'].loc[code, 'OHMSummerDry'],
+            'OHMCode_WinterWet' : db_dict['NonVeg'].loc[code, 'OHMWinterWet'],
+            'OHMCode_WinterDry' : db_dict['NonVeg'].loc[code, 'OHMWinterDry'],
+            'OHMThresh_SW' : 10, # TODO Set regional
+            'OHMThresh_WD' : 0.9, # TODO Set regional
+            'ESTMCode' : db_dict['NonVeg'].loc[code, 'ESTM'],
+            'AnOHM_Cp' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[code, 'ANOHM'],  'AnOHM_Cp'],
+            'AnOHM_Kk' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[code, 'ANOHM'],  'AnOHM_Kk'],
+            'AnOHM_Ch' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[code, 'ANOHM'],  'AnOHM_Ch'],
+            }
     
     return table_dict
 
@@ -337,13 +381,13 @@ def fill_SUEWS_Water(locator, db_dict, column_dict):
 def fill_SUEWS_Veg(db_dict, column_dict ):
     '''
     This function is used to assign correct params to selected Veg codes 
-    Fills for all surfaces (grass, evergreen trees, decidous trees)
+    Fills for all surfaces (grass, evergreen trees, deciduous trees)
     '''
     table = db_dict['Veg']
     table_dict = {}
     
     
-    for surface in ['Evergreen Tree', 'Decidous Tree', 'Grass']:
+    for surface in ['Evergreen Tree', 'Deciduous Tree', 'Grass']:
         table_dict[surface] = {}
 
         locator = column_dict[surface]
