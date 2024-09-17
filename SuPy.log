@@ -1,0 +1,1737 @@
+2024-09-12 15:09:05,400 - SuPy - INFO - All cache cleared.
+2024-09-12 15:09:53,382 - SuPy - INFO - All cache cleared.
+2024-09-12 15:10:35,279 - SuPy - INFO - All cache cleared.
+2024-09-12 15:14:32,098 - SuPy - INFO - All cache cleared.
+2024-09-12 15:18:31,266 - SuPy - INFO - All cache cleared.
+2024-09-12 15:21:57,629 - SuPy - INFO - All cache cleared.
+2024-09-12 15:23:00,207 - SuPy - INFO - All cache cleared.
+2024-09-12 15:23:00,311 - SuPy - ERROR - Entries missing from SUEWS_NonVeg.txt
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([2025618917, 2025655098, 2025678857, 2025602628, 2025632724, 2025655268,\n       2025678910, 2025603517, 2025628862, 2025653466, 2025678235, 2025603487,\n       2028256921, 2028256921, 2025673721],\n      dtype='int32', name='Code')] are in the [index]"
+2024-09-12 15:23:00,317 - SuPy - ERROR - missing code:
+ [2025618917, 2025655098, 2025678857, 2025602628, 2025632724, 2025655268, 2025678910, 2025603517, 2025628862, 2025653466, 2025678235, 2025603487, 2028256921, 2028256921, 2025673721]
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([2025618917, 2025655098, 2025678857, 2025602628, 2025632724, 2025655268,\n       2025678910, 2025603517, 2025628862, 2025653466, 2025678235, 2025603487,\n       2028256921, 2028256921, 2025673721],\n      dtype='int32', name='Code')] are in the [index]"
+2024-09-12 15:23:00,322 - SuPy - ERROR - `df_code0` has been dumped into C:\GitHub\suews_prepare_database\df_code0.pkl for debugging!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([2025618917, 2025655098, 2025678857, 2025602628, 2025632724, 2025655268,\n       2025678910, 2025603517, 2025628862, 2025653466, 2025678235, 2025603487,\n       2028256921, 2028256921, 2025673721],\n      dtype='int32', name='Code')] are in the [index]"
+2024-09-12 15:23:15,632 - SuPy - INFO - All cache cleared.
+2024-09-12 15:23:15,666 - SuPy - ERROR - error [Errno 2] No such file or directory: 'C:\\Users\\xbacos\\OneDrive - University of Gothenburg\\Artikel_4\\OUT\\OSept\\SUEWS_NonVeg.txt' in reading C:\Users\xbacos\OneDrive - University of Gothenburg\Artikel_4\OUT\OSept\SUEWS_NonVeg.txt!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 309, in load_SUEWS_table
+    rawdata = pd.read_csv(
+              ^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 620, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 1620, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 1880, in _make_engine
+    self.handles = get_handle(
+                   ^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\common.py", line 873, in get_handle
+    handle = open(
+             ^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\xbacos\\OneDrive - University of Gothenburg\\Artikel_4\\OUT\\OSept\\SUEWS_NonVeg.txt'
+2024-09-12 15:23:24,017 - SuPy - INFO - All cache cleared.
+2024-09-12 15:23:24,049 - SuPy - ERROR - error [Errno 2] No such file or directory: 'C:\\Users\\xbacos\\OneDrive - University of Gothenburg\\Artikel_4\\OUT\\OSept\\SUEWS_AnthropogenicEmission.txt' in reading C:\Users\xbacos\OneDrive - University of Gothenburg\Artikel_4\OUT\OSept\SUEWS_AnthropogenicEmission.txt!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 309, in load_SUEWS_table
+    rawdata = pd.read_csv(
+              ^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 620, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 1620, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 1880, in _make_engine
+    self.handles = get_handle(
+                   ^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\common.py", line 873, in get_handle
+    handle = open(
+             ^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\xbacos\\OneDrive - University of Gothenburg\\Artikel_4\\OUT\\OSept\\SUEWS_AnthropogenicEmission.txt'
+2024-09-12 15:23:24,102 - SuPy - ERROR - error [Errno 2] No such file or directory: 'C:\\Users\\xbacos\\OneDrive - University of Gothenburg\\Artikel_4\\OUT\\OSept\\SUEWS_NonVeg.txt' in reading C:\Users\xbacos\OneDrive - University of Gothenburg\Artikel_4\OUT\OSept\SUEWS_NonVeg.txt!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 309, in load_SUEWS_table
+    rawdata = pd.read_csv(
+              ^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 620, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 1620, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 1880, in _make_engine
+    self.handles = get_handle(
+                   ^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\common.py", line 873, in get_handle
+    handle = open(
+             ^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\xbacos\\OneDrive - University of Gothenburg\\Artikel_4\\OUT\\OSept\\SUEWS_NonVeg.txt'
+2024-09-12 15:23:51,773 - SuPy - INFO - All cache cleared.
+2024-09-12 15:23:51,793 - SuPy - ERROR - error [Errno 2] No such file or directory: 'C:\\Users\\xbacos\\OneDrive - University of Gothenburg\\Artikel_4\\OUT\\OSept\\SUEWS_NonVeg.txt' in reading C:\Users\xbacos\OneDrive - University of Gothenburg\Artikel_4\OUT\OSept\SUEWS_NonVeg.txt!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 309, in load_SUEWS_table
+    rawdata = pd.read_csv(
+              ^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 620, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 1620, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 1880, in _make_engine
+    self.handles = get_handle(
+                   ^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\common.py", line 873, in get_handle
+    handle = open(
+             ^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\xbacos\\OneDrive - University of Gothenburg\\Artikel_4\\OUT\\OSept\\SUEWS_NonVeg.txt'
+2024-09-12 15:24:08,226 - SuPy - INFO - All cache cleared.
+2024-09-12 15:24:08,237 - SuPy - ERROR - error [Errno 2] No such file or directory: 'C:\\Users\\xbacos\\OneDrive - University of Gothenburg\\Artikel_4\\OUT\\OSept\\SUEWS_AnthropogenicEmission.txt' in reading C:\Users\xbacos\OneDrive - University of Gothenburg\Artikel_4\OUT\OSept\SUEWS_AnthropogenicEmission.txt!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 309, in load_SUEWS_table
+    rawdata = pd.read_csv(
+              ^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 620, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 1620, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 1880, in _make_engine
+    self.handles = get_handle(
+                   ^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\common.py", line 873, in get_handle
+    handle = open(
+             ^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\xbacos\\OneDrive - University of Gothenburg\\Artikel_4\\OUT\\OSept\\SUEWS_AnthropogenicEmission.txt'
+2024-09-12 15:24:08,298 - SuPy - ERROR - Entries missing from SUEWS_NonVeg.txt
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([2025618917, 2025655098, 2025678857, 2025602628, 2025632724, 2025655268,\n       2025678910, 2025603517, 2025628862, 2025653466, 2025678235, 2025603487,\n       2028256921, 2028256921, 2025673721],\n      dtype='int32', name='Code')] are in the [index]"
+2024-09-12 15:24:08,301 - SuPy - ERROR - missing code:
+ [2025618917, 2025655098, 2025678857, 2025602628, 2025632724, 2025655268, 2025678910, 2025603517, 2025628862, 2025653466, 2025678235, 2025603487, 2028256921, 2028256921, 2025673721]
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([2025618917, 2025655098, 2025678857, 2025602628, 2025632724, 2025655268,\n       2025678910, 2025603517, 2025628862, 2025653466, 2025678235, 2025603487,\n       2028256921, 2028256921, 2025673721],\n      dtype='int32', name='Code')] are in the [index]"
+2024-09-12 15:24:08,304 - SuPy - ERROR - `df_code0` has been dumped into C:\GitHub\suews_prepare_database\df_code0.pkl for debugging!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([2025618917, 2025655098, 2025678857, 2025602628, 2025632724, 2025655268,\n       2025678910, 2025603517, 2025628862, 2025653466, 2025678235, 2025603487,\n       2028256921, 2028256921, 2025673721],\n      dtype='int32', name='Code')] are in the [index]"
+2024-09-12 15:24:16,536 - SuPy - INFO - All cache cleared.
+2024-09-12 15:24:16,601 - SuPy - ERROR - Entries missing from SUEWS_NonVeg.txt
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([2025618917, 2025655098, 2025678857, 2025602628, 2025632724, 2025655268,\n       2025678910, 2025603517, 2025628862, 2025653466, 2025678235, 2025603487,\n       2028256921, 2028256921, 2025673721],\n      dtype='int32', name='Code')] are in the [index]"
+2024-09-12 15:24:16,603 - SuPy - ERROR - missing code:
+ [2025618917, 2025655098, 2025678857, 2025602628, 2025632724, 2025655268, 2025678910, 2025603517, 2025628862, 2025653466, 2025678235, 2025603487, 2028256921, 2028256921, 2025673721]
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([2025618917, 2025655098, 2025678857, 2025602628, 2025632724, 2025655268,\n       2025678910, 2025603517, 2025628862, 2025653466, 2025678235, 2025603487,\n       2028256921, 2028256921, 2025673721],\n      dtype='int32', name='Code')] are in the [index]"
+2024-09-12 15:24:16,606 - SuPy - ERROR - `df_code0` has been dumped into C:\GitHub\suews_prepare_database\df_code0.pkl for debugging!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([2025618917, 2025655098, 2025678857, 2025602628, 2025632724, 2025655268,\n       2025678910, 2025603517, 2025628862, 2025653466, 2025678235, 2025603487,\n       2028256921, 2028256921, 2025673721],\n      dtype='int32', name='Code')] are in the [index]"
+2024-09-12 15:24:58,290 - SuPy - INFO - All cache cleared.
+2024-09-12 15:28:59,769 - SuPy - INFO - All cache cleared.
+2024-09-12 15:29:00,008 - SuPy - ERROR - Entries missing from SUEWS_Veg.txt
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-2147483648, -2147483648, -2147483648, -2147483648, -2147483648,\n       -2147483648, -2147483648, -2147483648, -2147483648, -2147483648,\n       -2147483648, -2147483648, -2147483648, -2147483648, -2147483648],\n      dtype='int32', name='Code')] are in the [index]"
+2024-09-12 15:29:00,011 - SuPy - ERROR - missing code:
+ [-2147483648, -2147483648, -2147483648, -2147483648, -2147483648, -2147483648, -2147483648, -2147483648, -2147483648, -2147483648, -2147483648, -2147483648, -2147483648, -2147483648, -2147483648]
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-2147483648, -2147483648, -2147483648, -2147483648, -2147483648,\n       -2147483648, -2147483648, -2147483648, -2147483648, -2147483648,\n       -2147483648, -2147483648, -2147483648, -2147483648, -2147483648],\n      dtype='int32', name='Code')] are in the [index]"
+2024-09-12 15:29:00,017 - SuPy - ERROR - `df_code0` has been dumped into C:\GitHub\suews_prepare_database\df_code0.pkl for debugging!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-2147483648, -2147483648, -2147483648, -2147483648, -2147483648,\n       -2147483648, -2147483648, -2147483648, -2147483648, -2147483648,\n       -2147483648, -2147483648, -2147483648, -2147483648, -2147483648],\n      dtype='int32', name='Code')] are in the [index]"
+2024-09-12 15:38:44,151 - SuPy - INFO - All cache cleared.
+2024-09-12 15:44:45,265 - SuPy - INFO - All cache cleared.
+2024-09-12 15:45:05,363 - SuPy - INFO - All cache cleared.
+2024-09-12 15:50:35,124 - SuPy - INFO - All cache cleared.
+2024-09-12 15:50:55,763 - SuPy - INFO - All cache cleared.
+2024-09-12 15:51:49,529 - SuPy - INFO - All cache cleared.
+2024-09-12 15:51:49,671 - SuPy - ERROR - Entries missing from SUEWS_NonVeg.txt
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([661], dtype='int32', name='Code')] are in the [index]"
+2024-09-12 15:51:49,674 - SuPy - ERROR - missing code:
+ [661]
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([661], dtype='int32', name='Code')] are in the [index]"
+2024-09-12 15:51:49,678 - SuPy - ERROR - `df_code0` has been dumped into C:\GitHub\suews_prepare_database\df_code0.pkl for debugging!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([661], dtype='int32', name='Code')] are in the [index]"
+2024-09-12 15:52:09,376 - SuPy - INFO - All cache cleared.
+2024-09-12 15:54:04,676 - SuPy - INFO - All cache cleared.
+2024-09-12 15:54:36,610 - SuPy - INFO - All cache cleared.
+2024-09-12 15:56:39,075 - SuPy - INFO - All cache cleared.
+2024-09-13 12:30:07,857 - SuPy - INFO - All cache cleared.
+2024-09-13 12:36:05,619 - SuPy - INFO - All cache cleared.
+2024-09-13 12:37:23,558 - SuPy - INFO - All cache cleared.
+2024-09-13 12:37:23,643 - SuPy - ERROR - Entries missing from SUEWS_NonVeg.txt
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: '[2025724658, 2025736215, 2025746324, 2025757933, 2025767796, 2025776983, 2025789683, 2025700818, 2025712781, 2025722414, 2025731493, 2025741431, 2025763884] not in index'
+2024-09-13 12:37:23,646 - SuPy - ERROR - missing code:
+ [2025724658, 2025736215, 2025746324, 2025757933, 2025767796, 2025776983, 2025789683, 2025700818, 2025712781, 2025722414, 2025731493, 2025741431, 2025763884]
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: '[2025724658, 2025736215, 2025746324, 2025757933, 2025767796, 2025776983, 2025789683, 2025700818, 2025712781, 2025722414, 2025731493, 2025741431, 2025763884] not in index'
+2024-09-13 12:37:23,651 - SuPy - ERROR - `df_code0` has been dumped into C:\GitHub\suews_prepare_database\df_code0.pkl for debugging!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: '[2025724658, 2025736215, 2025746324, 2025757933, 2025767796, 2025776983, 2025789683, 2025700818, 2025712781, 2025722414, 2025731493, 2025741431, 2025763884] not in index'
+2024-09-13 12:37:27,056 - SuPy - INFO - All cache cleared.
+2024-09-13 12:37:27,119 - SuPy - ERROR - Entries missing from SUEWS_NonVeg.txt
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: '[2025724658, 2025736215, 2025746324, 2025757933, 2025767796, 2025776983, 2025789683, 2025700818, 2025712781, 2025722414, 2025731493, 2025741431, 2025763884] not in index'
+2024-09-13 12:37:27,121 - SuPy - ERROR - missing code:
+ [2025724658, 2025736215, 2025746324, 2025757933, 2025767796, 2025776983, 2025789683, 2025700818, 2025712781, 2025722414, 2025731493, 2025741431, 2025763884]
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: '[2025724658, 2025736215, 2025746324, 2025757933, 2025767796, 2025776983, 2025789683, 2025700818, 2025712781, 2025722414, 2025731493, 2025741431, 2025763884] not in index'
+2024-09-13 12:37:27,124 - SuPy - ERROR - `df_code0` has been dumped into C:\GitHub\suews_prepare_database\df_code0.pkl for debugging!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: '[2025724658, 2025736215, 2025746324, 2025757933, 2025767796, 2025776983, 2025789683, 2025700818, 2025712781, 2025722414, 2025731493, 2025741431, 2025763884] not in index'
+2024-09-13 12:46:43,919 - SuPy - INFO - All cache cleared.
+2024-09-13 12:48:35,483 - SuPy - INFO - All cache cleared.
+2024-09-13 12:51:54,526 - SuPy - INFO - All cache cleared.
+2024-09-13 12:52:31,748 - SuPy - INFO - All cache cleared.
+2024-09-13 12:55:44,779 - SuPy - INFO - All cache cleared.
+2024-09-13 12:55:44,893 - SuPy - ERROR - error [Errno 2] No such file or directory: 'C:\\Users\\xbacos\\OneDrive - University of Gothenburg\\Artikel_4\\OUT\\base\\SUEWS_SiteSelect.txt' in reading C:\Users\xbacos\OneDrive - University of Gothenburg\Artikel_4\OUT\base\SUEWS_SiteSelect.txt!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 309, in load_SUEWS_table
+    rawdata = pd.read_csv(
+              ^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 620, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 1620, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\parsers\readers.py", line 1880, in _make_engine
+    self.handles = get_handle(
+                   ^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\io\common.py", line 873, in get_handle
+    handle = open(
+             ^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\xbacos\\OneDrive - University of Gothenburg\\Artikel_4\\OUT\\base\\SUEWS_SiteSelect.txt'
+2024-09-13 12:57:05,368 - SuPy - INFO - All cache cleared.
+2024-09-13 12:57:50,313 - SuPy - INFO - All cache cleared.
+2024-09-13 12:58:39,144 - SuPy - INFO - All cache cleared.
+2024-09-13 12:59:42,410 - SuPy - INFO - All cache cleared.
+2024-09-13 13:00:05,817 - SuPy - INFO - All cache cleared.
+2024-09-13 13:00:16,749 - SuPy - INFO - All cache cleared.
+2024-09-13 13:00:31,464 - SuPy - INFO - All cache cleared.
+2024-09-13 13:00:39,205 - SuPy - INFO - All cache cleared.
+2024-09-13 13:00:39,205 - SuPy - ERROR - C:\Users\xbacos\OneDrive - University of Gothenburg\Artikel_4\OUT\OSept\SUEWS_SPARTACUS.nml does not exists!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 284, in load_SUEWS_nml
+    df_nml = pd.DataFrame(parser.read(p_nml))
+                          ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\f90nml\parser.py", line 279, in read
+    nml_file = open(nml_fname, 'r') if nml_is_path else nml_fname
+               ^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\xbacos\\OneDrive - University of Gothenburg\\Artikel_4\\OUT\\OSept\\SUEWS_SPARTACUS.nml'
+2024-09-13 13:00:45,925 - SuPy - INFO - All cache cleared.
+2024-09-13 13:07:29,604 - SuPy - INFO - All cache cleared.
+2024-09-13 14:43:25,828 - SuPy - INFO - All cache cleared.
+2024-09-13 14:46:02,704 - SuPy - INFO - All cache cleared.
+2024-09-13 14:47:19,248 - SuPy - INFO - All cache cleared.
+2024-09-13 14:48:32,536 - SuPy - INFO - All cache cleared.
+2024-09-13 14:48:55,143 - SuPy - INFO - All cache cleared.
+2024-09-13 14:48:55,232 - SuPy - ERROR - Entries missing from SUEWS_Veg.txt
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-1866692328], dtype='object', name='Code')] are in the [index]"
+2024-09-13 14:48:55,232 - SuPy - ERROR - missing code:
+ [-1866692328]
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-1866692328], dtype='object', name='Code')] are in the [index]"
+2024-09-13 14:48:55,246 - SuPy - ERROR - `df_code0` has been dumped into C:\GitHub\suews_prepare_database\df_code0.pkl for debugging!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-1866692328], dtype='object', name='Code')] are in the [index]"
+2024-09-13 14:51:06,177 - SuPy - INFO - All cache cleared.
+2024-09-13 14:51:24,683 - SuPy - INFO - All cache cleared.
+2024-09-13 14:51:24,805 - SuPy - ERROR - Entries missing from SUEWS_Veg.txt
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-1866692328, -1866692328, -1866692328, -1866692328, -1866692328,\n       -1866692328, -1866692328, -1866692328, -1866692328, -1866692328,\n       -1866692328, -1866692328, -1866692328, -1866692328, -1866692328],\n      dtype='object', name='Code')] are in the [index]"
+2024-09-13 14:51:24,808 - SuPy - ERROR - missing code:
+ [-1866692328, -1866692328, -1866692328, -1866692328, -1866692328, -1866692328, -1866692328, -1866692328, -1866692328, -1866692328, -1866692328, -1866692328, -1866692328, -1866692328, -1866692328]
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-1866692328, -1866692328, -1866692328, -1866692328, -1866692328,\n       -1866692328, -1866692328, -1866692328, -1866692328, -1866692328,\n       -1866692328, -1866692328, -1866692328, -1866692328, -1866692328],\n      dtype='object', name='Code')] are in the [index]"
+2024-09-13 14:51:24,812 - SuPy - ERROR - `df_code0` has been dumped into C:\GitHub\suews_prepare_database\df_code0.pkl for debugging!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-1866692328, -1866692328, -1866692328, -1866692328, -1866692328,\n       -1866692328, -1866692328, -1866692328, -1866692328, -1866692328,\n       -1866692328, -1866692328, -1866692328, -1866692328, -1866692328],\n      dtype='object', name='Code')] are in the [index]"
+2024-09-13 14:52:27,673 - SuPy - INFO - All cache cleared.
+2024-09-13 14:53:00,275 - SuPy - INFO - All cache cleared.
+2024-09-13 14:53:00,460 - SuPy - ERROR - Entries missing from SUEWS_Veg.txt
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-1866692328], dtype='object', name='Code')] are in the [index]"
+2024-09-13 14:53:00,464 - SuPy - ERROR - missing code:
+ [-1866692328]
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-1866692328], dtype='object', name='Code')] are in the [index]"
+2024-09-13 14:53:00,469 - SuPy - ERROR - `df_code0` has been dumped into C:\GitHub\suews_prepare_database\df_code0.pkl for debugging!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 932, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-1866692328], dtype='object', name='Code')] are in the [index]"
+2024-09-13 14:53:12,704 - SuPy - INFO - All cache cleared.
+2024-09-13 14:54:23,076 - SuPy - INFO - All cache cleared.
+2024-09-13 14:54:24,155 - SuPy - ERROR - C:\Users\xbacos\OneDrive - University of Gothenburg\Artikel_4\OUT\OSept\GridLayoutimp.nml does not exists!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 284, in load_SUEWS_nml
+    df_nml = pd.DataFrame(parser.read(p_nml))
+                          ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\f90nml\parser.py", line 279, in read
+    nml_file = open(nml_fname, 'r') if nml_is_path else nml_fname
+               ^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\xbacos\\OneDrive - University of Gothenburg\\Artikel_4\\OUT\\OSept\\GridLayoutimp.nml'
+2024-09-13 14:55:05,204 - SuPy - INFO - All cache cleared.
+2024-09-13 14:57:30,883 - SuPy - INFO - All cache cleared.
+2024-09-13 15:02:47,831 - SuPy - INFO - All cache cleared.
+2024-09-17 10:18:06,522 - SuPy - INFO - All cache cleared.
+2024-09-17 10:19:09,368 - SuPy - INFO - All cache cleared.
+2024-09-17 10:19:31,460 - SuPy - INFO - All cache cleared.
+2024-09-17 10:20:16,214 - SuPy - INFO - All cache cleared.
+2024-09-17 10:20:31,905 - SuPy - INFO - All cache cleared.
+2024-09-17 10:21:38,101 - SuPy - INFO - All cache cleared.
+2024-09-17 10:23:02,548 - SuPy - INFO - All cache cleared.
+2024-09-17 10:24:21,396 - SuPy - INFO - All cache cleared.
+2024-09-17 10:24:33,541 - SuPy - INFO - All cache cleared.
+2024-09-17 10:28:20,566 - SuPy - INFO - All cache cleared.
+2024-09-17 10:28:34,890 - SuPy - INFO - All cache cleared.
+2024-09-17 10:34:06,898 - SuPy - INFO - All cache cleared.
+2024-09-17 10:36:00,378 - SuPy - INFO - All cache cleared.
+2024-09-17 10:37:59,995 - SuPy - INFO - All cache cleared.
+2024-09-17 10:38:31,277 - SuPy - INFO - All cache cleared.
+2024-09-17 10:39:10,609 - SuPy - INFO - All cache cleared.
+2024-09-17 10:40:34,808 - SuPy - INFO - All cache cleared.
+2024-09-17 10:42:08,546 - SuPy - INFO - All cache cleared.
+2024-09-17 10:42:08,719 - SuPy - ERROR - Entries missing from SUEWS_Veg.txt
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 940, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-2147483648], dtype='int32', name='Code')] are in the [index]"
+2024-09-17 10:42:08,797 - SuPy - ERROR - missing code:
+ [-2147483648]
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 940, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-2147483648], dtype='int32', name='Code')] are in the [index]"
+2024-09-17 10:42:08,813 - SuPy - ERROR - `df_code0` has been dumped into C:\GitHub\suews_prepare_database\df_code0.pkl for debugging!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 940, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-2147483648], dtype='int32', name='Code')] are in the [index]"
+2024-09-17 10:44:25,159 - SuPy - INFO - All cache cleared.
+2024-09-17 10:44:49,051 - SuPy - INFO - All cache cleared.
+2024-09-17 10:45:44,421 - SuPy - INFO - All cache cleared.
+2024-09-17 10:46:14,008 - SuPy - INFO - All cache cleared.
+2024-09-17 10:46:14,195 - SuPy - ERROR - Entries missing from SUEWS_Veg.txt
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 940, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-2147483648], dtype='int32', name='Code')] are in the [index]"
+2024-09-17 10:46:14,295 - SuPy - ERROR - missing code:
+ [-2147483648]
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 940, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-2147483648], dtype='int32', name='Code')] are in the [index]"
+2024-09-17 10:46:14,310 - SuPy - ERROR - `df_code0` has been dumped into C:\GitHub\suews_prepare_database\df_code0.pkl for debugging!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 940, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-2147483648], dtype='int32', name='Code')] are in the [index]"
+2024-09-17 10:50:57,882 - SuPy - INFO - All cache cleared.
+2024-09-17 10:50:58,039 - SuPy - ERROR - Entries missing from SUEWS_Veg.txt
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 940, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-2147483648], dtype='int32', name='Code')] are in the [index]"
+2024-09-17 10:50:58,039 - SuPy - ERROR - missing code:
+ [-2147483648]
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 940, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-2147483648], dtype='int32', name='Code')] are in the [index]"
+2024-09-17 10:50:58,055 - SuPy - ERROR - `df_code0` has been dumped into C:\GitHub\suews_prepare_database\df_code0.pkl for debugging!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 940, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-2147483648], dtype='int32', name='Code')] are in the [index]"
+2024-09-17 10:52:05,297 - SuPy - INFO - All cache cleared.
+2024-09-17 10:52:05,560 - SuPy - ERROR - Entries missing from SUEWS_Veg.txt
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 940, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-2147483648], dtype='int32', name='Code')] are in the [index]"
+2024-09-17 10:52:05,577 - SuPy - ERROR - missing code:
+ [-2147483648]
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 940, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-2147483648], dtype='int32', name='Code')] are in the [index]"
+2024-09-17 10:52:05,592 - SuPy - ERROR - `df_code0` has been dumped into C:\GitHub\suews_prepare_database\df_code0.pkl for debugging!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 940, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-2147483648], dtype='int32', name='Code')] are in the [index]"
+2024-09-17 10:52:11,813 - SuPy - INFO - All cache cleared.
+2024-09-17 10:52:12,026 - SuPy - ERROR - Entries missing from SUEWS_Veg.txt
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 940, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-2147483648], dtype='int32', name='Code')] are in the [index]"
+2024-09-17 10:52:12,026 - SuPy - ERROR - missing code:
+ [-2147483648]
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 940, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-2147483648], dtype='int32', name='Code')] are in the [index]"
+2024-09-17 10:52:12,047 - SuPy - ERROR - `df_code0` has been dumped into C:\GitHub\suews_prepare_database\df_code0.pkl for debugging!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 940, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([-2147483648], dtype='int32', name='Code')] are in the [index]"
+2024-09-17 11:03:39,276 - SuPy - INFO - All cache cleared.
+2024-09-17 11:05:13,525 - SuPy - INFO - All cache cleared.
+2024-09-17 11:06:23,352 - SuPy - INFO - All cache cleared.
+2024-09-17 11:06:23,485 - SuPy - ERROR - Entries missing from SUEWS_NonVeg.txt
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 944, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([2028256921], dtype='int32', name='Code')] are in the [index]"
+2024-09-17 11:06:23,552 - SuPy - ERROR - missing code:
+ [2028256921]
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 944, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([2028256921], dtype='int32', name='Code')] are in the [index]"
+2024-09-17 11:06:23,552 - SuPy - ERROR - `df_code0` has been dumped into C:\GitHub\suews_prepare_database\df_code0.pkl for debugging!
+Traceback (most recent call last):
+  File "C:\Users\xbacos\AppData\Roaming\Python\Python312\site-packages\supy\_load.py", line 944, in build_code_df
+    df_code = df_code0.loc[list_code, list_keys]
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1184, in __getitem__
+    return self._getitem_tuple(key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1368, in _getitem_tuple
+    return self._getitem_lowerdim(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1041, in _getitem_lowerdim
+    return self._getitem_nested_tuple(tup)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1153, in _getitem_nested_tuple
+    obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1420, in _getitem_axis
+    return self._getitem_iterable(key, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1360, in _getitem_iterable
+    keyarr, indexer = self._get_listlike_indexer(key, axis)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexing.py", line 1558, in _get_listlike_indexer
+    keyarr, indexer = ax._get_indexer_strict(key, axis_name)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\pandas\core\indexes\base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index([2028256921], dtype='int32', name='Code')] are in the [index]"
+2024-09-17 11:07:21,759 - SuPy - INFO - All cache cleared.
+2024-09-17 11:09:06,297 - SuPy - INFO - All cache cleared.
+2024-09-17 11:10:37,344 - SuPy - INFO - All cache cleared.
+2024-09-17 11:15:31,808 - SuPy - INFO - All cache cleared.

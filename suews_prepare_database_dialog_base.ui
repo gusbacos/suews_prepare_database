@@ -1556,7 +1556,7 @@ Cover Fraction calculation</string>
       <item row="2" column="0">
        <widget class="QLabel" name="label">
         <property name="text">
-         <string>Vector grid (polyogn):</string>
+         <string>Vector grid (polygon):</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>

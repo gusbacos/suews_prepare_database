@@ -24,17 +24,14 @@
 
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import  QAction, QMessageBox, QLabel, QLineEdit, QGridLayout, QVBoxLayout, QSpacerItem, QSizePolicy, QFileDialog, QComboBox
-from qgis.gui import QgsMapLayerComboBox, QgsFieldComboBox
+from qgis.PyQt.QtWidgets import  QAction, QMessageBox, QFileDialog
+
 from qgis.core import (QgsMapLayerProxyModel, 
                        QgsFieldProxyModel, 
                        QgsVectorLayer, 
-                       QgsMessageLog, 
                        QgsFeature, 
                        QgsProject,
-                       QgsVectorFileWriter,
-                       QgsProcessingFeatureSourceDefinition,
-                       QgsFeatureRequest)
+                       QgsVectorFileWriter,)
 
 # Initialize Qt resources from file resources.py
 from .resources import *
@@ -55,10 +52,10 @@ from .Utilities import f90nml
 from .Utilities import RoughnessCalcFunction as rg
 from .Utilities.misc import saveraster
 from .Utilities import wallalgorithms as wa
-from .Utilities.db_functions import (read_DB, decide_country_or_region, fill_SUEWS_NonVeg, fill_SUEWS_NonVeg_typologies,  fill_SUEWS_Water, 
+from .Utilities.db_functions import (read_DB, decide_country_or_region, fill_SUEWS_NonVeg_typologies,  fill_SUEWS_Water, 
                                      fill_SUEWS_Veg, fill_SUEWS_Snow, fill_SUEWS_AnthropogenicEmission, 
                                      fill_SUEWS_profiles, blend_SUEWS_NonVeg, save_SUEWS_txt, save_snow, 
-                                     save_NonVeg_types, save_SiteSelect, presave, read_morph_txt, surf_df_dict)
+                                     save_NonVeg_types, save_SiteSelect, presave, read_morph_txt, surf_df_dict, )
 
 from .Utilities.ssParms import getVertheights, ss_calc_gridlayout
 from .Utilities.umep_suewsss_export_component import writeGridLayout, create_GridLayout_dict, write_GridLayout_file
@@ -66,6 +63,7 @@ from shutil import copyfile, rmtree
 
 # from .prepare_workertypo import Worker
 import processing
+
 ################################################################
 
 class SUEWSPrepareDatabase(object):
@@ -303,10 +301,10 @@ class SUEWSPrepareDatabase(object):
         # New for Typology database
         self.dlg.layerComboManagerDSM.setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.dlg.layerComboManagerDSM.setFixedWidth(175)
-        self.dlg.layerComboManagerDSM.setCurrentIndex(-1)
+        self.dlg.layerComboManagerDSM.setCurrentIndex(1)
         self.dlg.layerComboManagerDEM.setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.dlg.layerComboManagerDEM.setFixedWidth(175)
-        self.dlg.layerComboManagerDEM.setCurrentIndex(-1)
+        self.dlg.layerComboManagerDEM.setCurrentIndex(0)
         # self.dlg.layerComboManagerCDSM.setFilters(QgsMapLayerProxyModel.RasterLayer)
         # self.dlg.layerComboManagerCDSM.setFixedWidth(175)
         # self.dlg.layerComboManagerCDSM.setCurrentIndex(-1)
@@ -427,8 +425,6 @@ class SUEWSPrepareDatabase(object):
 
         self.country_str = country_sel
         self.region_str = reg_sel
-        print(self.country_str)
-        print('here1')
         # Update region according to country if country is chosen before region
         self.dlg.lineEditRegInfo.setText(reg_sel)
         # try:
@@ -573,6 +569,28 @@ class SUEWSPrepareDatabase(object):
 
 
     def generate(self):
+        
+        testmode = True 
+
+        if testmode is True:
+            self.output_dir = r'C:\Users\xbacos\OneDrive - University of Gothenburg\Artikel_4\OUT\OSept'
+            self.Metfile_path = r'C:\GitHub\suews_prepare_database\sample_data\Kb_2017_data_60.txt'
+            self.IMPfile_path = r'C:\GitHub\suews_prepare_database\sample_data\imp_IMPGrid_isotropic.txt'
+            self.IMPvegfile_path = r'C:\GitHub\suews_prepare_database\sample_data\lc_LCFG_isotropic.txt'
+            self.LCFfile_path =  r'suews_prepare_database/sample_data/veg_IMPGrid_isotropic.txt'
+            self.file_code = 'kvb'
+            self.IMP_from_file = True
+            self.ss_dir = r'C:\GitHub\suews_prepare_database\sample_data'
+            # polygonfile = r'C:\GitHub\suews_prepare_database\sample_data\gridKville.shp'
+
+
+        # print(self.Metfile_path)
+        # print( self.output_dir )
+        # print(self.IMPfile_path)
+        # print(self.IMPvegfile_path)
+        # print(self.LCFfile_path )
+        # print(self.file_code)
+
         # First check that all parts of the interface have been filled in correclty
         # output dir
         if self.output_dir is None:
@@ -582,9 +600,12 @@ class SUEWSPrepareDatabase(object):
         # metfile
         year = None
         year2 = None
+
+        print(self.Metfile_path)
         if self.Metfile_path is None:
-            QMessageBox.critical(self.dlg, "Error", "Meteorological data file has not been provided")
-            return
+            #QMessageBox.critical(self.dlg, "Error", "Meteorological data file has not been provided")
+            # return
+            pass
         elif os.path.isfile(self.Metfile_path[0]):
             with open(self.Metfile_path[0]) as metfile:
                 next(metfile)
@@ -601,18 +622,24 @@ class SUEWSPrepareDatabase(object):
                         else:
                             year2 = split[0]
         else:
-            QMessageBox.critical(self.dlg, "Error", "Could not find the file containing meteorological data")
-            return
+            #QMessageBox.critical(self.dlg, "Error", "Could not find the file containing meteorological data")
+            # return
+            pass
+        
 
         # # check polygon grid
         poly = self.dlg.layerComboManagerPolygrid.currentLayer()
+            
         if poly is None:
-            QMessageBox.critical(None, "Error", "No valid Polygon layer is selected")
+           # QMessageBox.critical(None, "Error", "No valid Polygon layer is selected")
             return
         
-        poly_field = self.dlg.layerComboManagerPolyField.currentField()
+        if testmode is True:
+            poly_field = 'ID'
+        else:
+            poly_field = self.dlg.layerComboManagerPolyField.currentField()
         if poly_field == '':
-            QMessageBox.critical(None, "Error", "An attribute field with unique fields must be selected")
+            #QMessageBox.critical(None, "Error", "An attribute field with unique fields must be selected")
             return
 
         vlayer = QgsVectorLayer(poly.source(), "polygon", "ogr")
@@ -624,6 +651,9 @@ class SUEWSPrepareDatabase(object):
             return
 
         # population density  from polygon grid
+        # if testmode is True:
+        #     self.dlg.pop_density.currentField() = 'popsum'
+
         if self.dlg.pop_density.currentField() == '':
             QMessageBox.critical(None, "Error", "An attribute field including night-time population density (pp/ha) must be selected")
             return
@@ -643,30 +673,34 @@ class SUEWSPrepareDatabase(object):
                                      "choosen. Preferably start the model run during Winter or Summer.")
 
         # Morphometric and land cover files
-        if self.IMP_from_file:
-            if self.IMPfile_path is None:
-                QMessageBox.critical(None, "Error", "Building morphology file has not been provided")
-                return
-            if not os.path.isfile(self.IMPfile_path[0]):
-                QMessageBox.critical(None, "Error", "Could not find the file containing building morphology")
-                return
+        if testmode is True:
+            pass
+        else:
+        
+            if self.IMP_from_file:
+                if self.IMPfile_path is None:
+                    QMessageBox.critical(None, "Error", "Building morphology file has not been provided")
+                    return
+                if not os.path.isfile(self.IMPfile_path[0]):
+                    QMessageBox.critical(None, "Error", "Could not find the file containing building morphology")
+                    return
+            if self.IMPveg_from_file:
+                if self.IMPvegfile_path is None:
+                    QMessageBox.critical(None, "Error", "Vegetation morphology file has not been provided")
+                    return
+                if not os.path.isfile(self.IMPvegfile_path[0]):
+                    QMessageBox.critical(None, "Error", "Could not find the file containing vegetation morphology")
+                    return
 
-        if self.IMPveg_from_file:
-            if self.IMPvegfile_path is None:
-                QMessageBox.critical(None, "Error", "Vegetation morphology file has not been provided")
-                return
-            if not os.path.isfile(self.IMPvegfile_path[0]):
-                QMessageBox.critical(None, "Error", "Could not find the file containing vegetation morphology")
-                return
+            if self.LCF_from_file:
+                if self.LCFfile_path is None:
+                    QMessageBox.critical(None, "Error", "Land cover fractions file has not been provided")
+                    return
+                if not os.path.isfile(self.LCFfile_path[0]):
+                    QMessageBox.critical(None, "Error", "Could not find the file containing land cover fractions")
+                    return
             
-        if self.LCF_from_file:
-            if self.LCFfile_path is None:
-                QMessageBox.critical(None, "Error", "Land cover fractions file has not been provided")
-                return
-            if not os.path.isfile(self.LCFfile_path[0]):
-                QMessageBox.critical(None, "Error", "Could not find the file containing land cover fractions")
-                return
-            
+
         if self.file_code == '':
             QMessageBox.critical(None, "Error", "Specify a file code prefix")
             return
@@ -735,7 +769,18 @@ class SUEWSPrepareDatabase(object):
                     else:
                         QMessageBox.critical(self.dlg, "Error", "One or more inputs in Fixed height [option 1] is not increasing.")
                         return
-        
+        if testmode is True:  
+            self.ss_dir = 'C:/GitHub/suews_prepare_database/sample_data' 
+            self.Metfile_path = ('C:/GitHub/suews_prepare_database/issample_data/Kb_2017_data_60.txt', 'All Files (*)')
+            self.LCF_from_file = True
+            self.LCFfile_path = ['C:/GitHub/suews_prepare_database/sample_data/lc_LCFG_isotropic.txt']
+            self.IMP_from_file = True
+            self.IMPfile_path = ['C:/GitHub/suews_prepare_database/sample_data/imp_IMPGrid_isotropic.txt']
+            self.IMPveg_from_file = True
+            self.IMPvegfile_path = ['C:/GitHub/suews_prepare_database/sample_data/veg_IMPGrid_isotropic.txt']
+            self.output_dir = ['C:/Users/xbacos/OneDrive - University of Gothenburg/Artikel_4/OUT/OSept']
+
+
         # TODO     
         #Here worker loop starts. We make function. Then it is easier to put in worker later
 
@@ -761,6 +806,21 @@ class SUEWSPrepareDatabase(object):
                          utc, checkBox_twovegfiles, IMPvegfile_path_dec, IMPvegfile_path_eve, pop_density_day, daypop,
                          polyTypolayer, typologyFieldName, dsmlayer, demlayer, region_str, country_str, checkBoxTypologies,
                          heightMethod, vertheights, nlayerIn, skew, ss_dir, spartacus, defTypo):
+
+
+        # testmode = True 
+
+        # if testmode is True:
+        #     output_dir = r'C:\Users\xbacos\OneDrive - University of Gothenburg\Artikel_4\OUT\OSept'
+        #     Metfile_path = r'C:\GitHub\suews_prepare_database\sample_data\Kb_2017_data_60.txt'
+        #     IMPfile_path = r'C:\GitHub\suews_prepare_database\sample_data\imp_IMPGrid_isotropic.txt'
+        #     IMPvegfile_path = r'C:\GitHub\suews_prepare_database\sample_data\lc_LCFG_isotropic.txt'
+        #     LCFfile_path =  r'suews_prepare_database/sample_data/veg_IMPGrid_isotropic.txt'
+        #     file_code = 'kvb'
+        #     IMP_from_file = True
+        #     ss_dir = r'C:\GitHub\suews_prepare_database\sample_data'
+        #     # polygonfile = r'C:\GitHub\suews_prepare_database\sample_data\gridKville.shp'
+
 
         save_txt_folder = output_dir[0]+ '/'
         temp_folder = plugin_dir + '/tempdata'
@@ -797,7 +857,7 @@ class SUEWSPrepareDatabase(object):
             } 
     
         # Read DB
-        db_path = plugin_dir + '/Input/database.xlsx'  # TODO When in UMEP Toolbox, set this path to db in database manager
+        db_path = plugin_dir + '/Input/database.xlsx'  # TODO When in UMEP Toolbox, set this path to db in database manager, and instead send from plugin instead of read again
         db_dict = read_DB(db_path)
 
         type_id_dict = {}   # Dict used in aggregation for assigning correct Typology
@@ -1006,7 +1066,6 @@ class SUEWSPrepareDatabase(object):
 
         df_build_frac = df_build_frac.fillna(0)
 
-
         grid_dict = {}       # Dict that holds information on general typologies, uvalues, albedos and emmissivites and fractions
         gridlayoutOut = {}   # Dict that holds information on fractions of, albedos, emmissivitiees and uvalues for GridLaytout.nml
         dir_poly = plugin_dir + '/tempdata/poly_temp.shp' # move later
@@ -1016,6 +1075,7 @@ class SUEWSPrepareDatabase(object):
             del polyTypolayer
 
         # loop through each grid (Typologies)
+
         for f in vlayer.getFeatures(): 
             id = int(f.attribute(poly_field))
             print('Processing ID for aggregation: ' + str(id))
@@ -1027,9 +1087,10 @@ class SUEWSPrepareDatabase(object):
             df_build_frac.loc[id, 'tot_fraction'] = df_build_frac.loc[id, 'volume'] / df_build_frac.loc[id,'volume'].sum()
 
             # get uvalues etc. from database and fractions from previous fraction calculations
+            # TODO Make into function
             for row in df_build_frac.loc[[id]].iterrows():
                 typology = int(row[1][typologyFieldName]) 
-                fraction = row[1]['tot_fraction']
+                fraction = row[1]['tot_fraction']   
                 grid_dict[id][typology] = {}
                 grid_dict[id][typology]['SAreaFrac'] = fraction # populate fractions in grid_dict
                 # grid_dict[id][typology]['uvalue_wall'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'u_value_wall']
@@ -1038,12 +1099,16 @@ class SUEWSPrepareDatabase(object):
                 # grid_dict[id][typology]['albedo_wall'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'albedo_wall']
                 # grid_dict[id][typology]['emissivity_roof'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'emissivity_roof']
                 # grid_dict[id][typology]['emissivity_wall'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'emissivity_wall'] 
-                grid_dict[id][typology]['uvalue_wall'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[typology]['Buildings']]['Spartacus Surface']]['u_value_wall']
-                grid_dict[id][typology]['uvalue_roof'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[typology]['Buildings']]['Spartacus Surface']]['u_value_roof']
-                grid_dict[id][typology]['albedo_roof'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[typology]['Buildings']]['Spartacus Surface']]['albedo_roof']
-                grid_dict[id][typology]['albedo_wall'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[typology]['Buildings']]['Spartacus Surface']]['albedo_wall']
-                grid_dict[id][typology]['emissivity_roof'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[typology]['Buildings']]['Spartacus Surface']]['emissivity_roof']
-                grid_dict[id][typology]['emissivity_wall'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[typology]['Buildings']]['Spartacus Surface']]['emissivity_wall']
+                
+                # Use locator to avoid this long and complicated pandas slice at all below rows
+                # locator selects the seleced 'Spartacus Surface' from the Spartacus surface connected to the building in the selected typology
+                locator =  db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[typology]['Buildings']]['Spartacus Surface']]
+                grid_dict[id][typology]['uvalue_wall'] = locator['u_value_wall']
+                grid_dict[id][typology]['uvalue_roof'] = locator['u_value_roof']
+                grid_dict[id][typology]['albedo_roof'] = locator['albedo_roof']
+                grid_dict[id][typology]['albedo_wall'] = locator['albedo_wall']
+                grid_dict[id][typology]['emissivity_roof'] = locator['emissivity_roof']
+                grid_dict[id][typology]['emissivity_wall'] = locator['emissivity_wall']
                 
                 #db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[typology]['Buildings']]['Spartacus Surface']]['u_value_wall'] #TODO HÄr är jag
 
@@ -1103,29 +1168,25 @@ class SUEWSPrepareDatabase(object):
             else: #no spartacus. Just copy and save GridLayout-file so that SUEWS-model can run
                 copyfile(plugin_dir + '/Input/' + 'GridLayout.nml', save_txt_folder + "/" + 'GridLayout' +  file_code + str(id) + '.nml')
 
-            typology_list2 = list(grid_dict[id].keys())
+            # Make a list to count if thera are more than one typology in grid. Test in the if statement below
+            typology_list = list(grid_dict[id].keys())
 
             # Check if aggregation is needed
-            if len(typology_list2) > 1:
-                nonVeg_dict[id]['Buildings'] = blend_SUEWS_NonVeg(grid_dict, db_dict, id, parameter_dict, 'Buildings') #TODO Is it only buildnigs that can blend?
-                nonVeg_dict[id]['Paved'] = blend_SUEWS_NonVeg(grid_dict, db_dict, id, parameter_dict, 'Paved') #TODO Funkar detta för Paved?
-            else:
+            # Now we blend typologies and aggregate for new codes
+            if len(typology_list) > 1:
+                nonVeg_dict[id]['Paved']    = blend_SUEWS_NonVeg(grid_dict[id], db_dict, parameter_dict, 'Paved') 
+                nonVeg_dict[id]['Buildings']= blend_SUEWS_NonVeg(grid_dict[id], db_dict, parameter_dict, 'Buildings') 
+           
             # if only one typology exists, no need to aggregate/combine/blend
-                nonVeg_dict[id]['Buildings'] = fill_SUEWS_NonVeg_typologies(typology_list2[0], db_dict, parameter_dict, 'Buildings')
-                nonVeg_dict[id]['Paved'] = fill_SUEWS_NonVeg_typologies(typology_list2[0], db_dict, parameter_dict, 'Paved')
+            else:
+                nonVeg_dict[id]['Paved'] = fill_SUEWS_NonVeg_typologies(parameter_dict['Paved'], db_dict, parameter_dict)
+                nonVeg_dict[id]['Buildings'] = fill_SUEWS_NonVeg_typologies(parameter_dict['Buildings'], db_dict, parameter_dict)
+                
+            nonVeg_dict[id]['Bare Soil'] = fill_SUEWS_NonVeg_typologies(parameter_dict['Bare Soil'], db_dict, parameter_dict)
 
-            #nonVeg_dict[id]['Paved'] = fill_SUEWS_NonVeg_typologies(parameter_dict['Paved'], db_dict, parameter_dict, 'Paved') #moved since it is in Types now. Maybe wrong...
-            nonVeg_dict[id]['Bare Soil'] = fill_SUEWS_NonVeg_typologies(parameter_dict['Bare Soil'], db_dict, parameter_dict, None)
-        
         # write to SUEWS_NonVeg
         save_NonVeg_types(nonVeg_dict, save_txt_folder, db_dict)
-        
-                # prepare the parameters collected to for writing SUEWS_NonVeg
-                # nonVeg_dict = fill_SUEWS_NonVeg(db_dict, parameter_dict)
-                
-                # write to SUEWS_NonVeg
-                # save_SUEWS_txt(pd.DataFrame.from_dict(nonVeg_dict, orient='index').set_index('Code'), 'SUEWS_NonVeg.txt', save_txt_folder, db_dict)  
-
+           
         # Write SUEWS.txt files SUEWS_veg, SUEWS_AnthropogenicEmission, SUEWS_Water and SUEWS_Conductance
         veg_dict = fill_SUEWS_Veg(db_dict, parameter_dict)
 
@@ -1153,14 +1214,11 @@ class SUEWSPrepareDatabase(object):
         BIOCO2_list = []
         
 
-        # Iterate through all parameter dicts to ensure that all used ESTM, OHM and Biogen codes are written into the SUEWS.txt files
+        # Iterate through all parameter dicts to ensure that all used, OHM and Biogen codes are written into the SUEWS.txt files
         for dict_sel, dict_name in zip([nonVeg_dict, veg_dict, snow_dict, water_dict ],['NonVeg', 'Veg', 'Snow', 'Water']):
             
             for feat_id in list(dict_sel.keys()):
-                    # try:
-                    #     ESTM_list.append(dict_sel[i]['ESTMCode'])
-                    # except:
-                    #     pass
+
                 if dict_name == 'Snow' or dict_name == 'Water':
                     try:
                         OHM_list.append(dict_sel[feat_id]['OHMCode_SummerWet'])
@@ -1172,10 +1230,6 @@ class SUEWSPrepareDatabase(object):
                         OHM_list.append(dict_sel['OHMCode_SummerDry'])
                         OHM_list.append(dict_sel['OHMCode_WinterWet'])
                         OHM_list.append(dict_sel['OHMCode_WinterDry'])
-                    try:
-                        BIOCO2_list.append(dict_sel[feat_id]['BiogenCO2Code'])
-                    except:
-                        pass
                 else: 
                     if dict_name == 'NonVeg':
                         surface_list = ['Paved', 'Buildings','Bare Soil']
@@ -1198,21 +1252,25 @@ class SUEWSPrepareDatabase(object):
                             OHM_list.append(dict_sel[surf]['OHMCode_SummerDry'])
                             OHM_list.append(dict_sel[surf]['OHMCode_WinterWet'])
                             OHM_list.append(dict_sel[surf]['OHMCode_WinterWet'])
-
+                            BIOCO2_list.append(dict_sel[feat_id]['BiogenCO2Code'])
         # Remove duplicates
-        # ESTM_list = list(set(ESTM_list))
         OHM_list = list(set(OHM_list))
         BIOCO2_list = list(set(BIOCO2_list))
 
         # save SUEWS_ESTMCoefficients.txt, SUEWS_OHMCoefficients.txt and SUEWS_BiogenCO2.txt
-        # presave(db_dict['ESTM'], 'ESTMCoefficients', ESTM_list, save_txt_folder)
         presave(db_dict['OHM'], 'OHMCoefficients', OHM_list, save_txt_folder, db_dict)
         presave(db_dict['Biogen CO2'], 'BiogenCO2', BIOCO2_list, save_txt_folder, db_dict)
 
         # ################################################################################################################################
         #                                               Writing SiteSelect.txt       
         # ################################################################################################################################
+        testmode = True
 
+        if testmode is True:
+            ###########################
+            # FOR TESTING
+            Metfile_path = ['C:\GitHub\suews_prepare_database\sample_data\Kb_2017_data_60.txt']
+            ##########################
         ind = 1
         # Loop Start for each Grid
         for feature in vlayer.getFeatures():
@@ -1651,7 +1709,8 @@ class SUEWSPrepareDatabase(object):
 
         copyfile(plugin_dir + '/Input/' + 'SUEWS_SPARTACUS.nml', output_dir[0] + "/" + 'SUEWS_SPARTACUS.nml')
         # TODO Fix withinGridWaterDist
-        copyfile(plugin_dir + '/Input/' + 'SUEWS_WithinGridWaterDist.txt', output_dir[0] + "/" + 'WithinGridWaterDist.txt')
+        copyfile(plugin_dir + '/Input/' + 'SUEWS_WithinGridWaterDist.txt', output_dir[0] + "/" + 'SUEWS_WithinGridWaterDist.txt')
+        copyfile(plugin_dir + '/Input/' + 'SUEWS_ESTMCoefficients.txt', output_dir[0] + "/" + 'SUEWS_ESTMCoefficients.txt')
 
 
     def write_to_init(self, initfilein, initfileout):

@@ -157,7 +157,7 @@ def decide_country_or_region(col, country_sel, reg):
         var = country_sel[col].item()    
     return var
 
-def blend_SUEWS_NonVeg(grid_dict, db_dict, id, parameter_dict, type):
+def blend_SUEWS_NonVeg(grid_dict, db_dict, parameter_dict, surface):
     '''
     Function for aggregating Building typologies when more than one typology exists in the same grid
     The function needs typology_IDs and fractions to conduct weighted averages using np.average()
@@ -172,175 +172,97 @@ def blend_SUEWS_NonVeg(grid_dict, db_dict, id, parameter_dict, type):
 
     '''
     values_dict = {} 
-    #fractions = list(grid_dict[id].values())
     fractions = []
 
-    typology_list = list(grid_dict[id].keys())
-
+    typology_list = list(grid_dict.keys())
     temp_nonveg_dict = {}
     for typology in typology_list:
-        temp_nonveg_dict[typology] = fill_SUEWS_NonVeg_typologies(typology, db_dict, parameter_dict, type)
-        fractions.append(grid_dict[id][typology]['SAreaFrac'])
+        temp_nonveg_dict[typology] = fill_SUEWS_NonVeg_typologies(typology, db_dict, parameter_dict, surface)
+        fractions.append(grid_dict[typology]['SAreaFrac'])
 
     dominant_typology = typology_list[fractions.index(max(fractions))]
+    param_list = [
+        'AlbedoMin', 'AlbedoMax', 'Emissivity', 'StorageMin', 'StorageMax', 'WetThreshold', 'StateLimit', 'DrainageEq',
+        'DrainageCoef1', 'DrainageCoef2', 'SnowLimPatch', 'SnowLimRemove', 'OHMCode_SummerWet', 'OHMCode_SummerDry',
+        'OHMCode_WinterWet', 'OHMCode_WinterDry', 'OHMThresh_SW', 'OHMThresh_WD', 'ESTMCode', 'AnOHM_Cp', 'AnOHM_Kk', 'AnOHM_Ch'
+    ]   #TODO Make this list not hardcoded and adaptable for new parameters added
 
-    param_list = ['AlbedoMin', 'AlbedoMax', 'Emissivity', 'StorageMin', 'StorageMax', 'WetThreshold', 'StateLimit','DrainageEq', 
-                    'DrainageCoef1', 'DrainageCoef2', 'SnowLimPatch', 'SnowLimRemove', 'OHMCode_SummerWet', 'OHMCode_SummerDry' ,'OHMCode_WinterWet', 'OHMCode_WinterDry',
-                    'OHMThresh_SW','OHMThresh_WD','ESTMCode','AnOHM_Cp' ,'AnOHM_Kk' ,'AnOHM_Ch' ]
-    
-    '''
-        Iterate over parameters and typologies to get values for each parameter in typology as list to be able to do weighted averages
-        so the dict becomes
-        values_dict = {
-            'AlbedoMin' : [0.5, 0.6],
-            'AlbedoMax' : [0.5, 0,6]...} 
-        The order is always the same as the fractions as retrieved above
-    '''
-
+    typology_list
     for param in param_list:
-        p_list = []
-        for typology in typology_list:
-            p_list.append(temp_nonveg_dict[typology][param]) 
-        values_dict[param] = p_list
-
-    # Weighted averages here. For non averageable, now dominant is used.
+        values_dict[param] = [temp_nonveg_dict[typology][param] for typology in typology_list]
     new_edit = {
-        'Code' : create_code('NonVeg'), # Give new Code
-        'AlbedoMin' :   np.average((values_dict['AlbedoMin']), weights = fractions),
-        'AlbedoMax' :   np.average((values_dict['AlbedoMax']), weights = fractions),
-        'Emissivity' : np.average((values_dict['Emissivity']), weights = fractions),
-        'StorageMin' :  np.average((values_dict['StorageMin']), weights = fractions),
-        'StorageMax' : np.average((values_dict['StorageMax']), weights = fractions),
-        'WetThreshold' : np.average((values_dict['WetThreshold']), weights = fractions),
-        'StateLimit' : np.average((values_dict['StateLimit']), weights = fractions),
-        'DrainageEq' : temp_nonveg_dict[dominant_typology]['DrainageEq'], # NEED FIXING!
-        'DrainageCoef1' : temp_nonveg_dict[dominant_typology]['DrainageCoef1'],
-        'DrainageCoef2' : temp_nonveg_dict[dominant_typology]['DrainageCoef2'],
-        'SoilTypeCode' : parameter_dict['SoilTypeCode'],
-        'SnowLimPatch' : np.average((values_dict['SnowLimPatch']), weights = fractions),
-        'SnowLimRemove' : np.average((values_dict['SnowLimRemove']), weights = fractions),
-        # 'OHMCode_SummerWet' : not avearageable cos its a code
-        # 'OHMCode_SummerDry' : not avearageable 
-        # 'OHMCode_WinterWet' : not avearageable 
-        # 'OHMCode_WinterDry' : not avearageable 
-        'OHMThresh_SW' : 10, # TODO set regional Country 
-        'OHMThresh_WD' : 0.9, # TODO set regional Country
-        'ESTMCode' : -9999 ,#not used 
-        'AnOHM_Cp' : np.average((values_dict['AnOHM_Cp']), weights = fractions),
-        'AnOHM_Kk' : np.average((values_dict['AnOHM_Kk']), weights = fractions),
-        'AnOHM_Ch' : np.average((values_dict['AnOHM_Ch']), weights = fractions),
-    }
+            'Code': create_code('NonVeg'),
+            'AlbedoMin': np.average(values_dict['AlbedoMin'], weights=fractions),
+            'AlbedoMax': np.average(values_dict['AlbedoMax'], weights=fractions),
+            'Emissivity': np.average(values_dict['Emissivity'], weights=fractions),
+            'StorageMin': np.average(values_dict['StorageMin'], weights=fractions),
+            'StorageMax': np.average(values_dict['StorageMax'], weights=fractions),
+            'WetThreshold': np.average(values_dict['WetThreshold'], weights=fractions),
+            'StateLimit': np.average(values_dict['StateLimit'], weights=fractions),
+            'DrainageEq': temp_nonveg_dict[dominant_typology]['DrainageEq'],
+            'DrainageCoef1': temp_nonveg_dict[dominant_typology]['DrainageCoef1'],
+            'DrainageCoef2': temp_nonveg_dict[dominant_typology]['DrainageCoef2'],
+            'SoilTypeCode': parameter_dict['SoilTypeCode'],
+            'SnowLimPatch': np.average(values_dict['SnowLimPatch'], weights=fractions),
+            'SnowLimRemove': np.average(values_dict['SnowLimRemove'], weights=fractions),
+            'OHMThresh_SW': 10,  # TODO: set regional Country --> parameter_dict['OHMThresh_SW'],
+            'OHMThresh_WD': 0.9,  # TODO: set regional Country --> parameter_dict['OHMThresh_WD'],
+            'ESTMCode': -9999,  # not used
+            'AnOHM_Cp': np.average(values_dict['AnOHM_Cp'], weights=fractions),
+            'AnOHM_Kk': np.average(values_dict['AnOHM_Kk'], weights=fractions),
+            'AnOHM_Ch': np.average(values_dict['AnOHM_Ch'], weights=fractions),
+        }
 
-    for column in ['OHMCode_SummerWet', 'OHMCode_SummerDry' ,'OHMCode_WinterWet', 'OHMCode_WinterDry']:
-        if len(set(values_dict[column])) == 1:  # If all typologies has same code, just use this 
+    # This loop is for ohm codes as they are not averagable
+    for column in ['OHMCode_SummerWet', 'OHMCode_SummerDry', 'OHMCode_WinterWet', 'OHMCode_WinterDry']:
+        if len(set(values_dict[column])) == 1:
             new_edit[column] = values_dict[column][0]
         else:
-            new_edit[column] = values_dict[column][0] # TODO need to make a new blend OHM function if these are not the same
-            
+            new_edit[column] = values_dict[column][0]  # TODO: need to make a new blend OHM function if these are not the same
+
     return new_edit
 
-def fill_SUEWS_NonVeg_typologies(code, db_dict, parameter_dict, type):
+def fill_SUEWS_NonVeg_typologies(code, db_dict, parameter_dict, surface = False):
     '''
     Function for retrieving correct parameters from DB according to typology. 
     This works for Paved, Buildings and Bare Soil
     code is the typology code. 
     When adding new parameters, just create new lines and slice DB using similar as of now
     '''
-    if type: #get from Types
-        table_dict = {
-            'Code' : code,
-            'AlbedoMin' :   db_dict['Albedo'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['Albedo'], 'Alb_min'], #db_dict['Albedo'].loc[db_dict['NonVeg'].loc[code, 'Albedo'], 'Alb_min'],
-            'AlbedoMax' :   db_dict['Albedo'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['Albedo'], 'Alb_max'], #db_dict['Albedo'].loc[db_dict['NonVeg'].loc[code, 'Albedo'], 'Alb_max'],
-            'Emissivity' : db_dict['Emissivity'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['Emissivity'], 'Emissivity'], #db_dict['Emissivity'].loc[db_dict['NonVeg'].loc[code, 'Emissivity'], 'Emissivity'],
-            'StorageMin' :  db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['Water Storage'], 'StorageMin'], #db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[code, 'Water Storage'], 'StorageMin'],
-            'StorageMax' : db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['Water Storage'], 'StorageMax'], #db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[code, 'Water Storage'], 'StorageMax'],
-            'WetThreshold' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['Drainage'], 'WetThreshold'], #db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'WetThreshold'],
-            'StateLimit' : -9999, # Not used for Non Veg
-            'DrainageEq' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['Drainage'], 'DrainageEq'], #db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'DrainageEq'],
-            'DrainageCoef1' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['Drainage'], 'DrainageCoef1'], #db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'DrainageCoef1'],
-            'DrainageCoef2' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['Drainage'], 'DrainageCoef2'], #db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'DrainageCoef2'],
-            'SoilTypeCode' : parameter_dict['SoilTypeCode'], #table.loc[locator, 'SoilTypeCode'],  36),
-            'SnowLimPatch' : 190, # TODO Set regional
-            'SnowLimRemove': 90,    # TODO Set regional
-            'OHMCode_SummerWet' :  db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['OHMSummerWet'], #db_dict['NonVeg'].loc[code, 'OHMSummerWet'],
-            'OHMCode_SummerDry' : db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['OHMSummerDry'], #db_dict['NonVeg'].loc[code, 'OHMSummerDry'],
-            'OHMCode_WinterWet' : db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['OHMWinterWet'], #db_dict['NonVeg'].loc[code, 'OHMWinterWet'],
-            'OHMCode_WinterDry' : db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['OHMWinterDry'], #db_dict['NonVeg'].loc[code, 'OHMWinterDry'],
-            'OHMThresh_SW' : 10, # TODO Set regional
-            'OHMThresh_WD' : 0.9, # TODO Set regional
-            'ESTMCode' : db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['ESTM'], #db_dict['NonVeg'].loc[code, 'ESTM'],
-            'AnOHM_Cp' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['ANOHM'], 'AnOHM_Cp'], #db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[code, 'ANOHM'],  'AnOHM_Cp'],
-            'AnOHM_Kk' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['ANOHM'], 'AnOHM_Kk'], #db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[code, 'ANOHM'],  'AnOHM_Kk'],
-            'AnOHM_Ch' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[code][type]]['ANOHM'], 'AnOHM_Ch'], #db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[code, 'ANOHM'],  'AnOHM_Ch'],
-            }
-    else: #get from Country or Region
-        table_dict = {
-            'Code' : code,
-            'AlbedoMin' :   db_dict['Albedo'].loc[db_dict['NonVeg'].loc[code, 'Albedo'], 'Alb_min'],
-            'AlbedoMax' :   db_dict['Albedo'].loc[db_dict['NonVeg'].loc[code, 'Albedo'], 'Alb_max'],
-            'Emissivity' : db_dict['Emissivity'].loc[db_dict['NonVeg'].loc[code, 'Emissivity'], 'Emissivity'],
-            'StorageMin' :  db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[code, 'Water Storage'], 'StorageMin'],
-            'StorageMax' : db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[code, 'Water Storage'], 'StorageMax'],
-            'WetThreshold' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'WetThreshold'],
-            'StateLimit' : -9999, # Not used for Non Veg
-            'DrainageEq' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'DrainageEq'],
-            'DrainageCoef1' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'DrainageCoef1'],
-            'DrainageCoef2' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[code, 'Drainage'], 'DrainageCoef2'],
-            'SoilTypeCode' : parameter_dict['SoilTypeCode'], #table.loc[locator, 'SoilTypeCode'],  36),
-            'SnowLimPatch' : 190, # TODO Set regional
-            'SnowLimRemove': 90,    # TODO Set regional
-            'OHMCode_SummerWet' :  db_dict['NonVeg'].loc[code, 'OHMSummerWet'],
-            'OHMCode_SummerDry' : db_dict['NonVeg'].loc[code, 'OHMSummerDry'],
-            'OHMCode_WinterWet' : db_dict['NonVeg'].loc[code, 'OHMWinterWet'],
-            'OHMCode_WinterDry' : db_dict['NonVeg'].loc[code, 'OHMWinterDry'],
-            'OHMThresh_SW' : 10, # TODO Set regional
-            'OHMThresh_WD' : 0.9, # TODO Set regional
-            'ESTMCode' : db_dict['NonVeg'].loc[code, 'ESTM'],
-            'AnOHM_Cp' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[code, 'ANOHM'],  'AnOHM_Cp'],
-            'AnOHM_Kk' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[code, 'ANOHM'],  'AnOHM_Kk'],
-            'AnOHM_Ch' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[code, 'ANOHM'],  'AnOHM_Ch'],
-            }
     
-    return table_dict
+    # locator is the code for the for the selected typology
+    # if this function is used from the blend_SUEWS_NonVeg function, a surface needs to be provided to get correct codes
+    if surface:
+        locator = db_dict['NonVeg'].loc[db_dict['Types'].loc[code, surface]]
+    else:
+        locator = db_dict['NonVeg'].loc[code]
 
-def fill_SUEWS_NonVeg(db_dict, column_dict):    
-    '''
-    This function is used to assign correct params to selected NonVeg codes when not using typologies
-    Fills for all surfaces
-    '''
-    table_dict = {}
-
-    for surface in ['Paved', 'Buildings', 'Bare Soil']:
-        table_dict[surface] = {}
-
-        locator = column_dict[surface]
-        table_dict[surface] = {
-            'Code' : locator,
-            'AlbedoMin' :   db_dict['Albedo'].loc[db_dict['NonVeg'].loc[locator, 'Albedo'], 'Alb_min'],
-            'AlbedoMax' :   db_dict['Albedo'].loc[db_dict['NonVeg'].loc[locator, 'Albedo'], 'Alb_max'],
-            'Emissivity' : db_dict['Emissivity'].loc[db_dict['NonVeg'].loc[locator, 'Emissivity'], 'Emissivity'],
-            'StorageMin' :  db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[locator, 'Water Storage'], 'StorageMin'],
-            'StorageMax' : db_dict['Water Storage'].loc[db_dict['NonVeg'].loc[locator, 'Water Storage'], 'StorageMax'],
-            'WetThreshold' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[locator, 'Drainage'], 'WetThreshold'],
-            'StateLimit' : -9999, # Not used for Non Veg
-            'DrainageEq' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[locator, 'Drainage'], 'DrainageEq'],
-            'DrainageCoef1' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[locator, 'Drainage'], 'DrainageCoef1'],
-            'DrainageCoef2' : db_dict['Drainage'].loc[db_dict['NonVeg'].loc[locator, 'Drainage'], 'DrainageCoef2'],
-            'SoilTypeCode' : column_dict['SoilTypeCode'], #table.loc[locator, 'SoilTypeCode'],  36),
-            'SnowLimPatch' : 190,
-            'SnowLimRemove': 90,    
-            'OHMCode_SummerWet' : db_dict['NonVeg'].loc[locator, 'OHMSummerWet'],
-            'OHMCode_SummerDry' : db_dict['NonVeg'].loc[locator, 'OHMSummerDry'],
-            'OHMCode_WinterWet' : db_dict['NonVeg'].loc[locator, 'OHMWinterWet'],
-            'OHMCode_WinterDry' : db_dict['NonVeg'].loc[locator, 'OHMWinterDry'],
-            'OHMThresh_SW' : 10, # table.loc[locator, 'OHMThresh_SW'],
-            'OHMThresh_WD' : 0.9, #table.loc[locator, 'OHMThresh_WD'],
-            'ESTMCode' : db_dict['NonVeg'].loc[locator, 'ESTM'],
-            'AnOHM_Cp' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[locator, 'ANOHM'],  'AnOHM_Cp'],
-            'AnOHM_Kk' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[locator, 'ANOHM'],  'AnOHM_Kk'],
-            'AnOHM_Ch' : db_dict['ANOHM'].loc[db_dict['NonVeg'].loc[locator, 'ANOHM'],  'AnOHM_Ch'],
+    table_dict = {
+        'Code' : locator.name,
+        'AlbedoMin' :   db_dict['Albedo'].loc[locator['Albedo'], 'Alb_min'],
+        'AlbedoMax' :   db_dict['Albedo'].loc[locator['Albedo'], 'Alb_max'], 
+        'Emissivity' : db_dict['Emissivity'].loc[locator['Emissivity'], 'Emissivity'],
+        'StorageMin' :  db_dict['Water Storage'].loc[locator['Water Storage'], 'StorageMin'], 
+        'StorageMax' : db_dict['Water Storage'].loc[locator['Water Storage'], 'StorageMax'],
+        'WetThreshold' : db_dict['Drainage'].loc[locator['Drainage'], 'WetThreshold'], 
+        'StateLimit' : -9999, # Not used for Non Veg
+        'DrainageEq' : db_dict['Drainage'].loc[locator['Drainage'], 'DrainageEq'],
+        'DrainageCoef1' : db_dict['Drainage'].loc[locator['Drainage'], 'DrainageCoef1'], 
+        'DrainageCoef2' : db_dict['Drainage'].loc[locator['Drainage'], 'DrainageCoef2'], 
+        'SoilTypeCode' : parameter_dict['SoilTypeCode'], 
+        'SnowLimPatch' : 190, # TODO Set regional
+        'SnowLimRemove': 90,    # TODO Set regional
+        'OHMCode_SummerWet' :  locator['OHMSummerWet'], 
+        'OHMCode_SummerDry' : locator['OHMSummerDry'], 
+        'OHMCode_WinterWet' : locator['OHMWinterWet'], 
+        'OHMCode_WinterDry' : locator['OHMWinterDry'], 
+        'OHMThresh_SW' : 10, # TODO Set regional
+        'OHMThresh_WD' : 0.9, # TODO Set regional
+        'ESTMCode' : locator['ESTM'], 
+        'AnOHM_Cp' : db_dict['ANOHM'].loc[locator['ANOHM'], 'AnOHM_Cp'], 
+        'AnOHM_Kk' : db_dict['ANOHM'].loc[locator['ANOHM'], 'AnOHM_Kk'],
+        'AnOHM_Ch' : db_dict['ANOHM'].loc[locator['ANOHM'], 'AnOHM_Ch'],
         }
-                    
     return table_dict
 
 def fill_SUEWS_Water(locator, db_dict, column_dict):
@@ -385,7 +307,6 @@ def fill_SUEWS_Veg(db_dict, column_dict ):
     '''
     table = db_dict['Veg']
     table_dict = {}
-    
     
     for surface in ['Evergreen Tree', 'Deciduous Tree', 'Grass']:
         table_dict[surface] = {}
@@ -589,7 +510,6 @@ def fill_SUEWS_profiles(profiles_list ,save_folder, prof):
     Locator is selected code
     This function also saves the profiles to .txt
     '''
-
     df_m = pd.DataFrame()
 
     for locator in profiles_list:
@@ -664,6 +584,8 @@ def save_SUEWS_txt(df_m, table_name, save_folder, db_dict):
 
     if table_name == 'SUEWS_OHMCoefficients.txt':
         table_name_short = 'OHM'
+    elif table_name == 'SUEWS_BiogenCO2.txt':
+        table_name_short = 'Biogen CO2'
 
     df_m = df_m.set_index('Code')
     for idx in list(df_m.index):
@@ -681,6 +603,7 @@ def save_SUEWS_txt(df_m, table_name, save_folder, db_dict):
     df_m = df_m.reset_index()
     # Add column numbers 1-max columns needed for .txt files
     df_m.columns = [df_m.columns, list(range(1, len(df_m.columns)+1))]
+
     # add -9 rows to text files
     df_m = df_m.swaplevel(0,1,1)
     # This can probably be done better. Used pd.append() but this will be deprecated. This works, but not the most clean coding
@@ -688,6 +611,12 @@ def save_SUEWS_txt(df_m, table_name, save_folder, db_dict):
     df_m.iloc[-1, 0] = -9
     df_m.loc[-2]= np.nan
     df_m.iloc[-1, 0] = -9
+
+    columns = df_m.columns
+
+    new_columns = list(columns[:-2]) + [('', ''), ('', '')]
+
+    df_m.columns = pd.MultiIndex.from_tuples(new_columns)
 
     df_m.to_csv(save_folder + table_name, sep = '\t' ,index = False)
     
@@ -716,6 +645,12 @@ def save_snow(snow_dict, save_folder, db_dict):
     df_m.loc[-2]= np.nan
     df_m.iloc[-1, 0] = -9
 
+    columns = df_m.columns
+
+    new_columns = list(columns[:-2]) + [('', ''), ('', '')]
+
+    df_m.columns = pd.MultiIndex.from_tuples(new_columns)
+
     df_m.to_csv(save_folder + 'SUEWS_Snow.txt', sep = '\t' ,index = False)
 
 def save_NonVeg_types(nonveg_dict, save_folder, db_dict):
@@ -724,35 +659,67 @@ def save_NonVeg_types(nonveg_dict, save_folder, db_dict):
     This function is used to save to .txt file related to NonVeg
     '''
 
-    df_m = pd.DataFrame()
-    for id in list(nonveg_dict.keys()):
-        for surf in ['Paved', 'Buildings','Bare Soil']:
-            df_m = pd.concat([df_m, pd.DataFrame.from_dict(nonveg_dict[id][surf], orient='index').T]).drop_duplicates()
+    # Initialize an empty list to store rows
+    rows = []
 
-    # These two columns are made for adding information on what the code is inside the .txt file
-    df_m['!'] = '!'
-    df_m[''] = np.nan
-    
-    for idx in list(df_m.set_index('Code').index):
+    # Iterate over the dictionary to flatten it
+    for grid, data in nonveg_dict.items():
+        for key, value in data.items():
+            row = value.copy()
+            row['Grid'] = str(grid)
+            row['Surface'] = key
+            rows.append(row)
+
+    # Convert the list of rows to a DataFrame
+    df = pd.DataFrame(rows)
+    df = df.set_index('Code')
+    for idx in list(df.index):
         try:
             surface_sel = db_dict['NonVeg'].loc[idx,'Surface'] 
             descOrigin_sel = db_dict['NonVeg'].loc[idx,'descOrigin']
             id_string = surface_sel + ', ' + descOrigin_sel
-            df_m.loc[idx,''] = id_string
+            df.loc[idx,'Locator'] = id_string
         except:
-            df_m.loc[idx,''] = 'Buildings, aggregated from X(fraction) Y(fracion) Z(fraction)'
-                
-    df_m.columns = [df_m.columns, list(range(1, len(df_m.columns)+1))]
-    # add -9 rows to text files
-    
-    df_m = df_m.swaplevel(0,1,1)
-    # This can probably be done better. Used pd.append() but this will be deprecated. This works, but not the most clean coding
-    df_m.loc[-1] = np.nan
-    df_m.iloc[-1, 0] = -9
-    df_m.loc[-2]= np.nan
-    df_m.iloc[-1, 0] = -9
+            pass
+            df.loc[idx,'Locator'] = 'aggregated from X(fraction) Y(fracion) Z(fraction)'
+    df = df.reset_index()
+    columns = list(df.columns)
+    # # List of columns to be aggregated
+    for remove_col in ['Code', 'Grid']:
+        columns.remove(remove_col)
 
-    df_m.to_csv(save_folder + 'SUEWS_NonVeg.txt', sep = '\t' ,index = False)
+    # Create the aggregation dictionary for groupby
+    agg_dict = {col: 'first' for col in columns}
+    agg_dict['Grid'] = lambda x: ','.join(sorted(set(x)))
+    agg_dict['Surface'] = lambda x: ','.join(sorted(set(x)))
+    agg_dict['Locator'] = lambda x: ','.join(sorted(set(x)))
+
+    # Group by 'Code' and aggregate the columns
+    df = df.groupby('Code').agg(agg_dict).reset_index()
+
+    df['!'] = '!'
+    df['t'] = df['Surface'] + ', ' + df['Locator'] + '. Used in Grid No. ' + df['Grid']
+    df = df.rename(columns={'t': ''})
+    df = df.drop(columns=['Grid', 'Surface', 'Locator'])
+
+    # Adjust the DataFrame columns using the provided code snippet
+    df.columns = [df.columns, list(range(1, len(df.columns)+1))]
+    df = df.swaplevel(0, 1, axis=1)
+
+    # Add 2 rows with empty columns except that the 'Code' value is -9
+    df.loc[-1] = np.nan
+    df.iloc[-1, 0] = -9
+    df.loc[-2] = np.nan
+    df.iloc[-2, 0] = -9
+
+    # Ensure both rows have the 'Code' value as -9
+    df.iloc[-1, 0] = -9
+    df.iloc[-2, 0] = -9
+
+    # Remove name of columns for ! comment columns
+    df.columns = df.columns = pd.MultiIndex.from_tuples([('', '') if col == (25, '!') else ('', '') if col == (26, '') else col for col in df.columns])
+
+    df.to_csv(save_folder + 'SUEWS_NonVeg.txt', sep = '\t' ,index = False)
 
 def save_SiteSelect(ss_dict, save_folder, path_to_ss):
     '''
@@ -779,6 +746,7 @@ def save_SiteSelect(ss_dict, save_folder, path_to_ss):
 
     df_m.to_csv(save_folder + 'SUEWS_SiteSelect.txt', sep = '\t' ,index = False)
 
+
 def presave(table, name ,var_list, save_folder, db_dict):
     '''
     This function is used to prepare some of the data used to be able to save to .txt
@@ -794,6 +762,7 @@ def read_morph_txt(txt_file):
     '''
     morph_dict = pd.read_csv(txt_file, delim_whitespace=True, index_col=[0]).to_dict(orient='index')
     return morph_dict  
+
 
 
 # Not used. To big TimeZones.shp file
