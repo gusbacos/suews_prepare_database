@@ -40,7 +40,8 @@ SOURCES = \
 	__init__.py \
 	suews_prepare_database.py suews_prepare_database_dialog.py
 
-PLUGINNAME = suews_prepare_database
+#PLUGINNAME = suews_prepare_database
+PLUGINNAME = suews_database_prepare
 
 PY_FILES = \
 	__init__.py \

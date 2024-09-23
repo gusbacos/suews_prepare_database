@@ -1239,24 +1239,32 @@ class SUEWSPrepareDatabase(object):
                                 OHM_list.append(dict_sel[feat_id][surf]['OHMCode_SummerWet'])
                                 OHM_list.append(dict_sel[feat_id][surf]['OHMCode_SummerDry'])
                                 OHM_list.append(dict_sel[feat_id][surf]['OHMCode_WinterWet'])
-                                OHM_list.append(dict_sel[feat_id][surf]['OHMCode_WinterWet'])
+                                OHM_list.append(dict_sel[feat_id][surf]['OHMCode_WinterDry'])
                             except:
                                 print(feat_id)
                                 print(surf)
                                 print(dict_sel[feat_id])
-                    else:
+                    elif dict_name == 'Veg':
                         surface_list = ['Grass', 'Evergreen Tree','Deciduous Tree']
                         for surf in surface_list:
                         # ESTM_list.append(dict_sel[feat_id][surf]['ESTMCode'])
                             OHM_list.append(dict_sel[surf]['OHMCode_SummerWet'])
                             OHM_list.append(dict_sel[surf]['OHMCode_SummerDry'])
                             OHM_list.append(dict_sel[surf]['OHMCode_WinterWet'])
-                            OHM_list.append(dict_sel[surf]['OHMCode_WinterWet'])
+                            OHM_list.append(dict_sel[surf]['OHMCode_WinterDry'])
                             BIOCO2_list.append(dict_sel[feat_id]['BiogenCO2Code'])
+                            print(surf)
+                            print(dict_sel[surf]['OHMCode_SummerWet'])
+                            print(dict_sel[surf]['OHMCode_SummerDry'])
+                            print(dict_sel[surf]['OHMCode_WinterWet'])
+                            print(dict_sel[surf]['OHMCode_WinterDry'])
+
         # Remove duplicates
+
         OHM_list = list(set(OHM_list))
         BIOCO2_list = list(set(BIOCO2_list))
-
+        
+        print(OHM_list)
         # save SUEWS_ESTMCoefficients.txt, SUEWS_OHMCoefficients.txt and SUEWS_BiogenCO2.txt
         presave(db_dict['OHM'], 'OHMCoefficients', OHM_list, save_txt_folder, db_dict)
         presave(db_dict['Biogen CO2'], 'BiogenCO2', BIOCO2_list, save_txt_folder, db_dict)
