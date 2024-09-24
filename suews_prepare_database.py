@@ -291,6 +291,8 @@ class SUEWSPrepareDatabase(object):
 
         self.dlg.checkBoxTypology.stateChanged.connect(lambda: self.use_typologies())
         self.dlg.checkBox_day.stateChanged.connect(lambda: self.popdaystate())
+        self.dlg.pop_density.currentIndexChanged.connect(lambda: self.set_pop_density())
+        self.dlg.pop_density_day.currentIndexChanged.connect(lambda: self.set_pop_density_day())
 
         self.dlg.layerComboManagerPolygrid.setCurrentIndex(-1)
         self.dlg.layerComboManagerPolygrid.setFilters(QgsMapLayerProxyModel.PolygonLayer)
@@ -497,6 +499,11 @@ class SUEWSPrepareDatabase(object):
         else:
             self.daypop = 0
 
+    def set_pop_density(self):
+            self.pop_density = self.dlg.pop_density.currentText()
+    
+    def set_pop_density_day(self):
+        self.pop_density_day = self.dlg.pop_density_day.currentText()
 
     def set_LCFfile_path(self):
         self.fileDialogISO.open()
@@ -650,18 +657,15 @@ class SUEWSPrepareDatabase(object):
                                  "reference system")
             return
 
-        # population density  from polygon grid
-        # if testmode is True:
-        #     self.dlg.pop_density.currentField() = 'popsum'
-
         if self.dlg.pop_density.currentField() == '':
             QMessageBox.critical(None, "Error", "An attribute field including night-time population density (pp/ha) must be selected")
             return
 
+
         if self.daypop == 1:
             if self.dlg.pop_density_day.currentField() == '':
                 QMessageBox.critical(None, "Error", "An attribute field including working population density (pp/ha) must be selected")
-                return            
+                return    
 
         # Leaf cycle
         if self.leaf_cycle == 0:
@@ -769,6 +773,8 @@ class SUEWSPrepareDatabase(object):
                     else:
                         QMessageBox.critical(self.dlg, "Error", "One or more inputs in Fixed height [option 1] is not increasing.")
                         return
+                    
+
         if testmode is True:  
             self.ss_dir = 'C:/GitHub/suews_prepare_database/sample_data' 
             self.Metfile_path = ('C:/GitHub/suews_prepare_database/issample_data/Kb_2017_data_60.txt', 'All Files (*)')
@@ -1503,15 +1509,14 @@ class SUEWSPrepareDatabase(object):
                 z = 10.
 
             if pop_density is not None:
-                pop_density_night = feature.attribute(pop_density.currentField())
+                pop_density_night = feature.attribute(pop_density)
             else:
                 pop_density_night = -999
 
             if daypop == 1:
-                pop_density_day = feature.attribute(pop_density_day.currentField())
+                pop_density_day = feature.attribute(pop_density_day)
             else:
                 pop_density_day = pop_density_night
-
 
             # TODO Not sure on these settings
             LUMPS_drate = 0.25
