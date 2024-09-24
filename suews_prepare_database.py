@@ -398,28 +398,7 @@ class SUEWSPrepareDatabase(object):
     def file_code_changed(self, code):
         self.file_code = code
 
-    # def region_changed(self, db_dict):
 
-    #     country_sel = self.dlg.comboBoxCountry.currentText()
-    #     region_sel = self.dlg.comboBoxRegion.currentText()
-    #     country_list = list(db_dict['Country']['descOrigin'].loc[db_dict['Country']['Region'] == region_sel])
-    #     self.dlg.comboBoxCountry.clear()
-    #     self.dlg.comboBoxCountry.addItems(country_list)
-    #     if country_sel in country_list:
-    #         self.dlg.comboBoxCountry.setCurrentIndex(country_list.index(country_sel))
-    #         print('herehere')
-    #     else:
-    #         self.dlg.comboBoxCountry.setCurrentIndex(-1)
-    #         print('here')
-
-    # def print_reg(self):
-    #     region_sel = self.dlg.comboBoxRegion.currentText()
-    #     return region_sel
-    
-    # def print_country(self):
-    #     country_sel = self.dlg.comboBoxCountry.currentText()
-    #     return country_sel
-    
     def country_changed(self, db_dict):
         country_sel = self.dlg.comboBoxCountry.currentText()
         reg_sel = db_dict['Country'].loc[db_dict['Country']['descOrigin'] == country_sel]['Region'].item()
@@ -590,13 +569,6 @@ class SUEWSPrepareDatabase(object):
             self.ss_dir = r'C:\GitHub\suews_prepare_database\sample_data'
             # polygonfile = r'C:\GitHub\suews_prepare_database\sample_data\gridKville.shp'
 
-
-        # print(self.Metfile_path)
-        # print( self.output_dir )
-        # print(self.IMPfile_path)
-        # print(self.IMPvegfile_path)
-        # print(self.LCFfile_path )
-        # print(self.file_code)
 
         # First check that all parts of the interface have been filled in correclty
         # output dir
@@ -888,7 +860,7 @@ class SUEWSPrepareDatabase(object):
             parameter_dict[column] = decide_country_or_region(column, country_sel, db_dict['Region'])
 
         # set correct values and write txt.files based on the parameters found at country/regional level 
-        AnEm_dict = fill_SUEWS_AnthropogenicEmission(parameter_dict['AnthropogenicCode'], parameter_dict, db_dict) # FIX!
+        AnEm_dict = fill_SUEWS_AnthropogenicEmission(parameter_dict['AnthropogenicCode'], parameter_dict, db_dict) 
         snow_dict = fill_SUEWS_Snow(parameter_dict['SnowCode'], db_dict)
         water_dict = fill_SUEWS_Water(parameter_dict['Water'], db_dict, parameter_dict)
 
@@ -1247,9 +1219,8 @@ class SUEWSPrepareDatabase(object):
                                 OHM_list.append(dict_sel[feat_id][surf]['OHMCode_WinterWet'])
                                 OHM_list.append(dict_sel[feat_id][surf]['OHMCode_WinterDry'])
                             except:
-                                print(feat_id)
-                                print(surf)
-                                print(dict_sel[feat_id])
+                                pass
+
                     elif dict_name == 'Veg':
                         surface_list = ['Grass', 'Evergreen Tree','Deciduous Tree']
                         for surf in surface_list:
@@ -1259,18 +1230,12 @@ class SUEWSPrepareDatabase(object):
                             OHM_list.append(dict_sel[surf]['OHMCode_WinterWet'])
                             OHM_list.append(dict_sel[surf]['OHMCode_WinterDry'])
                             BIOCO2_list.append(dict_sel[feat_id]['BiogenCO2Code'])
-                            print(surf)
-                            print(dict_sel[surf]['OHMCode_SummerWet'])
-                            print(dict_sel[surf]['OHMCode_SummerDry'])
-                            print(dict_sel[surf]['OHMCode_WinterWet'])
-                            print(dict_sel[surf]['OHMCode_WinterDry'])
 
         # Remove duplicates
 
         OHM_list = list(set(OHM_list))
         BIOCO2_list = list(set(BIOCO2_list))
         
-        print(OHM_list)
         # save SUEWS_ESTMCoefficients.txt, SUEWS_OHMCoefficients.txt and SUEWS_BiogenCO2.txt
         presave(db_dict['OHM'], 'OHMCoefficients', OHM_list, save_txt_folder, db_dict)
         presave(db_dict['Biogen CO2'], 'BiogenCO2', BIOCO2_list, save_txt_folder, db_dict)
