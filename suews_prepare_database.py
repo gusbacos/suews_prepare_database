@@ -418,10 +418,11 @@ class SUEWSPrepareDatabase(object):
         # except:
         #     pass
 
-        # Function to test if a parameter is found in Country. If not, the same parameter for Region is then selected.   
+        # Function to test if a parameter is found in Country. If not, the same parameter for Region is then selected.
+            
         def decide_country_region(col, country_sel, reg_sel, comboBox):
             country_df = db_dict['Country'][db_dict['Country']['descOrigin'] == country_sel]
-            #try: #TODO get rid of this try statement somehow...
+
             if str(country_df[col].item()) == 'nan':
                 #try:
                 reg_df = db_dict['Region'][db_dict['Region']['Region'] == reg_sel]
@@ -439,8 +440,6 @@ class SUEWSPrepareDatabase(object):
                 indexer = cbox_list.index(var_text)
     
             comboBox.setCurrentIndex(indexer)
-            #except:
-            #    pass
 
         decide_country_region('Paved',country_sel, reg_sel, self.dlg.comboBoxPaved)
         decide_country_region('Buildings', country_sel, reg_sel, self.dlg.comboBoxBuilding)
@@ -464,13 +463,11 @@ class SUEWSPrepareDatabase(object):
         else:
             self.typologies = 0
 
-
     def use_spartacus(self):
         if self.dlg.checkBoxSS.isChecked():
             self.spartacus = 1
         else:
             self.spartacus = 0
-
 
     def popdaystate(self):
         if self.dlg.checkBox_day.isChecked():
@@ -494,7 +491,6 @@ class SUEWSPrepareDatabase(object):
             self.LCFfile_path = None
             self.dlg.textInputLCFData.setText('')
 
-
     def set_IMPfile_path(self):
         self.fileDialogISO.open()
         result = self.fileDialogISO.exec_()
@@ -506,7 +502,6 @@ class SUEWSPrepareDatabase(object):
         else:
             self.IMPfile_path = None
             self.dlg.textInputIMPData.setText('')
-
 
     def set_IMPvegfile_path(self):
         self.fileDialogISO.open()
@@ -529,7 +524,6 @@ class SUEWSPrepareDatabase(object):
             self.IMPvegfile_path_dec = None
             self.dlg.textInputIMPDecData.setText('')
 
-
     def set_IMPvegfile_path_eve(self):
         self.fileDialogISO.open()
         result = self.fileDialogISO.exec_()
@@ -539,7 +533,6 @@ class SUEWSPrepareDatabase(object):
         else:
             self.IMPvegfile_path_eve = None
             self.dlg.textInputIMPEveData.setText('')
-
 
     def set_metfile_path(self):
         self.Metfile_path = self.fileDialog.getOpenFileName()
@@ -759,6 +752,19 @@ class SUEWSPrepareDatabase(object):
             self.output_dir = ['C:/Users/xbacos/OneDrive - University of Gothenburg/Artikel_4/OUT/OSept']
 
 
+        # for cbox in [self.dlg.comboBoxPaved, 
+        #              self.dlg.comboBoxBuilding, 
+        #              self.dlg.comboBoxEvrTree, 
+        #              self.dlg.comboBoxDecTree, 
+        #              self.dlg.comboBoxGrass,
+        #              self.dlg.comboBoxAnthro,
+        #              self.dlg.comboBoxTrafficWD,
+        #              self.dlg.comboBoxTrafficWE,
+        #              self.dlg.comboBoxSnowWD,
+        #              self.dlg.comboBoxSnowWE,
+        #              self.dlg.comboBoxHumanWD,
+        #              self.dlg.comboBoxHumanWE]:
+
         # TODO     
         #Here worker loop starts. We make function. Then it is easier to put in worker later
 
@@ -838,26 +844,45 @@ class SUEWSPrepareDatabase(object):
         db_path = plugin_dir + '/Input/database.xlsx'  # TODO When in UMEP Toolbox, set this path to db in database manager, and instead send from plugin instead of read again
         db_dict = read_DB(db_path)
 
-        type_id_dict = {}   # Dict used in aggregation for assigning correct Typology
+        # Vectorize type_id_dict creation
+        type_id_dict = db_dict['NonVeg'].loc[db_dict['NonVeg']['Surface'] == 'Buildings'].set_index('descOrigin').index.to_series().to_dict()
 
-        for row in db_dict['NonVeg'].loc[db_dict['NonVeg']['Surface'] == 'Buildings'].index:
-            type_id_dict[db_dict['NonVeg'].loc[row, 'descOrigin']] = row 
-        
-        # Get ID Values from Region and Country that will be needed for assinging correct parameters later on
-        for index in list(db_dict['Country'].index):
-            country_conv_dict[index] = db_dict['Country'].loc[index, 'Country'] + ', ' + db_dict['Country'].loc[index, 'City']
+        # Vectorize country_conv_dict creation
+        country_conv_dict = (db_dict['Country']['Country'] + ', ' + db_dict['Country']['City']).to_dict()
         country_conv_dict_inv = {v: k for k, v in country_conv_dict.items()}
 
-        for index in list(db_dict['Region'].index):
-            reg_conv_dict[index] = db_dict['Region'].loc[index, 'Region']
+        # Vectorize reg_conv_dict creation
+        reg_conv_dict = db_dict['Region']['Region'].to_dict()
+
+        # Get selected country
         country_sel = db_dict['Country'].loc[[country_conv_dict_inv[country_str]]]
+
+        # Drop irrelevant columns
+        column_list = db_dict['Country'].drop(columns=['Region', 'Country', 'City']).columns
+
+        # Set parameters from regional or country level and populate parameter_dict
+        parameter_dict = {column: decide_country_or_region(column, country_sel, db_dict['Region']) for column in column_list}
+
+        # type_id_dict = {}   # Dict used in aggregation for assigning correct Typology
+
+        # for row in db_dict['NonVeg'].loc[db_dict['NonVeg']['Surface'] == 'Buildings'].index:
+        #     type_id_dict[db_dict['NonVeg'].loc[row, 'descOrigin']] = row 
         
-        # Drop irrelevant (for what to come) columns
-        column_list = db_dict['Country'].drop(columns = ['Region','Country','City']).columns
+        # # Get ID Values from Region and Country that will be needed for assinging correct parameters later on
+        # for index in list(db_dict['Country'].index):
+        #     country_conv_dict[index] = db_dict['Country'].loc[index, 'Country'] + ', ' + db_dict['Country'].loc[index, 'City']
+        # country_conv_dict_inv = {v: k for k, v in country_conv_dict.items()}
+
+        # for index in list(db_dict['Region'].index):
+        #     reg_conv_dict[index] = db_dict['Region'].loc[index, 'Region']
+        # country_sel = db_dict['Country'].loc[[country_conv_dict_inv[country_str]]]
         
-        # Set parameters from regional or country level and populate that into the parameter_dict
-        for column in column_list:
-            parameter_dict[column] = decide_country_or_region(column, country_sel, db_dict['Region'])
+        # # Drop irrelevant (for what to come) columns
+        # column_list = db_dict['Country'].drop(columns = ['Region','Country','City']).columns
+        
+        # # Set parameters from regional or country level and populate that into the parameter_dict
+        # for column in column_list:
+        #     parameter_dict[column] = decide_country_or_region(column, country_sel, db_dict['Region'])
 
         # set correct values and write txt.files based on the parameters found at country/regional level 
         AnEm_dict = fill_SUEWS_AnthropogenicEmission(parameter_dict['AnthropogenicCode'], parameter_dict, db_dict) 
@@ -1071,13 +1096,7 @@ class SUEWSPrepareDatabase(object):
                 fraction = row[1]['tot_fraction']   
                 grid_dict[id][typology] = {}
                 grid_dict[id][typology]['SAreaFrac'] = fraction # populate fractions in grid_dict
-                # grid_dict[id][typology]['uvalue_wall'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'u_value_wall']
-                # grid_dict[id][typology]['uvalue_roof'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'u_value_roof']
-                # grid_dict[id][typology]['albedo_roof'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'albedo_roof']
-                # grid_dict[id][typology]['albedo_wall'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'albedo_wall']
-                # grid_dict[id][typology]['emissivity_roof'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'emissivity_roof']
-                # grid_dict[id][typology]['emissivity_wall'] = db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[typology, 'Spartacus Surface'], 'emissivity_wall'] 
-                
+
                 # Use locator to avoid this long and complicated pandas slice at all below rows
                 # locator selects the seleced 'Spartacus Surface' from the Spartacus surface connected to the building in the selected typology
                 locator =  db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[typology]['Buildings']]['Spartacus Surface']]
@@ -1191,7 +1210,7 @@ class SUEWSPrepareDatabase(object):
         OHM_list = []
         BIOCO2_list = []
         
-
+    
         # Iterate through all parameter dicts to ensure that all used, OHM and Biogen codes are written into the SUEWS.txt files
         for dict_sel, dict_name in zip([nonVeg_dict, veg_dict, snow_dict, water_dict ],['NonVeg', 'Veg', 'Snow', 'Water']):
             
@@ -1232,7 +1251,6 @@ class SUEWSPrepareDatabase(object):
                             BIOCO2_list.append(dict_sel[feat_id]['BiogenCO2Code'])
 
         # Remove duplicates
-
         OHM_list = list(set(OHM_list))
         BIOCO2_list = list(set(BIOCO2_list))
         
