@@ -4,26 +4,27 @@ from time import sleep
 from datetime import datetime
 
 
+
 def read_DB(db_path):
     '''
     function for reading database and parse it to dictionary of dataframes
-    descOrigin is used for indexing and presenting the database entries in a understandable way for the user
+    nameOrigin is used for indexing and presenting the database entries in a understandable way for the user
     '''
     db_sh = pd.ExcelFile(db_path)
     sheets = db_sh.sheet_names
     db = pd.read_excel(db_path, sheet_name= sheets, index_col= 0)
     # add 
     for col in sheets:
-        if col == 'Types':
-            db[col]['descOrigin'] = db[col]['Type'].astype(str) + ', ' + db[col]['Origin'].astype(str)
+        if col == 'Name':
+            db[col]['nameOrigin'] = db[col]['Name'].astype(str) + ', ' + db[col]['Origin'].astype(str)
         elif col == 'References': 
             db[col]['authorYear'] = db[col]['Author'].astype(str) + ', ' + db[col]['Year'].astype(str)
         elif col == 'Country':
-            db[col]['descOrigin'] = db[col]['Country'].astype(str) + ', ' + db[col]['City'].astype(str)  
+            db[col]['nameOrigin'] = db[col]['Country'].astype(str) + ', ' + db[col]['City'].astype(str)  
         elif col == 'Region':
             pass
         elif col == 'Spartacus Material':
-            db[col]['descOrigin'] = db[col]['Description'].astype(str) + '; ' + db[col]['Color'].astype(str) + '; ' + db[col]['Origin'].astype(str)    
+            db[col]['nameOrigin'] = db[col]['Name'].astype(str) + '; ' + db[col]['Color'].astype(str) + '; ' + db[col]['Origin'].astype(str)    
         # Calculate U-values for roof and wall new columns u_value_wall and u_value_roof
         elif col == 'Profiles':
             # Normalise traffic and energy use profiles to ensure that mean == 1
@@ -43,10 +44,10 @@ def read_DB(db_path):
             # Scale the values
             db[col].loc[normalisation_rows_index, cols] = db[col].loc[normalisation_rows_index, cols].multiply(scaling_factors, axis=0)
 
-            db[col]['descOrigin'] = db[col]['Description'].astype(str) + ', ' + db[col]['Origin'].astype(str)
+            db[col]['nameOrigin'] = db[col]['Name'].astype(str) + ', ' + db[col]['Origin'].astype(str)
 
         elif col == 'Spartacus Surface':
-            db[col]['descOrigin'] = db[col]['Description'].astype(str) + ', ' + db[col]['Origin'].astype(str)
+            db[col]['nameOrigin'] = db[col]['Name'].astype(str) + ', ' + db[col]['Origin'].astype(str)
         # Filter rows where Surface is 'Buildings'
             buildings = db['Spartacus Surface'][db['Spartacus Surface']['Surface'] == 'Buildings']
 
@@ -69,12 +70,11 @@ def read_DB(db_path):
                     db['Spartacus Surface'].loc[buildings.index, f'{prop.lower()}_{prefix}all'] = db['Spartacus Material'].loc[buildings[material_col], prop].values
         else:
             print(col)
-            db[col]['descOrigin'] = db[col]['Description'].astype(str) + ', ' + db[col]['Origin'].astype(str)
+            db[col]['nameOrigin'] = db[col]['Name'].astype(str) + ', ' + db[col]['Origin'].astype(str)
 
     db_sh.close() # trying this to close excelfile
 
     return db
-
 # dict for assigning correct first two digits when creating new codes
 
 code_id_dict = {
