@@ -44,7 +44,7 @@ def read_DB(db_path):
             # Scale the values
             db[col].loc[normalisation_rows_index, cols] = db[col].loc[normalisation_rows_index, cols].multiply(scaling_factors, axis=0)
 
-            db[col]['nameOrigin'] = db[col]['Name'].astype(str) + ', ' + db[col]['Origin'].astype(str)
+            db[col]['nameOrigin'] = db[col]['Name'].astype(str)  +  ', ' + db[col]['Day'].astype(str) +  ', ' + db[col]['Origin'].astype(str) 
 
         elif col == 'Spartacus Surface':
             db[col]['nameOrigin'] = db[col]['Name'].astype(str) + ', ' + db[col]['Origin'].astype(str)
@@ -155,8 +155,14 @@ surf_df_dict = {
     'ActivityProfWE' : 'Profiles',
     'WaterUseProfManuWD' : 'Profiles',
     'WaterUseProfManuWE' : 'Profiles',
+    'WaterUseProfManuAWD' : 'Profiles',
+    'WaterUseProfManuAWE' : 'Profiles',
     'SnowClearingProfWD' : 'Profiles',
-    'SnowClearingProfWE' : 'Profiles'
+    'SnowClearingProfWE' : 'Profiles',
+    'PopProfWD' : 'Profiles',
+    'PopProfWE' : 'Profiles',
+    'EnergyUseProfWD' : 'Profiles',
+    'EnergyUseProfWE' : 'Profiles'
 }
 
 def round_dict(in_dict):
@@ -572,7 +578,7 @@ def save_SUEWS_txt(df_m, table_name, save_folder, db_dict):
     This function is used to prepare the data and saving into correct way for the .txt files used in SUEWS
     # TODO Add comment column in the end and specify where the specific code is used
     '''
-    col = ['General Type', 'Surface', 'Description', 'Origin', 'Ref', 'Season', 'Day' ,'Profile Type', 'descOrigin']
+    col = ['General Type', 'Surface', 'Name', 'Origin', 'Ref', 'Season', 'Day' ,'Profile Type', 'nameOrigin']
     dropFilter = df_m.filter(col)
     df_m.drop(dropFilter, inplace= True, axis = 1)
     df_m.reset_index(inplace = True)
@@ -606,11 +612,11 @@ def save_SUEWS_txt(df_m, table_name, save_folder, db_dict):
         
         if table_name == 'SUEWS_Veg.txt' or table_name == 'SUEWS_NonVeg.txt':
             surface_sel = db_dict[table_name_short].loc[idx,'Surface'] # table_name_short is used to set correct table in DB. all table names are such as "SUEWS_table.txt, and DB only wants table"
-            descOrigin_sel = db_dict[table_name_short].loc[idx,'descOrigin']
-            id_string = surface_sel + ', ' + descOrigin_sel
+            nameOrigin_sel = db_dict[table_name_short].loc[idx,'nameOrigin']
+            id_string = surface_sel + ', ' + nameOrigin_sel
         else:
-            descOrigin_sel = db_dict[table_name_short].loc[idx,'descOrigin']
-            id_string =  descOrigin_sel
+            nameOrigin_sel = db_dict[table_name_short].loc[idx,'nameOrigin']
+            id_string =  nameOrigin_sel
 
         df_m.loc[idx,''] = id_string
 
@@ -646,8 +652,8 @@ def save_snow(snow_dict, save_folder, db_dict):
 
     idx = df_m['Code'].item()
 
-    descOrigin_sel = db_dict['Snow'].loc[idx,'descOrigin']
-    df_m[''] = descOrigin_sel
+    nameOrigin_sel = db_dict['Snow'].loc[idx,'nameOrigin']
+    df_m[''] = nameOrigin_sel
 
     column_list = list(range(1, len(df_m.columns)+1))
     df_m.columns = [df_m.columns, column_list]
@@ -690,8 +696,8 @@ def save_NonVeg_types(nonveg_dict, save_folder, db_dict):
     for idx in list(df.index):
         try:
             surface_sel = db_dict['NonVeg'].loc[idx,'Surface'] 
-            descOrigin_sel = db_dict['NonVeg'].loc[idx,'descOrigin']
-            id_string = surface_sel + ', ' + descOrigin_sel
+            nameOrigin_sel = db_dict['NonVeg'].loc[idx,'nameOrigin']
+            id_string = surface_sel + ', ' + nameOrigin_sel
             df.loc[idx,'Locator'] = id_string
         except:
             pass
