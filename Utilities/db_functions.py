@@ -1,8 +1,9 @@
-import pandas as pd
-import numpy as np
+from pandas import ExcelFile, read_excel, MultiIndex, DataFrame, read_csv,concat
+from numpy import nonzero, isnan, nan, vectorize, average, int32, zeros, pad, array
 from time import sleep
 from datetime import datetime
 
+from scipy.ndimage import maximum_filter
 
 
 def read_DB(db_path):
@@ -10,11 +11,12 @@ def read_DB(db_path):
     function for reading database and parse it to dictionary of dataframes
     nameOrigin is used for indexing and presenting the database entries in a understandable way for the user
     '''
-    db_sh = pd.ExcelFile(db_path)
+    db_sh = ExcelFile(db_path)
     sheets = db_sh.sheet_names
-    db = pd.read_excel(db_path, sheet_name= sheets, index_col= 0)
-    # add 
+    db = read_excel(db_path, sheet_name= sheets, index_col= 0)
+
     for col in sheets:
+        
         if col == 'Name':
             db[col]['nameOrigin'] = db[col]['Name'].astype(str) + ', ' + db[col]['Origin'].astype(str)
         elif col == 'References': 
@@ -26,8 +28,48 @@ def read_DB(db_path):
         elif col == 'Spartacus Material':
             db[col]['nameOrigin'] = db[col]['Name'].astype(str) + '; ' + db[col]['Color'].astype(str) + '; ' + db[col]['Origin'].astype(str)    
         # Calculate U-values for roof and wall new columns u_value_wall and u_value_roof
+        
+        elif col == 'Spartacus Surface':
+            db[col]['nameOrigin'] = db[col]['Name'].astype(str) + ', ' + db[col]['Origin'].astype(str)
+                # Filter rows where Surface is 'Buildings'
+        
+            buildings = db['Spartacus Surface'][db['Spartacus Surface']['Surface'] == 'Buildings']
+
+            # Calculate resistances and U-values
+            for prefix in ['w', 'r']:
+
+                if prefix == 'w':
+                    pr = 'wall'
+                else:
+                    pr = 'roof'
+                materials = buildings[[f'{prefix}{i}Material' for i in range(1, 6)]].values
+                thicknesses = buildings[[f'{prefix}{i}Thickness' for i in range(1, 6)]].values
+
+                thicknesses[isnan(thicknesses)] = 0
+
+                for i in range(0,5):
+                    materials[isnan(materials)] = materials[nonzero(isnan(materials))[0], nonzero(isnan(materials))[1]-1]
+
+
+                thermal_conductivities = vectorize(lambda x: db['Spartacus Material'].loc[x, 'Thermal Conductivity'])(materials)
+
+
+                resistances = thicknesses / thermal_conductivities
+                resistance_bulk = resistances.sum(axis=1)
+
+                u_values = 1 / resistance_bulk
+
+                db['Spartacus Surface'].loc[buildings.index, f'u_value_{pr}'] = u_values
+
+            # Calculate albedo and emissivity
+            for prop in ['Albedo', 'Emissivity']:
+                for prefix, pr in zip(['w', 'r'], ['wall', 'roof']):
+
+                    material_col = f'{prefix}1Material'
+                    db['Spartacus Surface'].loc[buildings.index, f'{prop.lower()}_{pr}'] = db['Spartacus Material'].loc[buildings[material_col], prop].values
+        
         elif col == 'Profiles':
-            # Normalise traffic and energy use profiles to ensure that mean == 1
+            # Normalise traffic and energy use profiles to ensure that average of all columns = 1
             normalisation_rows = db[col][(db[col]['Profile Type'] == 'Traffic') | (db[col]['Profile Type'] == 'Energy use')]
             cols = list(range(24))
             normalisation_rows_index = list(normalisation_rows.index)
@@ -36,46 +78,25 @@ def read_DB(db_path):
             sums = db[col].loc[normalisation_rows_index, cols].sum(axis=1)
 
             # Avoid division by zero by replacing zero sums with NaN
-            sums.replace(0, np.nan, inplace=True)
+            sums.replace(0, nan, inplace=True)
 
             # # Calculate the scaling factor to make the sum equal to the number of columns (24)
             scaling_factors = 24 / sums
 
             # Scale the values
             db[col].loc[normalisation_rows_index, cols] = db[col].loc[normalisation_rows_index, cols].multiply(scaling_factors, axis=0)
-
+            
+            # Create unique name
             db[col]['nameOrigin'] = db[col]['Name'].astype(str)  +  ', ' + db[col]['Day'].astype(str) +  ', ' + db[col]['Country'].astype(str) + ', ' + db[col]['City'].astype(str) 
 
-        elif col == 'Spartacus Surface':
-            db[col]['nameOrigin'] = db[col]['Name'].astype(str) + ', ' + db[col]['Origin'].astype(str)
-        # Filter rows where Surface is 'Buildings'
-            buildings = db['Spartacus Surface'][db['Spartacus Surface']['Surface'] == 'Buildings']
-
-            # Calculate resistances and U-values
-            for prefix in ['w', 'r']:
-                materials = buildings[[f'{prefix}{i}Material' for i in range(1, 4)]].values
-                thicknesses = buildings[[f'{prefix}{i}Thickness' for i in range(1, 4)]].values
-
-                thermal_conductivities = np.vectorize(lambda x: db['Spartacus Material'].loc[x, 'Thermal Conductivity'])(materials)
-                resistances = thicknesses / thermal_conductivities
-                resistance_bulk = resistances.sum(axis=1)
-
-                u_values = 1 / resistance_bulk
-                db['Spartacus Surface'].loc[buildings.index, f'u_value_{prefix}all'] = u_values
-
-            # Calculate albedo and emissivity
-            for prop in ['Albedo', 'Emissivity']:
-                for prefix in ['w', 'r']:
-                    material_col = f'{prefix}1Material'
-                    db['Spartacus Surface'].loc[buildings.index, f'{prop.lower()}_{prefix}all'] = db['Spartacus Material'].loc[buildings[material_col], prop].values
         else:
-            print(col)
+            # Standard
             db[col]['nameOrigin'] = db[col]['Name'].astype(str) + ', ' + db[col]['Origin'].astype(str)
 
     db_sh.close() # trying this to close excelfile
 
     return db
-# dict for assigning correct first two digits when creating new codes
+
 
 code_id_dict = {
     'Region': 10,
@@ -135,7 +156,7 @@ def create_code(table_name):
     table_code = str(code_id_dict[table_name]) 
     year = str(datetime.utcnow().strftime('%Y'))[2:]
     ms = str(datetime.utcnow().strftime('%S%f')) 
-    code = np.int32(table_code + year + ms[4:])
+    code = int32(table_code + year + ms[4:])
     
     return code
 
@@ -155,8 +176,8 @@ surf_df_dict = {
     'ActivityProfWE' : 'Profiles',
     'WaterUseProfManuWD' : 'Profiles',
     'WaterUseProfManuWE' : 'Profiles',
-    'WaterUseProfManuAWD' : 'Profiles',
-    'WaterUseProfManuAWE' : 'Profiles',
+    'WaterUseProfAutoWD' : 'Profiles',
+    'WaterUseProfAutoWE' : 'Profiles',
     'SnowClearingProfWD' : 'Profiles',
     'SnowClearingProfWE' : 'Profiles',
     'PopProfWD' : 'Profiles',
@@ -212,25 +233,25 @@ def blend_SUEWS_NonVeg(grid_dict, db_dict, parameter_dict, surface):
         values_dict[param] = [temp_nonveg_dict[typology][param] for typology in typology_list]
     new_edit = {
             'Code': create_code('NonVeg'),
-            'AlbedoMin': np.average(values_dict['AlbedoMin'], weights=fractions),
-            'AlbedoMax': np.average(values_dict['AlbedoMax'], weights=fractions),
-            'Emissivity': np.average(values_dict['Emissivity'], weights=fractions),
-            'StorageMin': np.average(values_dict['StorageMin'], weights=fractions),
-            'StorageMax': np.average(values_dict['StorageMax'], weights=fractions),
-            'WetThreshold': np.average(values_dict['WetThreshold'], weights=fractions),
-            'StateLimit': np.average(values_dict['StateLimit'], weights=fractions),
+            'AlbedoMin': average(values_dict['AlbedoMin'], weights=fractions),
+            'AlbedoMax': average(values_dict['AlbedoMax'], weights=fractions),
+            'Emissivity': average(values_dict['Emissivity'], weights=fractions),
+            'StorageMin': average(values_dict['StorageMin'], weights=fractions),
+            'StorageMax': average(values_dict['StorageMax'], weights=fractions),
+            'WetThreshold': average(values_dict['WetThreshold'], weights=fractions),
+            'StateLimit': -999,#average(values_dict['StateLimit'], weights=fractions),
             'DrainageEq': temp_nonveg_dict[dominant_typology]['DrainageEq'],
             'DrainageCoef1': temp_nonveg_dict[dominant_typology]['DrainageCoef1'],
             'DrainageCoef2': temp_nonveg_dict[dominant_typology]['DrainageCoef2'],
             'SoilTypeCode': parameter_dict['SoilTypeCode'],
-            'SnowLimPatch': np.average(values_dict['SnowLimPatch'], weights=fractions),
-            'SnowLimRemove': np.average(values_dict['SnowLimRemove'], weights=fractions),
+            'SnowLimPatch': average(values_dict['SnowLimPatch'], weights=fractions),
+            'SnowLimRemove': average(values_dict['SnowLimRemove'], weights=fractions),
             'OHMThresh_SW': 10,  # TODO: set regional Country --> parameter_dict['OHMThresh_SW'],
             'OHMThresh_WD': 0.9,  # TODO: set regional Country --> parameter_dict['OHMThresh_WD'],
-            'ESTMCode': -9999,  # not used
-            'AnOHM_Cp': np.average(values_dict['AnOHM_Cp'], weights=fractions),
-            'AnOHM_Kk': np.average(values_dict['AnOHM_Kk'], weights=fractions),
-            'AnOHM_Ch': np.average(values_dict['AnOHM_Ch'], weights=fractions),
+            'ESTMCode': -999,  # not used
+            'AnOHM_Cp': -999,
+            'AnOHM_Kk': -999,
+            'AnOHM_Ch': -999,
         }
 
     # This loop is for ohm codes as they are not averagable
@@ -265,7 +286,7 @@ def fill_SUEWS_NonVeg_typologies(code, db_dict, parameter_dict, surface = False)
         'StorageMin' :  db_dict['Water Storage'].loc[locator['Water Storage'], 'StorageMin'], 
         'StorageMax' : db_dict['Water Storage'].loc[locator['Water Storage'], 'StorageMax'],
         'WetThreshold' : db_dict['Drainage'].loc[locator['Drainage'], 'WetThreshold'], 
-        'StateLimit' : -9999, # Not used for Non Veg
+        'StateLimit' : -999, # Not used for Non Veg
         'DrainageEq' : db_dict['Drainage'].loc[locator['Drainage'], 'DrainageEq'],
         'DrainageCoef1' : db_dict['Drainage'].loc[locator['Drainage'], 'DrainageCoef1'], 
         'DrainageCoef2' : db_dict['Drainage'].loc[locator['Drainage'], 'DrainageCoef2'], 
@@ -278,10 +299,10 @@ def fill_SUEWS_NonVeg_typologies(code, db_dict, parameter_dict, surface = False)
         'OHMCode_WinterDry' : locator['OHMWinterDry'], 
         'OHMThresh_SW' : 10, # TODO Set regional
         'OHMThresh_WD' : 0.9, # TODO Set regional
-        'ESTMCode' : locator['ESTM'], 
-        'AnOHM_Cp' : db_dict['ANOHM'].loc[locator['ANOHM'], 'AnOHM_Cp'], 
-        'AnOHM_Kk' : db_dict['ANOHM'].loc[locator['ANOHM'], 'AnOHM_Kk'],
-        'AnOHM_Ch' : db_dict['ANOHM'].loc[locator['ANOHM'], 'AnOHM_Ch'],
+        'ESTMCode' : -999, 
+        'AnOHM_Cp' : -999,
+        'AnOHM_Kk' : -999,
+        'AnOHM_Ch' : -999,
         }
     return table_dict
 
@@ -305,18 +326,18 @@ def fill_SUEWS_Water(locator, db_dict, column_dict):
         'DrainageCoef1' : db_dict['Drainage'].loc[db_dict['Water'].loc[locator, 'Drainage'], 'DrainageCoef1'],
         'DrainageCoef2' : db_dict['Drainage'].loc[db_dict['Water'].loc[locator, 'Drainage'], 'DrainageCoef2'],
         'SoilTypeCode' : column_dict['SoilTypeCode'], #table.loc[locator, 'SoilTypeCode'],  36),
-        'SnowLimPatch' : -9999,
-        'SnowLimRemove': -9999,    
+        'SnowLimPatch' : -999,
+        'SnowLimRemove': -999,    
         'OHMCode_SummerWet' : db_dict['Water'].loc[locator, 'OHMSummerWet'],
         'OHMCode_SummerDry' : db_dict['Water'].loc[locator, 'OHMSummerDry'],
         'OHMCode_WinterWet' : db_dict['Water'].loc[locator, 'OHMWinterWet'],
         'OHMCode_WinterDry' : db_dict['Water'].loc[locator, 'OHMWinterDry'],
         'OHMThresh_SW' : 10, # table.loc[locator, 'OHMThresh_SW'],
         'OHMThresh_WD' : 0.9, #table.loc[locator, 'OHMThresh_WD'],
-        'ESTMCode' : db_dict['Water'].loc[locator, 'ESTM'],
-        'AnOHM_Cp' : db_dict['ANOHM'].loc[db_dict['Water'].loc[locator, 'ANOHM'],  'AnOHM_Cp'],
-        'AnOHM_Kk' : db_dict['ANOHM'].loc[db_dict['Water'].loc[locator, 'ANOHM'],  'AnOHM_Kk'],
-        'AnOHM_Ch' : db_dict['ANOHM'].loc[db_dict['Water'].loc[locator, 'ANOHM'],  'AnOHM_Ch'],
+        'ESTMCode' : -999,
+        'AnOHM_Cp' : -999,
+        'AnOHM_Kk' : -999,
+        'AnOHM_Ch' : -999,
     }
     return table_dict
 
@@ -340,7 +361,7 @@ def fill_SUEWS_Veg(db_dict, column_dict ):
                 'StorageMin' :  db_dict['Water Storage'].loc[table.loc[locator, 'Water Storage'], 'StorageMin'],
                 'StorageMax' : db_dict['Water Storage'].loc[table.loc[locator, 'Water Storage'], 'StorageMax'],
                 'WetThreshold' : db_dict['Drainage'].loc[table.loc[locator, 'Drainage'], 'WetThreshold'],
-                'StateLimit' : db_dict['Water State'].loc[table.loc[locator, 'Water State'], 'StateLimit'],
+                'StateLimit' : -999, #db_dict['Water State'].loc[table.loc[locator, 'Water State'], 'StateLimit'],
                 'DrainageEq' : db_dict['Drainage'].loc[table.loc[locator, 'Drainage'], 'DrainageEq'],
                 'DrainageCoef1' : db_dict['Drainage'].loc[table.loc[locator, 'Drainage'], 'DrainageCoef1'],
                 'DrainageCoef2' : db_dict['Drainage'].loc[table.loc[locator, 'Drainage'], 'DrainageCoef2'],
@@ -366,11 +387,11 @@ def fill_SUEWS_Veg(db_dict, column_dict ):
                 'OHMCode_WinterDry' : table.loc[locator, 'OHMWinterDry'],
                 'OHMThresh_SW' : 10,#table.loc[locator, 'OHMThresh_SW'],# TODO set regional
                 'OHMThresh_WD' : 0.9,#table.loc[locator, 'OHMThresh_WD'],# TODO set regional
-                'ESTMCode' : table.loc[locator, 'ESTM'],
-                'AnOHM_Cp' : db_dict['ANOHM'].loc[table.loc[locator, 'ANOHM'],  'AnOHM_Cp'],
-                'AnOHM_Kk' : db_dict['ANOHM'].loc[table.loc[locator, 'ANOHM'],  'AnOHM_Kk'],
-                'AnOHM_Ch' : db_dict['ANOHM'].loc[table.loc[locator, 'ANOHM'],  'AnOHM_Ch'],
-                'BiogenCO2Code' : column_dict['Biogen'] #table.loc[locator, 'BIOGEN']
+                'ESTMCode' : -999,
+                'AnOHM_Cp' : -999,
+                'AnOHM_Kk' : -999,
+                'AnOHM_Ch' : -999,
+                'BiogenCO2Code' : table.loc[locator, 'Biogen CO2']
             }
     return table_dict
 
@@ -397,16 +418,16 @@ def fill_SUEWS_Snow(locator, db_dict):
         'CRWMin' : db_dict['Snow'].loc[locator, 'CRWMin'],
         'CRWMax' : db_dict['Snow'].loc[locator, 'CRWMax'],
         'PrecipLimSnow' : db_dict['Snow'].loc[locator, 'PrecipLimSnow'],
-        'OHMCode_SummerWet' : db_dict['Snow'].loc[locator, 'OHMCode_SummerWet'],
-        'OHMCode_SummerDry' : db_dict['Snow'].loc[locator, 'OHMCode_SummerDry'],
-        'OHMCode_WinterWet' : db_dict['Snow'].loc[locator, 'OHMCode_WinterWet'],
-        'OHMCode_WinterDry' : db_dict['Snow'].loc[locator, 'OHMCode_WinterDry'],
+        'OHMCode_SummerWet' : db_dict['Snow'].loc[locator, 'OHMSummerWet'],
+        'OHMCode_SummerDry' : db_dict['Snow'].loc[locator, 'OHMSummerDry'],
+        'OHMCode_WinterWet' : db_dict['Snow'].loc[locator, 'OHMWinterWet'],
+        'OHMCode_WinterDry' : db_dict['Snow'].loc[locator, 'OHMWinterDry'],
         'OHMThresh_SW' : 10,
         'OHMThresh_WD' : 0.9,
-        'ESTMCode' : db_dict['Snow'].loc[locator, 'ESTM'],
-        'AnOHM_Cp' : db_dict['ANOHM'].loc[db_dict['Snow'].loc[locator, 'ANOHM'],  'AnOHM_Cp'],
-        'AnOHM_Kk' : db_dict['ANOHM'].loc[db_dict['Snow'].loc[locator, 'ANOHM'],  'AnOHM_Kk'],
-        'AnOHM_Ch' : db_dict['ANOHM'].loc[db_dict['Snow'].loc[locator, 'ANOHM'],  'AnOHM_Ch'],
+        'ESTMCode' : -999,
+        'AnOHM_Cp' : -999,
+        'AnOHM_Kk' : -999,
+        'AnOHM_Ch' : -999,
     }
 
     return table_dict
@@ -509,28 +530,59 @@ def new_table_edit(db_dict, table_dict, values, param, name, frac_dict, surface)
 
     for i in ['a1', 'a2', 'a3']:
         try:
-            new_edit_dict[i] = np.average(list(blend_edit_dict[i].values()), weights = weight)
+            new_edit_dict[i] = average(list(blend_edit_dict[i].values()), weights = weight)
         except:
             new_edit_dict[i] = -999.
 
     table_dict[surface][param]  = new_edit_dict['Code']
     new_edit_dict['Code'] = new_code
 
-    dict_df = pd.DataFrame(new_edit_dict, index = [0]).set_index('Code')
+    dict_df = DataFrame(new_edit_dict, index = [0]).set_index('Code')
 
     dict_df = dict_df.rename_axis('ID')
-    db_dict[name] = pd.concat([db_dict[name], dict_df])
+    db_dict[name] = concat([db_dict[name], dict_df])
 
     return db_dict
 
 
-def fill_SUEWS_profiles(profiles_list ,save_folder, prof):
+def findwalls(arr_dsm, walllimit):
+    # Get the shape of the input array
+    col, row = arr_dsm.shape
+    walls = zeros((col, row))
+    
+    # Create a padded version of the array
+    padded_a = pad(arr_dsm, pad_width=1, mode='edge')
+
+    # Create a footprint for cardinal points
+    footprint = array([ [0, 1, 0],
+                        [1, 0, 1],
+                        [0, 1, 0]])
+
+    # Use maximum_filter with the custom footprint
+    max_neighbors = maximum_filter(padded_a, footprint=footprint, mode='constant', cval=0)
+    
+    # Identify wall pixels: walls are where the max neighbors are greater than the original DSM
+    walls = max_neighbors[1:-1, 1:-1] - arr_dsm
+    
+    # Apply wall height limit
+    walls[walls < walllimit] = 0
+
+    # Set the edges to zero
+    walls[0:walls.shape[0], 0] = 0
+    walls[0:walls.shape[0], walls.shape[1] - 1] = 0
+    walls[0, 0:walls.shape[1]] = 0
+    walls[walls.shape[0] - 1, 0:walls.shape[1]] = 0
+    
+    return walls
+
+
+def fill_SUEWS_profiles(parameter_dict, profiles, profiles_list ,save_folder, prof):
     '''
     This function is used to assign correct profiles
     Locator is selected code
     This function also saves the profiles to .txt
     '''
-    df_m = pd.DataFrame()
+    df_m = DataFrame()
 
     for locator in profiles_list:
         table_dict = {
@@ -560,17 +612,17 @@ def fill_SUEWS_profiles(profiles_list ,save_folder, prof):
             '22' : prof.loc[locator, 22],
             '23' : prof.loc[locator, 23],
         }
-        dict_df = pd.DataFrame(table_dict, index = [0])#.set_index('Code')
-        df_m = pd.concat([df_m, dict_df]).drop_duplicates(keep='first')
-
+        dict_df = DataFrame(table_dict, index = [0])#.set_index('Code')
+        df_m = concat([df_m, dict_df]).drop_duplicates(keep='first')
+        
     df_m.columns = [df_m.columns, list(range(1, len(df_m.columns)+1))]
     # add -9 rows to text files
     df_m = df_m.swaplevel(0,1,1)
-    df_m.loc[-1] = np.nan
+    df_m.loc[-1] = nan
     df_m.iloc[-1, 0] = -9
-    df_m.loc[-2]= np.nan
+    df_m.loc[-2]= nan
     df_m.iloc[-1, 0] = -9
-
+        
     df_m.to_csv(save_folder + 'SUEWS_Profiles.txt', sep = '\t' ,index = False)
 
 def save_SUEWS_txt(df_m, table_name, save_folder, db_dict):
@@ -578,7 +630,7 @@ def save_SUEWS_txt(df_m, table_name, save_folder, db_dict):
     This function is used to prepare the data and saving into correct way for the .txt files used in SUEWS
     # TODO Add comment column in the end and specify where the specific code is used
     '''
-    col = ['General Type', 'Surface', 'Name', 'Origin', 'Ref', 'Season', 'Day' ,'Profile Type', 'nameOrigin']
+    col = ['Surface', 'Name', 'Origin', 'Ref', 'Season', 'Day' ,'Profile Type', 'nameOrigin']
     dropFilter = df_m.filter(col)
     df_m.drop(dropFilter, inplace= True, axis = 1)
     df_m.reset_index(inplace = True)
@@ -626,17 +678,17 @@ def save_SUEWS_txt(df_m, table_name, save_folder, db_dict):
 
     # add -9 rows to text files
     df_m = df_m.swaplevel(0,1,1)
-    # This can probably be done better. Used pd.append() but this will be deprecated. This works, but not the most clean coding
-    df_m.loc[-1] = np.nan
+    # This can probably be done better. Used append() but this will be deprecated. This works, but not the most clean coding
+    df_m.loc[-1] = nan
     df_m.iloc[-1, 0] = -9
-    df_m.loc[-2]= np.nan
+    df_m.loc[-2]= nan
     df_m.iloc[-1, 0] = -9
 
     columns = df_m.columns
 
     new_columns = list(columns[:-2]) + [('', ''), ('', '')]
 
-    df_m.columns = pd.MultiIndex.from_tuples(new_columns)
+    df_m.columns = MultiIndex.from_tuples(new_columns)
 
     df_m.to_csv(save_folder + table_name, sep = '\t' ,index = False)
     
@@ -644,11 +696,11 @@ def save_snow(snow_dict, save_folder, db_dict):
     '''
     This function is used to save to .txt file related to Snow
     '''
-    df_m = pd.DataFrame.from_dict(snow_dict, orient = 'index').T
+    df_m = DataFrame.from_dict(snow_dict, orient = 'index').T
 
     # These two columns are made for adding information on what the code is inside the .txt file
     df_m['!'] = '!'
-    df_m[''] = np.nan
+    df_m[''] = nan
 
     idx = df_m['Code'].item()
 
@@ -659,17 +711,17 @@ def save_snow(snow_dict, save_folder, db_dict):
     df_m.columns = [df_m.columns, column_list]
 
     df_m = df_m.swaplevel(0,1,1)
-    # This can probably be done better. Used pd.append() but this will be deprecated. This works, but not the most clean coding
-    df_m.loc[-1] = np.nan
+    # This can probably be done better. Used append() but this will be deprecated. This works, but not the most clean coding
+    df_m.loc[-1] = nan
     df_m.iloc[-1, 0] = -9
-    df_m.loc[-2]= np.nan
+    df_m.loc[-2]= nan
     df_m.iloc[-1, 0] = -9
 
     columns = df_m.columns
 
     new_columns = list(columns[:-2]) + [('', ''), ('', '')]
 
-    df_m.columns = pd.MultiIndex.from_tuples(new_columns)
+    df_m.columns = MultiIndex.from_tuples(new_columns)
 
     df_m.to_csv(save_folder + 'SUEWS_Snow.txt', sep = '\t' ,index = False)
 
@@ -691,7 +743,7 @@ def save_NonVeg_types(nonveg_dict, save_folder, db_dict):
             rows.append(row)
 
     # Convert the list of rows to a DataFrame
-    df = pd.DataFrame(rows)
+    df = DataFrame(rows)
     df = df.set_index('Code')
     for idx in list(df.index):
         try:
@@ -727,9 +779,9 @@ def save_NonVeg_types(nonveg_dict, save_folder, db_dict):
     df = df.swaplevel(0, 1, axis=1)
 
     # Add 2 rows with empty columns except that the 'Code' value is -9
-    df.loc[-1] = np.nan
+    df.loc[-1] = nan
     df.iloc[-1, 0] = -9
-    df.loc[-2] = np.nan
+    df.loc[-2] = nan
     df.iloc[-2, 0] = -9
 
     # Ensure both rows have the 'Code' value as -9
@@ -737,7 +789,7 @@ def save_NonVeg_types(nonveg_dict, save_folder, db_dict):
     df.iloc[-2, 0] = -9
 
     # Remove name of columns for ! comment columns
-    df.columns = df.columns = pd.MultiIndex.from_tuples([('', '') if col == (25, '!') else ('', '') if col == (26, '') else col for col in df.columns])
+    df.columns = df.columns = MultiIndex.from_tuples([('', '') if col == (25, '!') else ('', '') if col == (26, '') else col for col in df.columns])
 
     df.to_csv(save_folder + 'SUEWS_NonVeg.txt', sep = '\t' ,index = False)
 
@@ -745,8 +797,8 @@ def save_SiteSelect(ss_dict, save_folder, path_to_ss):
     '''
     This function is used to save to SUEWS_SiteSelect.txt
     '''
-    df_m = pd.DataFrame.from_dict(ss_dict).T
-    ss_txt = pd.read_csv(path_to_ss, delim_whitespace=True, skiprows=1)
+    df_m = DataFrame.from_dict(ss_dict).T
+    ss_txt = read_csv(path_to_ss, delim_whitespace=True, skiprows=1)
     df_m = df_m.reset_index()
     df_m = df_m.rename(columns={'index' : 'Grid'})
     df_m['Grid'] = df_m['Grid'].apply(str)
@@ -759,13 +811,12 @@ def save_SiteSelect(ss_dict, save_folder, path_to_ss):
     cd = cd + list(df_m.filter(like= 'WE'))
 
     df_m = df_m.swaplevel(0,1,1)
-    df_m.loc[-1] = np.nan
+    df_m.loc[-1] = nan
     df_m.iloc[-1, 0] = -9
-    df_m.loc[-2]= np.nan
+    df_m.loc[-2]= nan
     df_m.iloc[-1, 0] = -9
 
     df_m.to_csv(save_folder + 'SUEWS_SiteSelect.txt', sep = '\t' ,index = False)
-
 
 def presave(table, name ,var_list, save_folder, db_dict):
     '''
@@ -780,7 +831,7 @@ def read_morph_txt(txt_file):
     '''
     This function is used to read output files from morphometric calculator .txt
     '''
-    morph_dict = pd.read_csv(txt_file, delim_whitespace=True, index_col=[0]).to_dict(orient='index')
+    morph_dict = read_csv(txt_file, delim_whitespace=True, index_col=[0]).to_dict(orient='index')
     return morph_dict  
 
 
@@ -789,13 +840,13 @@ def read_morph_txt(txt_file):
 # def get_utc(grid_path, timezone):
     
 #     # timezone
-#     grid = gpd.read_file(grid_path)
+#     grid = gread_file(grid_path)
     
 #     # Set of grid to crs of timezones vectorlayer (WGS 84)
 #     grid_crs = grid.to_crs(timezone.crs)
 
 #     try:
-#         spatial_join = gpd.sjoin(left_df=grid_crs,
+#         spatial_join = gsjoin(left_df=grid_crs,
 #                                     right_df=timezone,
 #                                     how="inner", op='within')
 #         utc = spatial_join.iloc[0]['zone']

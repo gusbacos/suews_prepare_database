@@ -64,7 +64,7 @@ def ss_calc(build, cdsm, walls, numPixels, feedback):
     return ssResult
 
 
-def getVertheights(ssVect, heightMethod, vertHeightsIn, nlayerIn, skew):
+def getVertheights(ssVect, heightMethod, vertHeightsIn, nlayerIn, skew, id):
     '''
     Input:
     ssVect: array from xx_IMPGrid_SS_x.txt
@@ -73,14 +73,20 @@ def getVertheights(ssVect, heightMethod, vertHeightsIn, nlayerIn, skew):
     nlayersIn: no of vertical layers [option 1 and 2]
     skew: 1 is equal interval between heights and 2 is exponential [option 2 and 3]
     '''
-
+    error_output={}
     if heightMethod == 1: # static levels (taken from interface). Last value > max height
         if ssVect[:,0].max() > max(vertHeightsIn):
             vertHeightsIn.append(ssVect[:,0].max())
         heightIntervals = vertHeightsIn
         nlayerOut = len(heightIntervals) - 1
+
     elif heightMethod == 2: # always nlayers layer based on percentiles
         nlayerOut = nlayerIn
+        
+        if ssVect[:,0].max() < nlayerOut:
+            error_output = {id : f'zMax in grid is to low to use {str(nlayerOut)} vertical layers'}
+            print('error in ID: ', str(id), f'. zMax in grid is to low to use {str(nlayerOut)} vertical layers')
+
     elif heightMethod == 3: # vary number of layers based on height variation. Lowest no of nlayers always 3
         nlayerOut = 3
         if ssVect[:,0].max() > 40: nlayerOut = 4
@@ -96,7 +102,8 @@ def getVertheights(ssVect, heightMethod, vertHeightsIn, nlayerIn, skew):
             heightIntervals.append(float(round((intervals * i) / skew)))
         heightIntervals.append(float(ssVect[:,0].max()))
 
-    return heightIntervals, nlayerOut 
+
+    return heightIntervals, nlayerOut, error_output
 
 
 def ss_calc_gridlayout(heightIntervals, build_array, wall_array, typoList, typo_array, grid_dict, gridlayoutOut, id, nlayer, db_dict):
@@ -151,13 +158,13 @@ def ss_calc_gridlayout(heightIntervals, build_array, wall_array, typoList, typo_
         dfT['u_wall'][hh] = UWall
         dfT['emis_roof'][hh] = ERoof
         dfT['emis_wall'][hh] = EWall
-        
+
     sfr_roof = []
     sfr_wall = []
     for fr in range(1,len(allRoof)):
         sfr_roof.append((allRoof[fr - 1] - allRoof[fr]) / allRoof[0])
         sfr_wall.append((allWall[fr - 1] - allWall[fr]) / allWall[0])
-
+    
     # aggergation based on vertical layers
     gridlayoutOut[id]['sfr_roof'] = []
     gridlayoutOut[id]['sfr_wall'] = []
