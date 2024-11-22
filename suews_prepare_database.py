@@ -52,10 +52,7 @@ from .Utilities import f90nml
 from .Utilities import RoughnessCalcFunction as rg
 from .Utilities.misc import saveraster
 # from .Utilities import wallalgorithms as wa
-from .Utilities.db_functions import (read_DB, decide_country_or_region, fill_SUEWS_NonVeg_typologies,  fill_SUEWS_Water, 
-                                     fill_SUEWS_Veg, fill_SUEWS_Snow, fill_SUEWS_AnthropogenicEmission, 
-                                     fill_SUEWS_profiles, blend_SUEWS_NonVeg, save_SUEWS_txt, save_snow, 
-                                     save_NonVeg_types, save_SiteSelect, presave, read_morph_txt, surf_df_dict, findwalls )
+from .Utilities.db_functions import * 
 
 from .Utilities.ssParms import getVertheights, ss_calc_gridlayout
 from .Utilities.umep_suewsss_export_component import writeGridLayout, create_GridLayout_dict, write_GridLayout_file
@@ -905,7 +902,9 @@ class SUEWSPrepareDatabase(object):
             geodata_output['defaulttypo'] = processing.run("native:dissolve", parin )
 
             # defaultTypoID = db_dict['NonVeg'].loc[db_dict['NonVeg']['nameOrigin']==defTypo].index.item()
-            defaultTypoID = db_dict['NonVeg'].loc[db_dict['NonVeg']['nameOrigin'] == settings_dict['Paved']].index.item()
+            defaultTypoID = create_code('Types')
+            db_dict['Types'].loc[defaultTypoID, 'Paved'] = db_dict['NonVeg'][(db_dict['NonVeg']['nameOrigin'] == settings_dict['Paved']) & (db_dict['NonVeg']['Surface'] == 'Paved')].index.item()
+            db_dict['Types'].loc[defaultTypoID, 'Buildings'] = db_dict['NonVeg'][(db_dict['NonVeg']['nameOrigin'] == settings_dict['Buildings']) & (db_dict['NonVeg']['Surface'] == 'Buildings')].index.item()
 
             parin = {'INPUT':geodata_output['defaulttypo']['OUTPUT'],
                      'FIELD_NAME':'TypolID',
@@ -915,7 +914,7 @@ class SUEWSPrepareDatabase(object):
 
             geodata_output['defaulttypo2'] = processing.run("native:fieldcalculator", parin)
 
-            polyTypolayer = QgsVectorLayer(geodata_output['defaulttypo2']['OUTPUT'],'typo','ogr')
+            settings_dict['polyTypolayer'] = QgsVectorLayer(geodata_output['defaulttypo2']['OUTPUT'],'typo','ogr')
 
 
         # If using Typologies then aggregation is needed. Otherwise no aggregation will be done TODO: ta bort if??
@@ -934,7 +933,7 @@ class SUEWSPrepareDatabase(object):
 
         #isolate buildings in dsm to be able to calculate mean height
         build_arr = dsm_arr-dem_arr
-        build_arrW  = build_arr.copy() # To use for wallheight calculation
+        build_arrW  = build_arr.copy()
         build_arr[np.where(build_arr < 0.5)] = np.nan
         saveraster(gdal.Open(filePath_dsm), build_raster_out, build_arr)
         dsm_arr = None
@@ -1045,8 +1044,8 @@ class SUEWSPrepareDatabase(object):
 
 
         if settings_dict['checkBoxTypologies'] == 0:
-            QgsProject.instance().removeMapLayer(polyTypolayer.source())
-            del polyTypolayer
+            QgsProject.instance().removeMapLayer(settings_dict['polyTypolayer'].source())
+            del settings_dict['polyTypolayer']
 
         # loop through each grid (Typologies)
 
@@ -1162,8 +1161,6 @@ class SUEWSPrepareDatabase(object):
                 nonVeg_dict[id]['Buildings'] = fill_SUEWS_NonVeg_typologies(parameter_dict['Buildings'], db_dict, parameter_dict)
                 
             nonVeg_dict[id]['Bare Soil'] = fill_SUEWS_NonVeg_typologies(parameter_dict['Bare Soil'], db_dict, parameter_dict)
-
-        df_build_frac.to_csv('C:/temp/vagg/new.csv')
 
         # write to SUEWS_NonVeg
         save_NonVeg_types(nonVeg_dict, save_txt_folder, db_dict)
@@ -1696,8 +1693,8 @@ class SUEWSPrepareDatabase(object):
             error_string = error_string + '\n\nCheck Python console to find this information again'
             
             QMessageBox.critical(self.dlg, "Run complete but with Spartacus Vertical morphology errors", error_string)
-        else:
-            QMessageBox.Information(self.dlg, "Run complete")
+        # else:
+        #     QMessageBox.Information(self.dlg, "Run complete")
 
     def write_to_init(self, initfilein, initfileout):
         LeafCycle = self.leaf_cycle
