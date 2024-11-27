@@ -8,7 +8,7 @@
                               -------------------
         begin                : 2022-03-22
         git sha              : $Format:%H$
-        copyright            : (C) 2022 by Fredrik Lindberg
+        copyright            : (C) 2022 by Fredrik Lindberg, Oskar Bäcklin
         email                : fredrikl@gvc.gu.se
  ***************************************************************************/
 
@@ -25,6 +25,9 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import  QAction, QMessageBox, QFileDialog
+
+from qgis.utils import iface
+from qgis.core import Qgis
 
 from qgis.core import (QgsMapLayerProxyModel, 
                        QgsFieldProxyModel, 
@@ -62,7 +65,6 @@ from shutil import copyfile, rmtree
 import processing
 
 ################################################################
-
 class SUEWSPrepareDatabase(object):
     """QGIS Plugin Implementation."""
 
@@ -226,7 +228,7 @@ class SUEWSPrepareDatabase(object):
         # Read Database
         db_path = self.plugin_dir + '/Input/database.xlsx'  # TODO When in UMEP Toolbox, set this path to db in database manager
         db_dict = read_DB(db_path)
-        
+
         # Filling comboboxes in frame for Regional Parameters
         # 'nameOrigin' is a column created in read_DB to have a readable and understandable indexer shown to the user instead of using the ID
         # The lists here are the ones populating comboboxes for regional parameters
@@ -249,6 +251,9 @@ class SUEWSPrepareDatabase(object):
         snow_listWE = db_dict['Profiles']['nameOrigin'].loc[db_dict['Profiles']['Profile Type'] == 'Snow removal'].loc[db_dict['Profiles']['Day'] == 'Weekend']
         wateruse_listWD = db_dict['Profiles']['nameOrigin'].loc[db_dict['Profiles']['Profile Type'] == 'Water use (manual)'].loc[db_dict['Profiles']['Day'] == 'Weekday']
         wateruse_listWE = db_dict['Profiles']['nameOrigin'].loc[db_dict['Profiles']['Profile Type'] == 'Water use (manual)'].loc[db_dict['Profiles']['Day'] == 'Weekend']
+        
+        wateruse_listAWD = db_dict['Profiles']['nameOrigin'].loc[db_dict['Profiles']['Profile Type'] == 'Water use (automatic)'].loc[db_dict['Profiles']['Day'] == 'Weekday']
+        wateruse_listAWE = db_dict['Profiles']['nameOrigin'].loc[db_dict['Profiles']['Profile Type'] == 'Water use (automatic)'].loc[db_dict['Profiles']['Day'] == 'Weekend']
 
         self.dlg.comboBoxPaved.addItems(sorted(paved_list))
         self.dlg.comboBoxBuilding.addItems(sorted(building_list))
@@ -267,17 +272,17 @@ class SUEWSPrepareDatabase(object):
         self.dlg.comboBoxHumanWE.addItems(sorted(human_listWE))
         self.dlg.comboBoxSnowWD.addItems(sorted(snow_listWD))
         self.dlg.comboBoxSnowWE.addItems(sorted(snow_listWE))
-        self.dlg.comboBoxIrrigationWD.addItems(sorted(wateruse_listWD)) #TODO need to try to combine manual and automativ Wateruse
+        self.dlg.comboBoxIrrigationWD.addItems(sorted(wateruse_listWD)) 
         self.dlg.comboBoxIrrigationWE.addItems(sorted(wateruse_listWE))
-        self.dlg.comboBoxIrrigationWD.addItems(sorted(wateruse_listWD)) #TODO need to try to combine manual and automativ Wateruse
-        self.dlg.comboBoxIrrigationWE.addItems(sorted(wateruse_listWE))
+        self.dlg.comboBoxIrrigationAWD.addItems(sorted(wateruse_listAWD)) 
+        self.dlg.comboBoxIrrigationAWE.addItems(sorted(wateruse_listAWE))
         
 
         for cbox in [self.dlg.comboBoxPaved, self.dlg.comboBoxBuilding, self.dlg.comboBoxBareSoil, self.dlg.comboBoxEvrTree, self.dlg.comboBoxDecTree, 
                      self.dlg.comboBoxGrass, self.dlg.comboBoxAnthro,self.dlg.comboBoxTrafficWD,self.dlg.comboBoxTrafficWE,
                      self.dlg.comboBoxSnowWD,self.dlg.comboBoxSnowWE,self.dlg.comboBoxHumanWD, self.dlg.comboBoxHumanWE,
                      self.dlg.comboBoxPopdensWD, self.dlg.comboBoxPopdensWE, self.dlg.comboBoxEnergyUseWD, self.dlg.comboBoxEnergyUseWE,
-                     self.dlg.comboBoxIrrigationAWD,self.dlg.comboBoxIrrigationAWE,
+                     self.dlg.comboBoxIrrigationAWD,self.dlg.comboBoxIrrigationAWE, self.dlg.comboBoxIrrigationWD, self.dlg.comboBoxIrrigationWE
                      ]: #steg3
             cbox.setCurrentIndex(-1)
 
@@ -437,8 +442,8 @@ class SUEWSPrepareDatabase(object):
         decide_country_region('Deciduous Tree',country_sel, reg_sel, self.dlg.comboBoxDecTree)
         decide_country_region('Grass',country_sel, reg_sel, self.dlg.comboBoxGrass)
         decide_country_region('AnthropogenicCode',country_sel, reg_sel, self.dlg.comboBoxAnthro)
-        decide_country_region('TrafficRate_WD',country_sel, reg_sel, self.dlg.comboBoxTrafficWD) #finns bara i country?
-        decide_country_region('TrafficRate_WE',country_sel, reg_sel, self.dlg.comboBoxTrafficWE) 
+        decide_country_region('TraffProfWD',country_sel, reg_sel, self.dlg.comboBoxTrafficWD) #finns bara i country?
+        decide_country_region('TraffProfWE',country_sel, reg_sel, self.dlg.comboBoxTrafficWE) 
         decide_country_region('ActivityProfWD',country_sel, reg_sel, self.dlg.comboBoxHumanWD)
         decide_country_region('ActivityProfWE',country_sel, reg_sel, self.dlg.comboBoxHumanWE)
         decide_country_region('PopProfWD',country_sel, reg_sel, self.dlg.comboBoxPopdensWD)
@@ -556,8 +561,8 @@ class SUEWSPrepareDatabase(object):
 
         print(self.Metfile_path)
         if self.Metfile_path is None:
-            #QMessageBox.critical(self.dlg, "Error", "Meteorological data file has not been provided")
-            # return
+            QMessageBox.critical(self.dlg, "Error", "Meteorological data file has not been provided")
+            return
             pass
         elif os.path.isfile(self.Metfile_path[0]):
             with open(self.Metfile_path[0]) as metfile:
@@ -575,8 +580,8 @@ class SUEWSPrepareDatabase(object):
                         else:
                             year2 = split[0]
         else:
-            #QMessageBox.critical(self.dlg, "Error", "Could not find the file containing meteorological data")
-            # return
+            QMessageBox.critical(self.dlg, "Error", "Could not find the file containing meteorological data")
+            return
             pass
         
 
@@ -584,14 +589,14 @@ class SUEWSPrepareDatabase(object):
         poly = self.dlg.layerComboManagerPolygrid.currentLayer()
             
         if poly is None:
-           # QMessageBox.critical(None, "Error", "No valid Polygon layer is selected")
-            return
+           QMessageBox.critical(None, "Error", "No valid Polygon layer is selected")
+           return
         
 
         poly_field = self.dlg.layerComboManagerPolyField.currentField()
         
         if poly_field == '':
-            #QMessageBox.critical(None, "Error", "An attribute field with unique fields must be selected")
+            QMessageBox.critical(None, "Error", "An attribute field with unique fields must be selected")
             return
 
         vlayer = QgsVectorLayer(poly.source(), "polygon", "ogr")
@@ -711,6 +716,7 @@ class SUEWSPrepareDatabase(object):
                         QMessageBox.critical(self.dlg, "Error", "One or more inputs in Fixed height [option 1] is not increasing.")
                         return
 
+
         settings_dict = {'vlayer':vlayer, 'poly_field':poly_field, 'Metfile_path': self.Metfile_path, 'start_DLS': self.start_DLS, 
                         'end_DLS': self.end_DLS, 'LCF_from_file' :self.LCF_from_file, 'LCFfile_path' : self.LCFfile_path,
                         'IMP_from_file' : self.IMP_from_file, 'IMPfile_path': self.IMPfile_path, 'IMP_z0' : self.IMP_z0, 'IMP_zd' : self.IMP_zd, 
@@ -727,6 +733,7 @@ class SUEWSPrepareDatabase(object):
                         'skew' : self.skew, 'ss_dir': self.ss_dir, 'spartacus': self.spartacus, 
                         }
         
+        # Add to settings_dict selected profiles and surfaces
         for cbox, var in zip(
             [self.dlg.comboBoxPaved, self.dlg.comboBoxBuilding,self.dlg.comboBoxBareSoil, self.dlg.comboBoxEvrTree, self.dlg.comboBoxDecTree, 
             self.dlg.comboBoxGrass, self.dlg.comboBoxAnthro,self.dlg.comboBoxTrafficWD,self.dlg.comboBoxTrafficWE,
@@ -734,11 +741,11 @@ class SUEWSPrepareDatabase(object):
             self.dlg.comboBoxPopdensWD, self.dlg.comboBoxPopdensWE, self.dlg.comboBoxEnergyUseWD, self.dlg.comboBoxEnergyUseWE,
             self.dlg.comboBoxIrrigationWD,self.dlg.comboBoxIrrigationWE, self.dlg.comboBoxIrrigationAWD,self.dlg.comboBoxIrrigationAWE],
         
-            ['Paved' ,'Buildings', 'Bare Soil', 'Evergreen Tree', 'Decidous Tree', 
-            'Grass' ,'AnthropogenicCode', 'TrafficRate_WD'  , 'TrafficRate_WE',
+            ['Paved' ,'Buildings', 'Bare Soil', 'Evergreen Tree', 'Deciduous Tree', 
+            'Grass' ,'AnthropogenicCode', 'TraffProfWD'  , 'TraffProfWE',
             'SnowClearingProfWD','SnowClearingProfWE', 'ActivityProfWD','ActivityProfWE',
-            'PopProfWD' , 'PopProfWE', 'EnergyUseProfWD', 'EnergyUseProfWE', 'SnowRemovalWD' ,'SnowRemovalWE',
-            'WaterUseProfManuWD', 'WaterUseProfManuWE','WaterUseProfMWD', 'WaterUseProfAutoWE']):
+            'PopProfWD' , 'PopProfWE', 'EnergyUseProfWD', 'EnergyUseProfWE',
+            'WaterUseProfManuWD', 'WaterUseProfManuWE','WaterUseProfAutoWD', 'WaterUseProfAutoWE']):
             
             settings_dict[var] =  cbox.currentText()
         
@@ -771,19 +778,6 @@ class SUEWSPrepareDatabase(object):
     #                      heightMethod, vertheights, nlayerIn, skew, ss_dir, spartacus, defTypo):
 
 
-        # testmode = True 
-
-        # if testmode is True:
-        #     output_dir = r'C:\Users\xbacos\OneDrive - University of Gothenburg\Artikel_4\OUT\OSept'
-        #     Metfile_path = r'C:\GitHub\suews_prepare_database\sample_data\Kb_2017_data_60.txt'
-        #     IMPfile_path = r'C:\GitHub\suews_prepare_database\sample_data\imp_IMPGrid_isotropic.txt'
-        #     IMPvegfile_path = r'C:\GitHub\suews_prepare_database\sample_data\lc_LCFG_isotropic.txt'
-        #     LCFfile_path =  r'suews_prepare_database/sample_data/veg_IMPGrid_isotropic.txt'
-        #     file_code = 'kvb'
-        #     IMP_from_file = True
-        #     ss_dir = r'C:\GitHub\suews_prepare_database\sample_data'
-        #     # polygonfile = r'C:\GitHub\suews_prepare_database\sample_data\gridKville.shp'
-
         plugin_dir = settings_dict['plugin_dir']
         output_dir = settings_dict ['output_dir']
 
@@ -814,9 +808,38 @@ class SUEWSPrepareDatabase(object):
         # Read DB
         db_path = plugin_dir + '/Input/database.xlsx'  # TODO When in UMEP Toolbox, set this path to db in database manager, and instead send from plugin instead of read again
         db_dict = read_DB(db_path)
+    
+        # change stringnames to codes. bit annoying, but more effective.. 20241127
+        gui_lookup_dict = GUI_lookup_dict(db_dict)
+        for var, lookup in zip(
+            ['Paved' ,'Buildings', 'Bare Soil', 'Evergreen Tree', 'Deciduous Tree', 
+            'Grass' ,'AnthropogenicCode', 'TraffProfWD'  , 'TraffProfWE',
+            'SnowClearingProfWD','SnowClearingProfWE', 'ActivityProfWD','ActivityProfWE',
+            'PopProfWD' , 'PopProfWE', 'EnergyUseProfWD', 'EnergyUseProfWE',
+            'WaterUseProfManuWD', 'WaterUseProfManuWE','WaterUseProfAutoWD', 'WaterUseProfAutoWE'],
+            
+            ['Paved' ,'Buildings', 'Bare Soil', 'Evergreen Tree', 'Deciduous Tree', 
+            'Grass' ,'AnthropogenicEmission', 'Traffic'  , 'Traffic',
+            'Snow removal','Snow removal', 'Human activity','Human activity',
+            'Population density' , 'Population density', 'Energy use', 'Energy use',
+            'Water use (manual)', 'Water use (manual)','Water use (automatic)', 'Water use (automatic)']):
 
-        # Vectorize type_id_dict creation
-        # type_id_dict = db_dict['NonVeg'].loc[db_dict['NonVeg']['Surface'] == 'Buildings'].set_index('nameOrigin').index.to_series().to_dict()
+            try:
+                settings_dict[var] =  gui_lookup_dict[lookup][settings_dict[var]]
+
+            except:
+                  for lu in ['Paved' ,'Buildings', 'Bare Soil', 'Evergreen Tree', 'Deciduous Tree', 
+                    'Grass' ,'AnthropogenicEmission', 'Traffic'  , 'Traffic',
+                    'Snow removal','Snow removal', 'Human activity','Human activity',
+                    'Population density' , 'Population density', 'Energy use', 'Energy use',
+                    'Water use (manual)', 'Water use (manual)','Water use (automatic)', 'Water use (automatic)']:
+                    try:
+                        settings_dict[var] =  gui_lookup_dict[lu][settings_dict[var]]
+                        break
+                    except:
+                        pass
+                    
+
 
         # Vectorize country_conv_dict creation
         country_conv_dict = (db_dict['Country']['Country'] + ', ' + db_dict['Country']['City']).to_dict()
@@ -830,26 +853,6 @@ class SUEWSPrepareDatabase(object):
 
         # Set parameters from regional or country level and populate parameter_dict
         parameter_dict = {column: decide_country_or_region(column, country_sel, db_dict['Region']) for column in column_list}
-
-        # # These lines below reads the Profies of the regional settings set in the comboboxes in Suews Prepare
-        # for var in ['TrafficRate_WD'  , 'TrafficRate_WE', 'SnowClearingProfWD','SnowClearingProfWE', 'ActivityProfWD','ActivityProfWE',
-        #             'PopProfWD' , 'PopProfWE', 'EnergyUseProfWD', 'EnergyUseProfWE', 'SnowRemovalWD' ,'SnowRemovalWE',
-        #             'WaterUseProfAutoWD', 'WaterUseProfAutoWE','WaterUseProfAutoWD', 'WaterUseProfAutoWE']:
-            
-        #     selected_regional_var = settings_dict[var]
-            
-        #     # try:
-        #     parameter_dict[var] = db_dict['Profiles'].loc[db_dict['Profiles']['nameOrigin'] == selected_regional_var].index.item()
-        #     # except:
-        #         # print('no selected var for ' + var)
-
-        # set correct values and write txt.files based on the parameters found at country/regional level 
-        AnEm_dict = fill_SUEWS_AnthropogenicEmission(parameter_dict['AnthropogenicCode'], parameter_dict, db_dict) 
-        snow_dict = fill_SUEWS_Snow(parameter_dict['SnowCode'], db_dict)
-        water_dict = fill_SUEWS_Water(parameter_dict['Water'], db_dict, parameter_dict)
-
-        cond_dict = db_dict['Conductance'].loc[parameter_dict['Conductance']].to_dict()
-        cond_dict['Code'] = parameter_dict['Conductance']
 
         if settings_dict['LCF_from_file']:
             LCF_dict = read_morph_txt(settings_dict['LCFfile_path'][0])
@@ -902,9 +905,10 @@ class SUEWSPrepareDatabase(object):
             geodata_output['defaulttypo'] = processing.run("native:dissolve", parin )
 
             # defaultTypoID = db_dict['NonVeg'].loc[db_dict['NonVeg']['nameOrigin']==defTypo].index.item()
+            
             defaultTypoID = create_code('Types')
-            db_dict['Types'].loc[defaultTypoID, 'Paved'] = db_dict['NonVeg'][(db_dict['NonVeg']['nameOrigin'] == settings_dict['Paved']) & (db_dict['NonVeg']['Surface'] == 'Paved')].index.item()
-            db_dict['Types'].loc[defaultTypoID, 'Buildings'] = db_dict['NonVeg'][(db_dict['NonVeg']['nameOrigin'] == settings_dict['Buildings']) & (db_dict['NonVeg']['Surface'] == 'Buildings')].index.item()
+            db_dict['Types'].loc[defaultTypoID, 'Paved'] = settings_dict['Paved']#db_dict['NonVeg'][(db_dict['NonVeg']['nameOrigin'] == settings_dict['Paved']) & (db_dict['NonVeg']['Surface'] == 'Paved')].index.item()
+            db_dict['Types'].loc[defaultTypoID, 'Buildings'] = settings_dict['Buildings']#db_dict['NonVeg'][(db_dict['NonVeg']['nameOrigin'] == settings_dict['Buildings']) & (db_dict['NonVeg']['Surface'] == 'Buildings')].index.item()
 
             parin = {'INPUT':geodata_output['defaulttypo']['OUTPUT'],
                      'FIELD_NAME':'TypolID',
@@ -960,21 +964,18 @@ class SUEWSPrepareDatabase(object):
 
         ################# Start calculating volumetric fractions ###########################
         # This dictionary retrieve the Code for selected typologies. The Reclassifier uses String values, but later on we need codes in Int
-        # str_to_code_dict = db_dict['Types']['nameOrigin'].to_dict() # TODO Change this to below when we have removed typology level buildings
-        # code_to_str_dict = db_dict['NonVeg']['nameOrigin'].to_dict() # TODO Use this later on instead
-        # str_to_code_dict = {v: k for k, v in code_to_str_dict.items()}  # This is just the same dictionary but inverted
 
         if settings_dict['spartacus'] == 1:
             # Create wall raster
 
             # New findwalls from 20241022 
             walls = findwalls(build_arrW, 0.5) # feedback, total) # 0.5 meter difference in kernel filter identify a wall
-
             saveraster(gdal.Open(filePath_dsm), walls_raster_out, walls)
+
             # find prefix for filename in IMP-file
             pre = os.path.basename(settings_dict['IMPfile_path'][0])[:os.path.basename(settings_dict['IMPfile_path'][0]).find('_')]
 
-            # new approach using rasterize instead of xonal stat to avoid shapefile overwrite issue in QGIS
+            # new approach using rasterize instead of zonal stat to avoid shapefile overwrite issue in QGIS
             ras_crs = osr.SpatialReference()
             dsm_ref = settings_dict['dsmlayer'].crs().toWkt()
             ras_crs.ImportFromWkt(dsm_ref)
@@ -1077,8 +1078,6 @@ class SUEWSPrepareDatabase(object):
                 grid_dict[id][typology]['emissivity_roof'] = locator['emissivity_roof']
                 grid_dict[id][typology]['emissivity_wall'] = locator['emissivity_wall']
                 
-                #db_dict['Spartacus Surface'].loc[db_dict['NonVeg'].loc[db_dict['Types'].loc[typology]['Buildings']]['Spartacus Surface']]['u_value_wall'] #TODO HÄr är jag
-
             ## Spartacus ##
             if settings_dict['spartacus'] == 1:
                 #vertical info from IMP calc
@@ -1166,7 +1165,18 @@ class SUEWSPrepareDatabase(object):
         save_NonVeg_types(nonVeg_dict, save_txt_folder, db_dict)
            
         # Write SUEWS.txt files SUEWS_veg, SUEWS_AnthropogenicEmission, SUEWS_Water and SUEWS_Conductance
-        veg_dict = fill_SUEWS_Veg(db_dict, parameter_dict)
+        veg_dict = fill_SUEWS_Veg(db_dict, settings_dict, parameter_dict['SoilTypeCode'])
+    
+        # Save Profiles
+        fill_SUEWS_profiles(settings_dict, save_txt_folder, db_dict['Profiles']) 
+
+        # set correct values and write txt.files based on the parameters found at country/regional level 
+        AnEm_dict = fill_SUEWS_AnthropogenicEmission(settings_dict, db_dict['AnthropogenicEmission']) 
+        snow_dict = fill_SUEWS_Snow(parameter_dict['SnowCode'], db_dict)
+        water_dict = fill_SUEWS_Water(parameter_dict['Water'], db_dict, parameter_dict)
+
+        cond_dict = db_dict['Conductance'].loc[parameter_dict['Conductance']].to_dict()
+        cond_dict['Code'] = parameter_dict['Conductance']
 
         save_SUEWS_txt(pd.DataFrame.from_dict(veg_dict, orient='index').set_index('Code'), 'SUEWS_Veg.txt', save_txt_folder, db_dict)
         save_SUEWS_txt(pd.DataFrame.from_dict(AnEm_dict, orient = 'index').T.set_index('Code'), 'SUEWS_AnthropogenicEmission.txt', save_txt_folder, db_dict)
@@ -1179,19 +1189,9 @@ class SUEWSPrepareDatabase(object):
         # write SUEWS_Snow
         save_snow(snow_dict, save_txt_folder, db_dict)
 
-        # Save Profiles
-        profiles = ['TrafficRate_WD','TrafficRate_WE', 'EnergyUseProfWD','EnergyUseProfWE','ActivityProfWD','ActivityProfWE','PopProfWD','PopProfWE', 'SnowClearingProfWD', 'SnowClearingProfWE','WaterUseProfManuWD','WaterUseProfManuWE','WaterUseProfAutoWD','WaterUseProfAutoWE']        
-        profiles_list = []
-        for i in profiles:
-            profiles_list.append(parameter_dict[i])
-            # profiles_list = list(set(profiles_list))
-
-        fill_SUEWS_profiles(parameter_dict, profiles, profiles_list, save_txt_folder, db_dict['Profiles']) 
-
         OHM_list = []
         BIOCO2_list = []
         
-    
         # Iterate through all parameter dicts to ensure that all used, OHM and Biogen codes are written into the SUEWS.txt files
         for dict_sel, dict_name in zip([nonVeg_dict, veg_dict, snow_dict, water_dict ],['NonVeg', 'Veg', 'Snow', 'Water']):
             
@@ -1244,6 +1244,57 @@ class SUEWSPrepareDatabase(object):
         # ################################################################################################################################
 
         ind = 1
+        year = None     # Not sure what this is, but it works
+        year2 = None    # Not surre what this is, but it works
+
+        if settings_dict['Metfile_path'] is None:
+            QMessageBox.critical(None, "Error", "Meteorological data file has not been provided,"
+                                        " please check the main tab")
+            return
+        
+        elif os.path.isfile(settings_dict['Metfile_path'][0]):
+            with open(settings_dict['Metfile_path'][0]) as file:
+                next(file)
+                for line in file:
+                    split = line.split()
+                    if year == split[0]:
+                        break
+                    else:
+                        if year2 == split[0]:
+                            year = split[0]
+                            break
+                        elif year is None:
+                            year = split[0]
+                        else:
+                            year2 = split[0]
+
+            # figure out the time res of input file
+            if ind == 1:
+                met_old = np.genfromtxt(settings_dict['Metfile_path'][0], skip_header=1, skip_footer=2)
+                id = met_old[:, 1]
+                it = met_old[:, 2]
+                imin = met_old[:, 3]
+                dectime0 = id[0] + it[0] / 24 + imin[0] / (60 * 24)
+                dectime1 = id[1] + it[1] / 24 + imin[1] / (60 * 24)
+                res = int(np.round((dectime1 - dectime0) * (60 * 24)))
+                ind = 999
+
+                YYYY = int32(np.min(met_old[:, 0]))
+                
+                # --- save met-file --- #
+                data_out = self.output_dir[0] + "/" + self.file_code + '_' + str(YYYY) + '_data_' + str(res) + '.txt'
+                header = '%iy id it imin Q* QH QE Qs Qf Wind RH Td press rain Kdn snow ldown fcld wuh xsmd lai_hr ' \
+                         'Kdiff Kdir Wd'
+                numformat = '%3d %2d %3d %2d %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.4f %6.2f %6.2f ' \
+                            '%6.2f %6.2f %6.4f %6.2f %6.2f %6.2f %6.2f %6.2f'
+
+                np.savetxt(data_out, met_old, fmt=numformat, delimiter=' ', header=header, comments='')
+
+        else:
+            QMessageBox.critical(None, "Error",
+                                    "Could not find the file containing meteorological data")
+            return
+
 
         # Loop Start for each Grid
         for feature in settings_dict['vlayer'].getFeatures():
@@ -1267,46 +1318,8 @@ class SUEWSPrepareDatabase(object):
             feat_id = int(feature.attribute(settings_dict['poly_field']))
     
             print('Processing ID: ' + str(feat_id) + ' for grid specific parameters')
-            year = None     # Not sure what this is, but it works
-            year2 = None    # Not surre what this is, but it works
             
             ss_dict[feat_id] = {}  # Set new key for grid in ss_dicts        
-
-            if settings_dict['Metfile_path'] is None:
-                QMessageBox.critical(None, "Error", "Meteorological data file has not been provided,"
-                                                    " please check the main tab")
-                return
-            elif os.path.isfile(settings_dict['Metfile_path'][0]):
-                with open(settings_dict['Metfile_path'][0]) as file:
-                    next(file)
-                    for line in file:
-                        split = line.split()
-                        if year == split[0]:
-                            break
-                        else:
-                            if year2 == split[0]:
-                                year = split[0]
-                                break
-                            elif year is None:
-                                year = split[0]
-                            else:
-                                year2 = split[0]
-
-                # figure out the time res of input file
-                if ind == 1:
-                    met_old = np.genfromtxt(settings_dict['Metfile_path'][0], skip_header=1, skip_footer=2)
-                    id = met_old[:, 1]
-                    it = met_old[:, 2]
-                    imin = met_old[:, 3]
-                    dectime0 = id[0] + it[0] / 24 + imin[0] / (60 * 24)
-                    dectime1 = id[1] + it[1] / 24 + imin[1] / (60 * 24)
-                    res = int(np.round((dectime1 - dectime0) * (60 * 24)))
-                    ind = 999
-
-            else:
-                QMessageBox.critical(None, "Error",
-                                        "Could not find the file containing meteorological data")
-                return
 
             old_cs = osr.SpatialReference()
             vlayer_ref = settings_dict['vlayer'].crs().toWkt()
@@ -1375,8 +1388,8 @@ class SUEWSPrepareDatabase(object):
             IrrFr_Water = 0
             IrrFr_BSoil = 0
 
-            TrafficRate_WD = 0.01 ## Already in dict
-            TrafficRate_WE = 0.01 ## Already in dict
+            TrafficRate_WD = 0.0135 ## Already in dict
+            TrafficRate_WE = 0.0095 ## Already in dict
 
             QF0_BEU_WD = 0.88 ## Already in dict
             QF0_BEU_WE = 0.88 ## Already in dict
@@ -1575,16 +1588,16 @@ class SUEWSPrepareDatabase(object):
                 "AreaWall" : (float(IMP_wai) * hectare * 10000.),
                 "CondCode" : parameter_dict['Conductance'],
                 "SnowCode" : snow_dict['Code'],
-                'TrafficRate_WD' : parameter_dict['TrafficRate_WD'],
-                'TrafficRate_WE' : parameter_dict['TrafficRate_WE'], 
-                'SnowClearingProfWD' : parameter_dict['SnowClearingProfWD'], 
-                'SnowClearingProfWE' : parameter_dict['SnowClearingProfWE'], 
-                'AnthropogenicCode': parameter_dict['AnthropogenicCode'], 
+                'TrafficRate_WD' : TrafficRate_WD, # TODO now HARDCODED
+                'TrafficRate_WE' : TrafficRate_WE, # TODO now HARDCODED
+                'SnowClearingProfWD' : settings_dict['SnowClearingProfWD'], 
+                'SnowClearingProfWE' : settings_dict['SnowClearingProfWE'], 
+                'AnthropogenicCode':  settings_dict['AnthropogenicCode'], 
                 'IrrigationCode':  parameter_dict['IrrigationCode'], 
-                'WaterUseProfManuWD': parameter_dict['WaterUseProfManuWD'], 
-                'WaterUseProfManuWE': parameter_dict['WaterUseProfManuWE'], 
-                'WaterUseProfAutoWD': parameter_dict['WaterUseProfAutoWD'], 
-                'WaterUseProfAutoWE' : parameter_dict['WaterUseProfAutoWE'], 
+                'WaterUseProfManuWD': settings_dict['WaterUseProfManuWD'], 
+                'WaterUseProfManuWE': settings_dict['WaterUseProfManuWE'], 
+                'WaterUseProfAutoWD': settings_dict['WaterUseProfAutoWD'], 
+                'WaterUseProfAutoWE' : settings_dict['WaterUseProfAutoWE'], 
                 # Population
                 "PopDensDay" : '%.3f' % pop_density_day,
                 "PopDensNight" : '%.3f' % pop_density_night,
@@ -1648,9 +1661,9 @@ class SUEWSPrepareDatabase(object):
                 # if grid doesnt contain any typology, set to standard for region/country
                 # nonVeg_dict will not have information for grids without typloogy and raise error. Thus, Except statement
             except:
-                ss_dict[feat_id]['Code_Paved'] = parameter_dict['Paved']
-                ss_dict[feat_id]['Code_Bldgs'] = parameter_dict['Buildings']
-                ss_dict[feat_id]['Code_Bsoil'] = parameter_dict['Bare Soil']
+                ss_dict[feat_id]['Code_Paved'] = settings_dict['Paved']
+                ss_dict[feat_id]['Code_Bldgs'] = settings_dict['Buildings']
+                ss_dict[feat_id]['Code_Bsoil'] = settings_dict['Bare Soil']
 
             ss_dict[feat_id]['Code_EveTr'] = veg_dict['Evergreen Tree']['Code']
             ss_dict[feat_id]['Code_DecTr'] = veg_dict['Deciduous Tree']['Code']
@@ -1693,8 +1706,8 @@ class SUEWSPrepareDatabase(object):
             error_string = error_string + '\n\nCheck Python console to find this information again'
             
             QMessageBox.critical(self.dlg, "Run complete but with Spartacus Vertical morphology errors", error_string)
-        # else:
-        #     QMessageBox.Information(self.dlg, "Run complete")
+
+        iface.messageBar().pushMessage("Success", "Process completed successfully!", level=Qgis.Success)
 
     def write_to_init(self, initfilein, initfileout):
         LeafCycle = self.leaf_cycle

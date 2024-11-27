@@ -136,6 +136,57 @@ code_id_dict = {
 
 # for creating new_codes when aggregating
 
+def GUI_lookup_dict(db_dict):
+    # Initialize the dictionary with categories
+    categories = [
+        'Water use (manual)', 'Water use (automatic)', 'Energy use', 
+        'Snow removal', 'Human activity', 'Traffic', 'Population density'
+    ]
+
+    new_dict = {category: {} for category in categories}
+
+    # Populate the dictionary for profiles
+    profiles = db_dict['Profiles']
+    for code in profiles.index:
+        profile_type = profiles.loc[code, 'Profile Type']
+        if profile_type not in ['Residential', 'commercial', 'Industry']:
+            name_origin = profiles.loc[code, 'nameOrigin']
+            
+            new_dict[profile_type][name_origin] = code
+            new_dict[profile_type][code] = name_origin
+
+    # Populate the dictionary for anthropogenic emissions
+    new_dict['AnthropogenicEmission'] = {}
+    emissions = db_dict['AnthropogenicEmission']
+    for code in emissions.index:
+        name_origin = emissions.loc[code, 'nameOrigin']
+        new_dict['AnthropogenicEmission'][code] = name_origin
+        new_dict['AnthropogenicEmission'][name_origin] = code
+
+    # Populate the dictionary for non-vegetation surfaces
+    non_veg_surfaces = ['Paved', 'Buildings', 'Bare Soil']
+    non_veg_table = db_dict['NonVeg']
+    for surface in non_veg_surfaces:
+        new_dict[surface] = {}
+        surface_table = non_veg_table.loc[non_veg_table['Surface'] == surface]
+        for code in surface_table.index:
+            name_origin = surface_table.loc[code, 'nameOrigin']
+            new_dict[surface][code] = name_origin
+            new_dict[surface][name_origin] = code
+
+    # Populate the dictionary for vegetation surfaces
+    veg_surfaces = ['Grass', 'Deciduous Tree', 'Evergreen Tree']
+    veg_table = db_dict['Veg']
+    for surface in veg_surfaces:
+        new_dict[surface] = {}
+        surface_table = veg_table.loc[veg_table['Surface'] == surface]
+        for code in surface_table.index:
+            name_origin = surface_table.loc[code, 'nameOrigin']
+            new_dict[surface][code] = name_origin
+            new_dict[surface][name_origin] = code
+
+    return new_dict
+
 def create_code(table_name):
 
     '''
@@ -170,8 +221,8 @@ surf_df_dict = {
     'Water' : 'Water',
     'IrrigationCode' : 'Irrigation',       #test to fix fill in of irrigation 
     'AnthropogenicCode' : 'AnthropogenicEmission',
-    'TrafficRate_WD' : 'Profiles',   
-    'TrafficRate_WE' : 'Profiles',
+    'TraffProfWD' : 'Profiles',   
+    'TraffProfWE' : 'Profiles',
     'ActivityProfWD' : 'Profiles',
     'ActivityProfWE' : 'Profiles',
     'WaterUseProfManuWD' : 'Profiles',
@@ -341,7 +392,7 @@ def fill_SUEWS_Water(locator, db_dict, column_dict):
     }
     return table_dict
 
-def fill_SUEWS_Veg(db_dict, column_dict ):
+def fill_SUEWS_Veg(db_dict, settings_dict, soilTypeCode):
     '''
     This function is used to assign correct params to selected Veg codes 
     Fills for all surfaces (grass, evergreen trees, deciduous trees)
@@ -352,7 +403,7 @@ def fill_SUEWS_Veg(db_dict, column_dict ):
     for surface in ['Evergreen Tree', 'Deciduous Tree', 'Grass']:
         table_dict[surface] = {}
 
-        locator = column_dict[surface]
+        locator = settings_dict[surface]
         table_dict[surface] = {
                 'Code' : locator,
                 'AlbedoMin' :   db_dict['Albedo'].loc[table.loc[locator, 'Albedo'], 'Alb_min'],
@@ -365,12 +416,12 @@ def fill_SUEWS_Veg(db_dict, column_dict ):
                 'DrainageEq' : db_dict['Drainage'].loc[table.loc[locator, 'Drainage'], 'DrainageEq'],
                 'DrainageCoef1' : db_dict['Drainage'].loc[table.loc[locator, 'Drainage'], 'DrainageCoef1'],
                 'DrainageCoef2' : db_dict['Drainage'].loc[table.loc[locator, 'Drainage'], 'DrainageCoef2'],
-                'SoilTypeCode' : column_dict['SoilTypeCode'], #table.loc[locator, 'SoilTypeCode'],  36),
+                'SoilTypeCode' : soilTypeCode, #table.loc[locator, 'SoilTypeCode'],  36),
                 'SnowLimPatch' : 190, # TODO set regional
-                'BaseT' :       db_dict['Vegetation Growth'].loc[column_dict['Vegetation Growth'], 'BaseT'], #db_dict['Vegetation Growth'].loc[table.loc[locator, 'Vegetation Growth'], 'BaseT'],
-                'BaseTe' :      db_dict['Vegetation Growth'].loc[column_dict['Vegetation Growth'], 'BaseTe'],#db_dict['Vegetation Growth'].loc[table.loc[locator, 'Vegetation Growth'], 'BaseTe'],
-                'GDDFull' :     db_dict['Vegetation Growth'].loc[column_dict['Vegetation Growth'], 'GDDFull'],#db_dict['Vegetation Growth'].loc[table.loc[locator, 'Vegetation Growth'], 'GDDFull'],
-                'SDDFull' :     db_dict['Vegetation Growth'].loc[column_dict['Vegetation Growth'], 'SDDFull'],#db_dict['Vegetation Growth'].loc[table.loc[locator, 'Vegetation Growth'], 'SDDFull'],
+                'BaseT' :       db_dict['Vegetation Growth'].loc[table.loc[locator, 'Vegetation Growth'], 'BaseT'],
+                'BaseTe' :      db_dict['Vegetation Growth'].loc[table.loc[locator, 'Vegetation Growth'], 'BaseTe'],
+                'GDDFull' :     db_dict['Vegetation Growth'].loc[table.loc[locator, 'Vegetation Growth'], 'GDDFull'],
+                'SDDFull' :     db_dict['Vegetation Growth'].loc[table.loc[locator, 'Vegetation Growth'], 'SDDFull'],
                 'LAIMin' :      db_dict['Leaf Area Index'].loc[table.loc[locator, 'Leaf Area Index'], 'LAIMin'],
                 'LAIMax' :      db_dict['Leaf Area Index'].loc[table.loc[locator, 'Leaf Area Index'], 'LAIMax'],
                 'PorosityMin' : db_dict['Porosity'].loc[table.loc[locator, 'Porosity'], 'PorosityMin'],
@@ -393,6 +444,7 @@ def fill_SUEWS_Veg(db_dict, column_dict ):
                 'AnOHM_Ch' : -999,
                 'BiogenCO2Code' : table.loc[locator, 'Biogen CO2']
             }
+        
     return table_dict
 
 def fill_SUEWS_Snow(locator, db_dict):
@@ -432,16 +484,14 @@ def fill_SUEWS_Snow(locator, db_dict):
 
     return table_dict
 
-def fill_SUEWS_AnthropogenicEmission(locator, parameter_dict, db_dict):
+def fill_SUEWS_AnthropogenicEmission(settings_dict, table):
     '''
     This function is used to assign correct params to selected Snow code
     Locator is selected code
     This needs to be fiddled with
     # TODO what params should be regional and not? Which ones should be removed
     '''
-    
-    table = db_dict['AnthropogenicEmission']
-
+    locator =  settings_dict['AnthropogenicCode']
     table_dict = {
         'Code' : locator,
         'BaseT_HC' : table.loc[locator, 'BaseT_HC'],
@@ -461,14 +511,14 @@ def fill_SUEWS_AnthropogenicEmission(locator, parameter_dict, db_dict):
         'TCritic_Heating_WE' : table.loc[locator, 'TCritic_Heating_WE'],
         'TCritic_Cooling_WD' : table.loc[locator, 'TCritic_Cooling_WD'],
         'TCritic_Cooling_WE' : table.loc[locator, 'TCritic_Cooling_WE'],
-        'EnergyUseProfWD' : parameter_dict['EnergyUseProfWD'], #.item() ,
-        'EnergyUseProfWE' : parameter_dict['EnergyUseProfWE'], #.item() ,
-        'ActivityProfWD' : parameter_dict['ActivityProfWD'], #.item(),
-        'ActivityProfWE' : parameter_dict['ActivityProfWE'], #.item(),
-        'TraffProfWD' : parameter_dict['TrafficRate_WD'], #.item(),
-        'TraffProfWE' : parameter_dict['TrafficRate_WE'], #.item(),
-        'PopProfWD' : parameter_dict['PopProfWD'], #.item(),
-        'PopProfWE' : parameter_dict['PopProfWE'], #.item() ,
+        'EnergyUseProfWD' : settings_dict['EnergyUseProfWD'],
+        'EnergyUseProfWE' : settings_dict['EnergyUseProfWE'],
+        'ActivityProfWD' : settings_dict['ActivityProfWD'],
+        'ActivityProfWE' : settings_dict['ActivityProfWE'],
+        'TraffProfWD' : settings_dict['TraffProfWD'],
+        'TraffProfWE' : settings_dict['TraffProfWE'],
+        'PopProfWD' : settings_dict['PopProfWD'],
+        'PopProfWE' : settings_dict['PopProfWE'],
         'MinQFMetab' : table.loc[locator, 'MinQFMetab'],
         'MaxQFMetab' : table.loc[locator, 'MaxQFMetab'],
         'MinFCMetab' : table.loc[locator, 'MinFCMetab'],
@@ -544,7 +594,6 @@ def new_table_edit(db_dict, table_dict, values, param, name, frac_dict, surface)
 
     return db_dict
 
-
 def findwalls(arr_dsm, walllimit):
     # Get the shape of the input array
     col, row = arr_dsm.shape
@@ -576,15 +625,24 @@ def findwalls(arr_dsm, walllimit):
     return walls
 
 
-def fill_SUEWS_profiles(parameter_dict, profiles, profiles_list ,save_folder, prof):
+def fill_SUEWS_profiles(settings_dict ,save_folder, prof):
     '''
     This function is used to assign correct profiles
     Locator is selected code
     This function also saves the profiles to .txt
     '''
+
+    # profiles_list = []
+    # for keys in profiles_dict.keys():
+    #     profiles_list.append(profiles_dict[keys]['profileCode'])
+
+    profiles_list = ['TraffProfWE','TraffProfWD', 'EnergyUseProfWD','EnergyUseProfWE','ActivityProfWD','ActivityProfWE','PopProfWD','PopProfWE', 'SnowClearingProfWD', 'SnowClearingProfWE','WaterUseProfManuWD','WaterUseProfManuWE','WaterUseProfAutoWD','WaterUseProfAutoWE']        
+
+
     df_m = DataFrame()
 
-    for locator in profiles_list:
+    for profile in profiles_list:
+        locator = settings_dict[profile]
         table_dict = {
             'Code' : locator,
             '0'  : prof.loc[locator, 0],
@@ -612,17 +670,19 @@ def fill_SUEWS_profiles(parameter_dict, profiles, profiles_list ,save_folder, pr
             '22' : prof.loc[locator, 22],
             '23' : prof.loc[locator, 23],
         }
-        dict_df = DataFrame(table_dict, index = [0])#.set_index('Code')
+
+        dict_df = DataFrame(table_dict, index = [0])
         df_m = concat([df_m, dict_df]).drop_duplicates(keep='first')
-        
+
     df_m.columns = [df_m.columns, list(range(1, len(df_m.columns)+1))]
+
     # add -9 rows to text files
     df_m = df_m.swaplevel(0,1,1)
     df_m.loc[-1] = nan
     df_m.iloc[-1, 0] = -9
     df_m.loc[-2]= nan
     df_m.iloc[-1, 0] = -9
-        
+
     df_m.to_csv(save_folder + 'SUEWS_Profiles.txt', sep = '\t' ,index = False)
 
 def save_SUEWS_txt(df_m, table_name, save_folder, db_dict):
@@ -635,6 +695,7 @@ def save_SUEWS_txt(df_m, table_name, save_folder, db_dict):
     df_m.drop(dropFilter, inplace= True, axis = 1)
     df_m.reset_index(inplace = True)
     df_m = df_m.round(4)
+    df_m = df_m.fillna(-999)
 
     if table_name == 'SUEWS_AnthropogenicEmission.txt':
         cd = list(df_m.filter(like='Code').columns)
@@ -649,7 +710,7 @@ def save_SUEWS_txt(df_m, table_name, save_folder, db_dict):
     except:
         pass
 
-     # These two columns are made for adding information on what the code is inside the .txt file
+    # These two columns are made for adding information on what the code is inside the .txt file
     df_m['!'] = '!'
     df_m[''] = ''
     table_name_short = table_name[6:-4] # table_name_short is used to set correct table in DB. all table names are such as "SUEWS_table.txt, and DB only wants table"
